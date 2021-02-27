@@ -1,5 +1,5 @@
-{% set version = "1.6.0" %}
-{% set commit = "b31f58de6fa8bbda5353b3c77d9be4914399724d" %}
+{% set version = "1.7.1" %}
+{% set commit = "57bffc3a8e4fee0cce31e1ff1f662ccf7b16db57" %}
 
 package:
   name: pytorch
@@ -11,11 +11,15 @@ source:
   git_tag: {{ commit }}
   patches:
     - nccl_socket.patch
+    # It is unclear that upstream will allow us to integrate the shared linker
+    # path below until their Intel compiler issues are resolved.
     - remove_shared_linker_flag_override.patch
+    # https://github.com/pytorch/pytorch/pull/49281
     - fix_std_stdint.patch
     - fix_dispatch_apply_auto.patch
     - fix_map_anonymous.patch
     - cpp_extension.patch
+    - fix_msvc_build_issue.patch
     # - fix_c10_export_gcc.patch
     # - do_not_check_clock_realtime.patch
 
@@ -32,6 +36,7 @@ requirements:
     - patch    # [not win]
     - m2-patch  # [win]
     - git
+    - make      # [unix]
   host:
     - cmake
     - git
@@ -41,7 +46,7 @@ requirements:
     - magma                           # [pytorch_variant == "gpu"]
     # other requirements
     - python
-    - numpy
+    - numpy-devel {{ numpy }}
     - pip
     - setuptools
     - pyyaml
@@ -49,16 +54,19 @@ requirements:
     - future
     - six
     - cffi
-    - mkl-devel {{ mkl }}
-    - mkl {{ mkl }}
-    - typing
+    - mkl-devel {{ mkl }}   # [blas_impl == "mkl"]
+    - mkl {{ mkl }}         # [blas_impl == "mkl"]
+    - openblas              # [blas_impl == "openblas"]
+    - typing                # [py2k]
     - ninja
-    - libuv       # [unix]
+    # PyTorch builds its own vendored version of libuv, so no need to supply it
+    #- libuv                 # [unix]
     - pkg-config  # [unix]
     - intel-openmp  # [osx]
   run:
-    - mkl {{ mkl }}
-    - libmklml
+    - mkl {{ mkl }}     # [blas_impl == "mkl"]
+    - libmklml          # [blas_impl == "mkl"]
+    - libopenblas       # [blas_impl == "openblas"]
     - intel-openmp   # [osx]
     - llvm-openmp    # [osx]
     - _pytorch_select ==0.1             # [pytorch_variant == "cpu"]
@@ -68,11 +76,11 @@ requirements:
     - {{ pin_compatible('cudnn') }}                       # [pytorch_variant == "gpu"]
     # other requirements
     - python
-    - {{ pin_compatible('numpy') }}
     - cffi
     - ninja
     - future  # [py2k]
     - typing  # [py2k]
+    - typing-extensions
 
 test:
   requires:
@@ -84,6 +92,7 @@ test:
     - tabulate
     - pydot
     - mock  # [linux]
+    - pip
   imports:
     - torch
   source_files:
@@ -91,9 +100,12 @@ test:
   commands:
     - OMP_NUM_THREADS=4 python ./test/run_test.py || true  # [not win]
     - python ./test/run_test.py  # [win]
+    # Run pip check so as to ensure that all pytorch packages are installed
+    # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/24
+    - pip check
 
 about:
-  home: http://pytorch.org/
+  home: https://pytorch.org/
   license: BSD 3-Clause
   license_family: BSD
   license_file: LICENSE

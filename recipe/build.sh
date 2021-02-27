@@ -8,17 +8,14 @@ rm -rf build
 # uncomment to debug cmake build
 #export CMAKE_VERBOSE_MAKEFILE=1
 
-export LDFLAGS="-Wl,-pie -Wl,-headerpad_max_install_names -Wl,-rpath,$PREFIX/lib -L$PREFIX/lib"
-export LDFLAGS_LD="-Wl,-pie -Wl,-headerpad_max_install_names -Wl,-rpath,$PREFIX/lib -L$PREFIX/lib"
+# Worked previously, but with PyTorch >=1.6.0, use of the `-pie` linker flag
+# triggers `std::__cxx11::basic_string`-related undefined reference errors.
+#export LDFLAGS="-Wl,-pie -Wl,-headerpad_max_install_names -Wl,-rpath,$PREFIX/lib -L$PREFIX/lib"
+#export LDFLAGS_LD="-Wl,-pie -Wl,-headerpad_max_install_names -Wl,-rpath,$PREFIX/lib -L$PREFIX/lib"
 
-re='^(.*)-Wl,--as-needed(.*)$'
-if [[ ${LDFLAGS} =~ $re ]]; then
-  export LDFLAGS="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
-fi
-re='^(.*)-Wl,-dead_strip_dylins(.*)$'
-if [[ ${LDFLAGS} =~ $re ]]; then
-  export LDFLAGS="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
-fi
+LDFLAGS="${LDFLAGS//-Wl,--as-needed/}"
+LDFLAGS="${LDFLAGS//-Wl,-dead_strip_dylibs/}"
+LDFLAGS_LD="${LDFLAGS_LD//-dead_strip_dylibs/}"
 
 # Dynamic libraries need to be lazily loaded so that torch
 # can be imported on system without a GPU
@@ -42,10 +39,23 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     exit 0
 fi
 
-# std=c++11 is required to compile some .cu files
+# Squash certain warnings so build errors are easier to find
+CXXFLAGS="$CXXFLAGS -Wno-deprecated-declarations"
+CFLAGS="$CFLAGS -Wno-deprecated-declarations"
+CXXFLAGS="${CXXFLAGS} -Wno-attributes"
+CFLAGS="${CFLAGS} -Wno-attributes"
+
+# Force use of modern libstdc++ ABI.  (Should be the upstream default with
+# recent releases, but just to be sure...)
+export GLIBCXX_USE_CXX11_ABI=1
+
+# Possibly needed to avoid undefined reference errors with PyTorch >=1.6.0
+#CFLAGS="${CFLAGS//-fvisibility-inlines-hidden/}"
+#CXXFLAGS="${CXXFLAGS//-fvisibility-inlines-hidden/}"
+
+# std=c++14 is required to compile some .cu files
 CPPFLAGS="${CPPFLAGS//-std=c++17/-std=c++14}"
 CXXFLAGS="${CXXFLAGS//-std=c++17/-std=c++14}"
-
 
 if [[ ${pytorch_variant} = "gpu" ]]; then
     export USE_CUDA=1
@@ -65,13 +75,30 @@ if [[ ${pytorch_variant} = "gpu" ]]; then
     export CUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda
     export MAGMA_HOME="${PREFIX}"
 else
-    export BLAS="MKL"
     export USE_CUDA=0
-    export USE_MKLDNN=1
+    case "${blas_impl}" in
+        mkl)
+            export BLAS="MKL"
+            export USE_MKL=1
+            export USE_MKLDNN=1
+            ;;
+        openblas)
+            export BLAS="OpenBLAS"
+            export USE_MKL=0
+            export USE_MKLDNN=0
+            ;;
+        *)
+            echo "[ERROR] Unsupported BLAS implementation '${blas_impl}'" >&2
+            exit 1
+            ;;
+    esac
     export CMAKE_TOOLCHAIN_FILE="${RECIPE_DIR}/cross-linux.cmake"
 fi
 
 export CMAKE_BUILD_TYPE=Release
 export CMAKE_CXX_STANDARD=14
+
+# Re-export modified env vars so sub-processes see them
+export CFLAGS CXXFLAGS LDFLAGS LDFLAGS_LD
 
 python  -m pip install . --no-deps -vvv

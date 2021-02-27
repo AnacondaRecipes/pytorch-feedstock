@@ -1,8 +1,6 @@
-Index: work/CMakeLists.txt
-===================================================================
---- work.orig/CMakeLists.txt
-+++ work/CMakeLists.txt
-@@ -269,13 +269,6 @@ set(SELECTED_OP_LIST "" CACHE STRING
+--- CMakeLists.txt
++++ CMakeLists.txt
+@@ -305,13 +305,6 @@ set(SELECTED_OP_LIST "" CACHE STRING
  set(OP_DEPENDENCY "" CACHE STRING
      "Path to the yaml file that contains the op dependency graph for custom build.")
  
