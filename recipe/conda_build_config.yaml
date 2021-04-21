@@ -2,10 +2,10 @@
 # cuda 10.0, gcc 7.3, cudnn 7.6
 # cuda 10.1, gcc 7.3, cudnn 7.6
 c_compiler_version:           # [unix]
-  - 7.3                       # [linux]
+  - 7.*                       # [linux]
   - 4                         # [osx]
 cxx_compiler_version:         # [unix]
-  - 7.3                       # [linux]
+  - 7.*                       # [linux]
   - 4                         # [osx]
 cross_compiler_target_platform:   # [win]
   - win-64                        # [win]

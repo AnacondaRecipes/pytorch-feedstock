@@ -1,7 +1,5 @@
-Index: work/third_party/ideep/mkl-dnn/src/cpu/x64/xbyak/xbyak.h
-===================================================================
---- work.orig/third_party/ideep/mkl-dnn/src/cpu/x64/xbyak/xbyak.h
-+++ work/third_party/ideep/mkl-dnn/src/cpu/x64/xbyak/xbyak.h
+--- third_party/ideep/mkl-dnn/src/cpu/x64/xbyak/xbyak.h
++++ third_party/ideep/mkl-dnn/src/cpu/x64/xbyak/xbyak.h
 @@ -409,6 +409,9 @@ public:
  		const size_t alignedSizeM1 = inner::ALIGN_PAGE_SIZE - 1;
  		size = (size + alignedSizeM1) & ~alignedSizeM1;

@@ -1,5 +1,5 @@
-{% set version = "1.7.1" %}
-{% set commit = "57bffc3a8e4fee0cce31e1ff1f662ccf7b16db57" %}
+{% set version = "1.8.1" %}
+{% set commit = "v" + version %}
 
 package:
   name: pytorch
@@ -10,16 +10,18 @@ source:
   git_url: https://github.com/pytorch/pytorch.git
   git_tag: {{ commit }}
   patches:
-    - nccl_socket.patch
+    #- nccl_socket.patch
     # It is unclear that upstream will allow us to integrate the shared linker
     # path below until their Intel compiler issues are resolved.
     - remove_shared_linker_flag_override.patch
     # https://github.com/pytorch/pytorch/pull/49281
     - fix_std_stdint.patch
     - fix_dispatch_apply_auto.patch
-    - fix_map_anonymous.patch
+    #- fix_map_anonymous.patch
     - cpp_extension.patch
-    - fix_msvc_build_issue.patch
+    - fix_msvc_build_issue.patch    # [win]
+    # https://github.com/pytorch/pytorch/pull/49647
+    - fix_blas_lapack.patch
     # - fix_c10_export_gcc.patch
     # - do_not_check_clock_realtime.patch
 
@@ -28,18 +30,20 @@ build:
   string: cuda{{ cudatoolkit | replace('.', '') }}py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}  # [pytorch_variant == "gpu"]
   string: cpu_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                      # [pytorch_variant == "cpu"]
   detect_binary_files_with_prefix: False
+  missing_dso_whitelist:
+    - "**/ld64.so.*"    # [linux]
 
 requirements:
   build:
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
-    - patch    # [not win]
+    - patch     # [not win]
     - m2-patch  # [win]
-    - git
+    - git       # [not win]
+    - m2-git    # [win]
+    - cmake
     - make      # [unix]
   host:
-    - cmake
-    - git
     # GPU requirements
     - cudatoolkit {{ cudatoolkit }}*  # [pytorch_variant == "gpu"]
     - cudnn {{ cudnn }}*              # [pytorch_variant == "gpu"]
@@ -58,6 +62,7 @@ requirements:
     - mkl {{ mkl }}         # [blas_impl == "mkl"]
     - openblas              # [blas_impl == "openblas"]
     - typing                # [py2k]
+    - typing_extensions
     - ninja
     # PyTorch builds its own vendored version of libuv, so no need to supply it
     #- libuv                 # [unix]
@@ -81,6 +86,9 @@ requirements:
     - future  # [py2k]
     - typing  # [py2k]
     - typing-extensions
+    # Using selector until packages for other platforms are (re)built using
+    # newer "defaults" toolchains that use the `_openmp_mutex` mechanism.
+    - _openmp_mutex     # [s390x]
 
 test:
   requires:
@@ -98,15 +106,15 @@ test:
   source_files:
     - test
   commands:
-    - OMP_NUM_THREADS=4 python ./test/run_test.py || true  # [not win]
-    - python ./test/run_test.py  # [win]
+    - OMP_NUM_THREADS=2 python ./test/run_test.py -v || true  # [not win]
+    - python ./test/run_test.py -v  # [win]
     # Run pip check so as to ensure that all pytorch packages are installed
     # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/24
     - pip check
 
 about:
   home: https://pytorch.org/
-  license: BSD 3-Clause
+  license: BSD-3-Clause
   license_family: BSD
   license_file: LICENSE
   summary: PyTorch is an optimized tensor library for deep learning using GPUs and CPUs.
