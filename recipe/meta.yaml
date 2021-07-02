@@ -86,9 +86,8 @@ requirements:
     - future  # [py2k]
     - typing  # [py2k]
     - typing-extensions
-    # Using selector until packages for other platforms are (re)built using
-    # newer "defaults" toolchains that use the `_openmp_mutex` mechanism.
-    - _openmp_mutex     # [s390x]
+    # ppc64le compilers still need to be updated to use `_openmp_mutex`.
+    - _openmp_mutex     # [linux and not ppc64le]
 
 test:
   requires:
