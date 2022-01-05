@@ -47,7 +47,8 @@ requirements:
     - magma                           # [pytorch_variant == "gpu"]
     # other requirements
     - python
-    - numpy-devel {{ numpy }}
+    - numpy-devel {{ numpy }}  # [not (osx and arm64) and py<=39]
+    - numpy {{ numpy }}        # [(osx and arm64) or py>39]
     - pip
     - setuptools
     - pyyaml
