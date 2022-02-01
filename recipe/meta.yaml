@@ -25,7 +25,8 @@ build:
   string: cpu_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                      # [pytorch_variant == "cpu"]
   detect_binary_files_with_prefix: False
   # mkl and co is just available for x64 architectures ...
-  skip:  True  # [not x86_64]
+  skip: True  # [not x86_64]
+
 requirements:
   build:
     - {{ compiler('c') }}
