@@ -1,5 +1,5 @@
-{% set version = "1.6.0" %}
-{% set commit = "b31f58de6fa8bbda5353b3c77d9be4914399724d" %}
+{% set version = "1.10.2" %}
+{% set commit = "71f889c7d265b9636b93ede9d651c0a9c4bee191" %}
 
 package:
   name: pytorch
