@@ -1,0 +1,12 @@
+diff -urN a/third_party/ideep/mkl-dnn/src/cpu/x64/jit_avx512_core_amx_conv_kernel.cpp b/third_party/ideep/mkl-dnn/src/cpu/x64/jit_avx512_core_amx_conv_kernel.cpp
+--- a/third_party/ideep/mkl-dnn/src/cpu/x64/jit_avx512_core_amx_conv_kernel.cpp	2022-02-16 13:33:07.000000000 +0300
++++ b/third_party/ideep/mkl-dnn/src/cpu/x64/jit_avx512_core_amx_conv_kernel.cpp	2022-02-16 13:54:33.000000000 +0300
+@@ -480,7 +480,7 @@
+     const uint8_t nr = is_bf16 ? 2 : 4; // 2r or 4r
+     for (uint8_t o = 0; o < no; ++o) {
+         for (uint8_t r = 0; r < nr; r++) {
+-            const uint8_t index = o + r * UINT8_C(no);
++            const uint8_t index = o + r * no;
+             if (is_bf16)
+                 dw(index);
+             else

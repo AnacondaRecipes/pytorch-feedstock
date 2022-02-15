@@ -1,61 +1,94 @@
-#!/bin/bash
+#!/bin/bash -e
 
-set -ex
+echo "####################################################################" >&2
+echo "Building PyTorch using BLAS implementation: $blas_impl              " >&2
+echo "####################################################################" >&2
 
-# clean up an existing cmake build directory
-rm -rf build
+rm -fr build/
+
+# Apparently, the PATH that conda generates when stacking environments, does not
+# have a logical order, potentially leading to CMake looking for (and finding)
+# things in the wrong (e.g. parent) environment. In particular, we want to avoid
+# finding the wrong Python interpreter.
+export PATH=$PREFIX/bin:$PREFIX:$BUILD_PREFIX/bin:$BUILD_PREFIX:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
 
 # uncomment to debug cmake build
-#export CMAKE_VERBOSE_MAKEFILE=1
+export CMAKE_VERBOSE_MAKEFILE=1
 
-# Worked previously, but with PyTorch >=1.6.0, use of the `-pie` linker flag
-# triggers `std::__cxx11::basic_string`-related undefined reference errors.
-#export LDFLAGS="-Wl,-pie -Wl,-headerpad_max_install_names -Wl,-rpath,$PREFIX/lib -L$PREFIX/lib"
-#export LDFLAGS_LD="-Wl,-pie -Wl,-headerpad_max_install_names -Wl,-rpath,$PREFIX/lib -L$PREFIX/lib"
+export CFLAGS="$(echo $CFLAGS | sed 's/-fvisibility-inlines-hidden//g')"
+export CXXFLAGS="$(echo $CXXFLAGS | sed 's/-fvisibility-inlines-hidden//g')"
+export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,--as-needed//g')"
+export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,-dead_strip_dylibs//g')"
+export LDFLAGS_LD="$(echo $LDFLAGS_LD | sed 's/-dead_strip_dylibs//g')"
+export CXXFLAGS="$CXXFLAGS -Wno-deprecated-declarations"
+export CFLAGS="$CFLAGS -Wno-deprecated-declarations"
 
-LDFLAGS="${LDFLAGS//-Wl,--as-needed/}"
-LDFLAGS="${LDFLAGS//-Wl,-dead_strip_dylibs/}"
-LDFLAGS_LD="${LDFLAGS_LD//-dead_strip_dylibs/}"
-
-# Dynamic libraries need to be lazily loaded so that torch
-# can be imported on system without a GPU
+# Dynamic libraries need to be lazily loaded so that torch can be imported on
+# systems without a GPU.
 LDFLAGS="${LDFLAGS//-Wl,-z,now/-Wl,-z,lazy}"
+
+# Taken from CF. This is a desparate attempt to export the CMake config to all
+# submodules, and hope that it will be picked up.
+for ARG in $CMAKE_ARGS; do
+  if [[ "$ARG" == "-DCMAKE_"* ]]; then
+    cmake_arg=$(echo $ARG | cut -d= -f1)
+    cmake_arg=$(echo $cmake_arg| cut -dD -f2-)
+    cmake_val=$(echo $ARG | cut -d= -f2-)
+    printf -v $cmake_arg "$cmake_val"
+    export ${cmake_arg}
+  fi
+done
+
+# This must be unset, else PyTorch complains.
+unset CMAKE_INSTALL_PREFIX
+
+export PYTORCH_BUILD_VERSION=$PKG_VERSION
+export PYTORCH_BUILD_NUMBER=$PKG_BUILDNUM
+
+export TH_BINARY_BUILD=1
+export USE_NINJA=0
+export BUILD_TEST=0
+export INSTALL_TEST=0
+
+# This is the default, but just in case it changes, one day.
+export BUILD_DOCS=OFF
+
+# The build needs a lot of memory and we may need to be more restrictive than
+# this on some platforms.
+export MAX_JOBS=${CPU_COUNT}
+
+case "$build_platform" in
+    linux-ppc64le|linux-s390x)
+        # Breakpad is missing a ppc64 and s390x port.
+        export USE_BREAKPAD=OFF
+    ;;
+esac
 
 export CMAKE_SYSROOT=$CONDA_BUILD_SYSROOT
 export CMAKE_LIBRARY_PATH=$PREFIX/lib:$PREFIX/include:$CMAKE_LIBRARY_PATH
 export CMAKE_PREFIX_PATH=$PREFIX
-export TH_BINARY_BUILD=1
-export PYTORCH_BUILD_VERSION=$PKG_VERSION
-export PYTORCH_BUILD_NUMBER=$PKG_BUILDNUM
-
-export USE_NINJA=OFF
-export INSTALL_TEST=0
-
-# MacOS build is simple, and will not be for CUDA
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    export MACOSX_DEPLOYMENT_TARGET=10.10
-    export CMAKE_OSX_SYSROOT=/opt/MacOSX10.10.sdk
-    python -m pip install . --no-deps -vv
-    exit 0
-fi
-
-# Squash certain warnings so build errors are easier to find
-CXXFLAGS="$CXXFLAGS -Wno-deprecated-declarations"
-CFLAGS="$CFLAGS -Wno-deprecated-declarations"
-CXXFLAGS="${CXXFLAGS} -Wno-attributes"
-CFLAGS="${CFLAGS} -Wno-attributes"
-
-# Force use of modern libstdc++ ABI.  (Should be the upstream default with
-# recent releases, but just to be sure...)
-export GLIBCXX_USE_CXX11_ABI=1
-
-# Possibly needed to avoid undefined reference errors with PyTorch >=1.6.0
-#CFLAGS="${CFLAGS//-fvisibility-inlines-hidden/}"
-#CXXFLAGS="${CXXFLAGS//-fvisibility-inlines-hidden/}"
+export CMAKE_BUILD_TYPE=Release
+export CMAKE_CXX_STANDARD=14
 
 # std=c++14 is required to compile some .cu files
 CPPFLAGS="${CPPFLAGS//-std=c++17/-std=c++14}"
 CXXFLAGS="${CXXFLAGS//-std=c++17/-std=c++14}"
+
+# Re-export modified env vars so sub-processes see them
+export CFLAGS CPPFLAGS CXXFLAGS LDFLAGS LDFLAGS_LD
+
+# MacOS build is simple, and will not be done for CUDA.
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    # When running the full test suite, some tests expect to find resources in
+    # work and work/build, hence the in-tree build.
+    "$PYTHON" -m pip install . \
+        --no-deps \
+        --no-binary :all: \
+        --no-clean \
+        --use-feature=in-tree-build \
+        -vvv
+    exit $?
+fi
 
 if [[ ${pytorch_variant} = "gpu" ]]; then
     export USE_CUDA=1
@@ -76,6 +109,7 @@ if [[ ${pytorch_variant} = "gpu" ]]; then
     export MAGMA_HOME="${PREFIX}"
 else
     export USE_CUDA=0
+
     case "${blas_impl}" in
         mkl)
             export BLAS="MKL"
@@ -92,13 +126,15 @@ else
             exit 1
             ;;
     esac
+
     export CMAKE_TOOLCHAIN_FILE="${RECIPE_DIR}/cross-linux.cmake"
 fi
 
-export CMAKE_BUILD_TYPE=Release
-export CMAKE_CXX_STANDARD=14
-
-# Re-export modified env vars so sub-processes see them
-export CFLAGS CXXFLAGS LDFLAGS LDFLAGS_LD
-
-python  -m pip install . --no-deps -vvv
+# When running the full test suite, some tests expect to find resources in
+# work and work/build, hence the in-tree build.
+"$PYTHON" -m pip install . \
+    --no-deps \
+    --no-binary :all: \
+    --no-clean \
+    --use-feature=in-tree-build \
+    -vvv

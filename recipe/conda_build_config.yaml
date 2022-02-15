@@ -1,21 +1,16 @@
-# cuda 9.2, gcc 7.3, cudnn 7.6
-# cuda 10.0, gcc 7.3, cudnn 7.6
-# cuda 10.1, gcc 7.3, cudnn 7.6
-MACOSX_DEPLOYMENT_TARGET:
-  - 10.10       # [osx and x86_64]
-  - 11.1        # [osx and arm64]
-numpy:
-  # python 3.7-3.9
-  - 1.16        # [not (osx and arm64)]
-  - 1.16        # [not (osx and arm64)]
-  - 1.16        # [not (osx and arm64)]
-  # python 3.8-3.9
-  - 1.19        # [osx and arm64]
-  - 1.19        # [osx and arm64]
-python:
-  - 3.7         # [not arm64]
-  - 3.8
-  - 3.9
+blas_impl:
+  - mkl                # [x86]
+  - openblas           # [not x86]
+c_compiler_version:    # [linux and not aarch64]
+  - 9                  # [linux and not (aarch64 or ppc64le)]
+  - 8                  # [linux and ppc64le]
+cxx_compiler_version:  # [linux and not aarch64]
+  - 9                  # [linux and not (aarch64 or ppc64le)]
+  - 8                  # [linux and ppc64le]
+c_compiler:            # [win]
+  - vs2019             # [win]
+cxx_compiler:          # [win]
+  - vs2019             # [win]
 pytorch_variant:
   - cpu
 # - gpu

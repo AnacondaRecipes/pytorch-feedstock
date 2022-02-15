@@ -1,0 +1,17 @@
+--- a/third_party/googletest/googletest/cmake/internal_utils.cmake	2022-03-06 00:08:38.000000000 +0300
++++ b/third_party/googletest/googletest/cmake/internal_utils.cmake	2022-03-06 00:28:54.000000000 +0300
+@@ -247,13 +247,7 @@
+ endfunction()
+ 
+ # Sets PYTHONINTERP_FOUND and PYTHON_EXECUTABLE.
+-if ("${CMAKE_VERSION}" VERSION_LESS "3.12.0")
+-  find_package(PythonInterp)
+-else()
+-  find_package(Python COMPONENTS Interpreter)
+-  set(PYTHONINTERP_FOUND ${Python_Interpreter_FOUND})
+-  set(PYTHON_EXECUTABLE ${Python_EXECUTABLE})
+-endif()
++find_package(PythonInterp)
+ 
+ # cxx_test_with_flags(name cxx_flags libs srcs...)
+ #

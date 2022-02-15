@@ -1,0 +1,11 @@
+diff --git a/aten/src/ATen/cpu/vec/vec256/vsx/vec256_double_vsx.h b/aten/src/ATen/cpu/vec/vec256/vsx/vec256_double_vsx.h
+index 29616182fe..cab0b8814d 100644
+--- a/aten/src/ATen/cpu/vec/vec256/vsx/vec256_double_vsx.h
++++ b/aten/src/ATen/cpu/vec/vec256/vsx/vec256_double_vsx.h
+@@ -1,5 +1,6 @@
+ #pragma once
+ 
++#include <iostream>
+ #include <ATen/cpu/vec/intrinsics.h>
+ #include <ATen/cpu/vec/vec_base.h>
+ #include <ATen/cpu/vec/vec256/vsx/vsx_helpers.h>
