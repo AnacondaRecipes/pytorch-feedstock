@@ -3,10 +3,10 @@
 # cuda 10.1, gcc 7.3, cudnn 7.6
 c_compiler_version:           # [unix and not aarch64]
   - 7.*                       # [linux and not aarch64]
-  - 4                         # [osx]
+  - 4                         # [osx and not arm64]
 cxx_compiler_version:         # [unix and not aarch64]
   - 7.*                       # [linux and not aarch64]
-  - 4                         # [osx]
+  - 4                         # [osx and not arm64]
 cross_compiler_target_platform:   # [win]
   - win-64                        # [win]
 target_platform:                  # [win]
@@ -23,8 +23,8 @@ mkl:
   - 2019        # [osx]
 openblas:
   - 0.3.10
-MACOSX_DEPLOYMENT_TARGET:
-  - 10.10
+MACOSX_DEPLOYMENT_TARGET:  # [osx and x86_64]
+  - 10.10                  # [osx and x86_64]
 pytorch_variant:
   - cpu
 # - gpu
