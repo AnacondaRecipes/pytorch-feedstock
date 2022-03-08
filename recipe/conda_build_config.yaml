@@ -23,14 +23,8 @@ mkl:
   - 2019        # [osx]
 openblas:
   - 0.3.10
-numpy:
-  - 1.16
 MACOSX_DEPLOYMENT_TARGET:
   - 10.10
-python:
-  - 3.7
-  - 3.8
-  - 3.9
 pytorch_variant:
   - cpu
 # - gpu
