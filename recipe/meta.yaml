@@ -69,7 +69,7 @@ requirements:
     # PyTorch builds its own vendored version of libuv, so no need to supply it
     #- libuv                 # [unix]
     - pkg-config  # [unix]
-    - intel-openmp  # [osx]
+    - intel-openmp  # [osx and x86_64]
   run:
     - mkl {{ mkl }}     # [blas_impl == "mkl"]
     - libmklml          # [blas_impl == "mkl"]
