@@ -22,7 +22,9 @@ mkl:
   - 2020        # [linux]
   - 2019        # [osx]
 openblas:
-  - 0.3.10
+  - 0.3.10  # [not (s390x or aarch64 or (osx and arm64))]
+  - 0.3.17  # [osx and arm64]
+  - 0.3.10  # [s390x or aarch64]
 MACOSX_DEPLOYMENT_TARGET:  # [osx and x86_64]
   - 10.10                  # [osx and x86_64]
 pytorch_variant:
