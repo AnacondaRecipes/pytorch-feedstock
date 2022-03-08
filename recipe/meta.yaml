@@ -74,7 +74,7 @@ requirements:
     - mkl {{ mkl }}     # [blas_impl == "mkl"]
     - libmklml          # [blas_impl == "mkl"]
     - libopenblas       # [blas_impl == "openblas"]
-    - intel-openmp   # [osx]
+    - intel-openmp   # [osx and x86_64]
     - llvm-openmp    # [osx]
     - _pytorch_select ==0.1             # [pytorch_variant == "cpu"]
     - _pytorch_select ==0.2             # [pytorch_variant == "gpu"]
