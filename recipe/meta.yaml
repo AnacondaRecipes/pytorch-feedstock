@@ -26,10 +26,11 @@ source:
     # - do_not_check_clock_realtime.patch
 
 build:
-  number: 0
+  number: 1
   string: cuda{{ cudatoolkit | replace('.', '') }}py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}  # [pytorch_variant == "gpu"]
   string: cpu_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                      # [pytorch_variant == "cpu"]
   detect_binary_files_with_prefix: False
+  skip: True  # [py>39]
   missing_dso_whitelist:
     - "**/ld64.so.*"    # [linux]
 
@@ -50,7 +51,8 @@ requirements:
     - magma                           # [pytorch_variant == "gpu"]
     # other requirements
     - python
-    - numpy-devel {{ numpy }}
+    - numpy-devel {{ numpy }}  # [not (osx and arm64) and py<=39]
+    - numpy  {{ numpy }}       # [(osx and arm64) or py>39]
     - pip
     - setuptools
     - pyyaml
@@ -67,12 +69,12 @@ requirements:
     # PyTorch builds its own vendored version of libuv, so no need to supply it
     #- libuv                 # [unix]
     - pkg-config  # [unix]
-    - intel-openmp  # [osx]
+    - intel-openmp  # [osx and x86_64]
   run:
     - mkl {{ mkl }}     # [blas_impl == "mkl"]
     - libmklml          # [blas_impl == "mkl"]
     - libopenblas       # [blas_impl == "openblas"]
-    - intel-openmp   # [osx]
+    - intel-openmp   # [osx and x86_64]
     - llvm-openmp    # [osx]
     - _pytorch_select ==0.1             # [pytorch_variant == "cpu"]
     - _pytorch_select ==0.2             # [pytorch_variant == "gpu"]
