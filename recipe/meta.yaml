@@ -108,6 +108,7 @@ requirements:
     - requests
     # CF: PyTorch relies on features that were removed in later versions.
     - setuptools <59.6
+    - typing-extensions
     - wheel
   run:
     # OpenBLAS or MKL
@@ -127,6 +128,7 @@ requirements:
     - ninja
     - {{ pin_compatible('numpy') }}
     - python >=3.7
+    - typing-extensions
     # ppc64le compilers still need to be updated to use `_openmp_mutex`.
     - _openmp_mutex                   # [linux and not ppc64le]
 
