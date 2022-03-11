@@ -46,7 +46,7 @@ build:
   # Automated s390x builds fail. The exact reason is unknown but probably due
   # to resource constraints (the build is very memory intensive). Manual builds
   # may or may not go through, your milage may vary.
-  skip: True  # [py<37 or py==310 or s390x]
+  skip: True  # [py<37 or s390x]
   string: cuda{{ cudatoolkit | replace('.', '') }}py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}  # [pytorch_variant == "gpu"]
   string: cpu_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                      # [pytorch_variant == "cpu"]
   detect_binary_files_with_prefix: False
