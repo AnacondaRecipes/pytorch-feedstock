@@ -127,7 +127,7 @@ requirements:
     # CF: needed to load C++ extensions
     - ninja
     - {{ pin_compatible('numpy') }}
-    - python >=3.7
+    - python
     - typing-extensions
     # ppc64le compilers still need to be updated to use `_openmp_mutex`.
     - _openmp_mutex                   # [linux and not ppc64le]
