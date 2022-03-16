@@ -65,6 +65,13 @@ build:
     - "**/libtorch_cpu.dylib"     # [osx]
     - "**/libtorch_python.dylib"  # [osx]
     - "**/libiomp5.dylib"         # [osx]
+    - "**/asmjit.dll"             # [win]
+    - "**/c10.dll"                # [win]
+    - "**/fbgemm.dll"             # [win]
+    - "**/shm.dll"                # [win]
+    - "**/torch_cpu.dll"          # [win]
+    - "**/torch_python.dll"       # [win]
+    - "**/uv.dll"                 # [win]
 
 requirements:
   # WARNING:
@@ -94,7 +101,7 @@ requirements:
     - mkl {{ mkl }}.*                 # [blas_impl == "mkl"]
     - openblas                        # [blas_impl == "openblas"]
     # OpenMP
-    - intel-openmp                    # [osx and x86]
+    - intel-openmp                    # [(osx or win) and x86]
     - llvm-openmp                     # [osx and arm64]
     # Other requirements
     - cffi
@@ -115,7 +122,7 @@ requirements:
     - mkl {{ mkl }}.*                 # [blas_impl == "mkl"]
     - libopenblas                     # [blas_impl == "openblas"]
     # OpenMP
-    - intel-openmp                    # [osx and x86]
+    - intel-openmp                    # [(osx or win) and x86]
     - llvm-openmp                     # [osx and arm64]
     # GPU requirements
     - {{ pin_compatible('cudatoolkit', max_pin='x.x') }}  # [pytorch_variant == "gpu"]
