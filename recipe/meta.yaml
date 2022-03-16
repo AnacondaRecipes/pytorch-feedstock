@@ -71,7 +71,6 @@ build:
     - "**/shm.dll"                # [win]
     - "**/torch_cpu.dll"          # [win]
     - "**/torch_python.dll"       # [win]
-    - "**/uv.dll"                 # [win]
 
 requirements:
   # WARNING:
@@ -106,6 +105,7 @@ requirements:
     # Other requirements
     - cffi
     - future
+    - libuv                           # [win]
     # The test suite uses features only available in numpy 1.17+.
     - numpy >=1.17
     - pip
