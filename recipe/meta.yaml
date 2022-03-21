@@ -40,6 +40,8 @@ source:
     - patches/handle-abs-compiler-path.patch
     # Fix little problems with the test suite.
     - patches/fix-flaky-tests.patch
+    # Fixes usage of non-standard ssize_t with Python 3.10.
+    - patches/arg-parser-use-py_ssize_t.patch  # [py==310]
 
 build:
   number: 0
