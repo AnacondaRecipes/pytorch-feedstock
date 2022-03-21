@@ -53,9 +53,8 @@ export INSTALL_TEST=0
 # This is the default, but just in case it changes, one day.
 export BUILD_DOCS=OFF
 
-# The build needs a lot of memory and we may need to be more restrictive than
-# this on some platforms.
-export MAX_JOBS=${CPU_COUNT}
+# The build needs a lot of memory, limit to 4 CPUs to take it easy on builders.
+export MAX_JOBS=$((${CPU_COUNT} > 4 ? 4 : ${CPU_COUNT}))
 
 case "$build_platform" in
     linux-ppc64le|linux-s390x)
