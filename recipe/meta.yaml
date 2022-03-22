@@ -90,7 +90,7 @@ requirements:
     - patch                           # [not win]
     - m2-git                          # [win]
     - m2-patch                        # [win]
-    - python ={{PY_VER}}
+    - python
     - ninja
   host:
     # GPU requirements
