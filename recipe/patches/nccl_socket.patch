@@ -1,0 +1,14 @@
+--- third_party/nccl/nccl/src/include/socket.h
++++ third_party/nccl/nccl/src/include/socket.h
+@@ -22,6 +22,11 @@
+ #define RETRY_REFUSED_TIMES   2e4 // connection refused retry times before reporting a timeout (20 sec)
+ #define RETRY_TIMEDOUT_TIMES    3 // connection timed out retry times (each one can take 20s)
+
++// define SO_REUSEPORT for kernel versions which do not include it
++#ifndef SO_REUSEPORT
++#define SO_REUSEPORT 15
++#endif
++
+ /* Common socket address storage structure for IPv4/IPv6 */
+ union socketAddress {
+   struct sockaddr sa;

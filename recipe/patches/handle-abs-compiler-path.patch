@@ -1,0 +1,11 @@
+--- a/torch/utils/cpp_extension.py	2022-03-06 00:07:51.000000000 +0300
++++ b/torch/utils/cpp_extension.py	2022-03-09 13:27:23.000000000 +0300
+@@ -251,6 +251,8 @@
+     '''
+     if IS_WINDOWS:
+         return True
++    if os.sep in compiler:
++        return os.path.exists(compiler)
+     which = subprocess.check_output(['which', compiler], stderr=subprocess.STDOUT)
+     # Use os.path.realpath to resolve any symlinks, in particular from 'c++' to e.g. 'g++'.
+     compiler_path = os.path.realpath(which.decode(*SUBPROCESS_DECODE_ARGS).strip())
