@@ -109,7 +109,7 @@ requirements:
     - future
     - libuv                           # [win]
     # The test suite uses features only available in numpy 1.17+.
-    - numpy >=1.17
+    - numpy
     - pip
     - pkg-config                      # [unix]
     - python

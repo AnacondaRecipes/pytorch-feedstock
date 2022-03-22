@@ -11,6 +11,20 @@ c_compiler:            # [win]
   - vs2019             # [win]
 cxx_compiler:          # [win]
   - vs2019             # [win]
+numpy:
+  # python 3.7-3.9
+  - 1.17    # [linux64 or ppc64le or (osx and x86) or win]
+  - 1.17    # [linux64 or ppc64le or (osx and x86) or win]
+  - 1.17    # [linux64 or ppc64le or (osx and x86) or win]
+  # python 3.7-3.9
+  - 1.19    # [aarch64 or s390x]
+  - 1.19    # [aarch64 or s390x]
+  - 1.19    # [aarch64 or s390x]
+  # python 3.8-3.9
+  - 1.19    # [osx and arm64]
+  - 1.19    # [osx and arm64]
+  # python 3.10
+  - 1.21
 pytorch_variant:
   - cpu
 # - gpu
