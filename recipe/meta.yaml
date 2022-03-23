@@ -108,8 +108,12 @@ requirements:
     - cffi
     - future
     - libuv                           # [win]
-    # The test suite uses features only available in numpy 1.17+.
-    - numpy
+    # The test suite uses features only available in numpy 1.17+. We override
+    # numpy pinnings here due to a bug in conda-build mishandling zip key
+    # overrides in local cbc.yaml files. Remove and/or adjust this on the next
+    # upgrade.
+    - numpy >=1.17                    # [not (osx and arm64) and py<310 ]
+    - numpy                           # [    (osx and arm64) or  py>=310]
     - pip
     - pkg-config                      # [unix]
     - python
