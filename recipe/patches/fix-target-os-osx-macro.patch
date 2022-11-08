@@ -1,7 +1,8 @@
-diff -urN a/third_party/fbgemm/third_party/asmjit/src/asmjit/core/environment.h b/third_party/fbgemm/third_party/asmjit/src/asmjit/core/environment.h
---- a/third_party/fbgemm/third_party/asmjit/src/asmjit/core/environment.h	2022-02-16 13:33:31.000000000 +0300
-+++ b/third_party/fbgemm/third_party/asmjit/src/asmjit/core/environment.h	2022-02-16 15:16:14.000000000 +0300
-@@ -278,7 +278,7 @@
+Index: pytorch/third_party/fbgemm/third_party/asmjit/src/asmjit/core/environment.h
+===================================================================
+--- pytorch.orig/third_party/fbgemm/third_party/asmjit/src/asmjit/core/environment.h
++++ pytorch/third_party/fbgemm/third_party/asmjit/src/asmjit/core/environment.h
+@@ -278,7 +278,7 @@ public:
      kPlatformDragonFlyBSD
  #elif defined(__HAIKU__)
      kPlatformHaiku
@@ -10,9 +11,10 @@ diff -urN a/third_party/fbgemm/third_party/asmjit/src/asmjit/core/environment.h 
      kPlatformOSX
  #elif defined(__APPLE__) && TARGET_OS_TV
      kPlatformTVOS
-diff -urN a/third_party/fbgemm/third_party/asmjit/src/asmjit/core/virtmem.cpp b/third_party/fbgemm/third_party/asmjit/src/asmjit/core/virtmem.cpp
---- a/third_party/fbgemm/third_party/asmjit/src/asmjit/core/virtmem.cpp	2022-02-16 13:33:31.000000000 +0300
-+++ b/third_party/fbgemm/third_party/asmjit/src/asmjit/core/virtmem.cpp	2022-02-16 15:16:25.000000000 +0300
+Index: pytorch/third_party/fbgemm/third_party/asmjit/src/asmjit/core/virtmem.cpp
+===================================================================
+--- pytorch.orig/third_party/fbgemm/third_party/asmjit/src/asmjit/core/virtmem.cpp
++++ pytorch/third_party/fbgemm/third_party/asmjit/src/asmjit/core/virtmem.cpp
 @@ -45,7 +45,7 @@
    // Apple recently introduced MAP_JIT flag, which we want to use.
    #if defined(__APPLE__)
@@ -22,7 +24,7 @@ diff -urN a/third_party/fbgemm/third_party/asmjit/src/asmjit/core/virtmem.cpp b/
        #include <sys/utsname.h>
      #endif
      // Older SDK doesn't define `MAP_JIT`.
-@@ -428,7 +428,7 @@
+@@ -428,7 +428,7 @@ static ASMJIT_INLINE bool VirtMem_isHard
  // MAP_JIT flag required to run unsigned JIT code is only supported by kernel
  // version 10.14+ (Mojave) and IOS.
  static ASMJIT_INLINE bool VirtMem_hasMapJitSupport() noexcept {
@@ -31,3 +33,16 @@ diff -urN a/third_party/fbgemm/third_party/asmjit/src/asmjit/core/virtmem.cpp b/
    static volatile int globalVersion;
  
    int ver = globalVersion;
+Index: pytorch/third_party/cudnn_frontend/contrib/catch2/catch.hpp
+===================================================================
+--- pytorch.orig/third_party/cudnn_frontend/contrib/catch2/catch.hpp
++++ pytorch/third_party/cudnn_frontend/contrib/catch2/catch.hpp
+@@ -68,7 +68,7 @@
+ 
+ #ifdef __APPLE__
+ # include <TargetConditionals.h>
+-# if TARGET_OS_OSX == 1
++# if TARGET_OS_MAC == 1
+ #  define CATCH_PLATFORM_MAC
+ # elif TARGET_OS_IPHONE == 1
+ #  define CATCH_PLATFORM_IPHONE

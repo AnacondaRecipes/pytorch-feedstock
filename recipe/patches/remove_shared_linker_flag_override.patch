@@ -1,9 +1,10 @@
-diff -urN a/CMakeLists.txt b/CMakeLists.txt
---- a/CMakeLists.txt	2022-02-14 18:06:18.000000000 +0300
-+++ b/CMakeLists.txt	2022-02-14 18:22:58.000000000 +0300
-@@ -425,13 +425,6 @@
- set(STATIC_DISPATCH_BACKEND "" CACHE STRING
-     "Name of the backend for which static dispatch code is generated, e.g.: CPU.")
+Index: pytorch/CMakeLists.txt
+===================================================================
+--- pytorch.orig/CMakeLists.txt
++++ pytorch/CMakeLists.txt
+@@ -458,13 +458,6 @@ option(
+   "Master flag to build Lite Interpreter with tracing build option"
+   OFF)
  
 -# This is a fix for a rare build issue on Ubuntu:
 -# symbol lookup error: miniconda3/envs/pytorch-py3.7/lib/libmkl_intel_lp64.so: undefined symbol: mkl_blas_dsyrk

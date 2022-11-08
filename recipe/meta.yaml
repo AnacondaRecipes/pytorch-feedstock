@@ -26,11 +26,11 @@ source:
     - patches/fix-target-os-osx-macro.patch  # [osx]
     # Fixes compiler crash on (potentially) invalid use of #pragma omp critical
     # See also https://github.com/pytorch/pytorch/pull/65655
-    - patches/parallel-for-not-backed-by-omp.patch  # [osx]
+    # - patches/parallel-for-not-backed-by-omp.patch  # [osx] # Patch upstreamed
     # Fixes use of stdout without iostream included.
-    - patches/remove-unused-dump-methods.patch
+    # - patches/remove-unused-dump-methods.patch # Patch upstreamed
     # Fixes a problem with altivec optimizations compilation.
-    - patches/add-dummy-bfloat16-impl.patch
+    # - patches/add-dummy-bfloat16-impl.patch # Patch upstreamed
     # PyTorch (and most submodules) search for Python differently than gtest,
     # which ends up using (and wanting to link to) the system Python in some
     # constellations, which messes up the build.
@@ -42,7 +42,7 @@ source:
     # Fix little problems with the test suite.
     - patches/fix-flaky-tests.patch
     # Fixes usage of non-standard ssize_t.
-    - patches/remove-non-standard-ssize_t.patch  # [win]
+    # - patches/remove-non-standard-ssize_t.patch  # [win] #upstreamed
 
 build:
   number: 0

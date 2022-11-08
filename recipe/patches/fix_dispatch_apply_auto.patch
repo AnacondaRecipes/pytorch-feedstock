@@ -1,5 +1,5 @@
---- third_party/pthreadpool/src/gcd.c
-+++ third_party/pthreadpool/src/gcd.c
+--- a/third_party/pthreadpool/src/gcd.c
++++ b/third_party/pthreadpool/src/gcd.c
 @@ -119,6 +119,9 @@ PTHREADPOOL_INTERNAL void pthreadpool_parallelize(
  		range_start = range_end;
  	}
