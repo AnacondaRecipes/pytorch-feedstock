@@ -20,7 +20,7 @@ source:
     - patches/cpp_extension.patch
     # Fixes invalid use of a preprocessor macro meant to be used on char
     # literals, but used on a variable instead.
-    - patches/fix-invalid-cpp-use-unit8c.patch  # [osx]
+    # - patches/fix-invalid-cpp-use-unit8c.patch  # [osx] # Code moved to oneDNN and fixed.
     # Some third-party modules seem to expect TARGET_OS_OSX to be set, whereas
     # the actual define in use nowadays seems to be TARGET_OS_MAC.
     - patches/fix-target-os-osx-macro.patch  # [osx]
