@@ -1,5 +1,5 @@
-{% set version = "1.10.2" %}
-{% set commit = "71f889c7d265b9636b93ede9d651c0a9c4bee191" %}
+{% set version = "1.12.1" %}
+{% set commit = "664058fa83f1d8eede5d66418abff6e20bd76ca8" %}
 
 package:
   name: pytorch
@@ -7,8 +7,9 @@ package:
 
 source:
   # for local testing use a tarball including submodules
-  git_url: https://github.com/pytorch/pytorch.git
-  git_tag: {{ commit }}
+  #git_url: https://github.com/pytorch/pytorch.git
+  #git_tag: {{ commit }}
+  path: ../../../pytorch
   patches:
     # It is unclear that upstream will allow us to integrate the shared linker
     # path below until their Intel compiler issues are resolved.
@@ -108,12 +109,10 @@ requirements:
     - cffi
     - future
     - libuv                           # [win]
-    # The test suite uses features only available in numpy 1.17+. We override
-    # numpy pinnings here due to a bug in conda-build mishandling zip key
-    # overrides in local cbc.yaml files. Remove and/or adjust this on the next
-    # upgrade.
-    - numpy >=1.17                    # [not (osx and arm64) and py<310 ]
-    - numpy                           # [    (osx and arm64) or  py>=310]
+    # Pinnings as per pytorch/.circleci/docker/common/install_conda.sh
+    - numpy =1.21.2 # [py>=310]
+    - numpy =1.19.2 # [py==39]
+    - numpy =1.18.5 # [py<=38]
     - pip
     - pkg-config                      # [unix]
     - python
