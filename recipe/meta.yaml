@@ -143,6 +143,7 @@ requirements:
     - typing-extensions
     # ppc64le compilers still need to be updated to use `_openmp_mutex`.
     - _openmp_mutex                   # [linux and not ppc64le]
+    - pyyaml
 
 test:
   requires:
@@ -154,6 +155,7 @@ test:
     - pip
     - psutil
     - pytest
+    - scipy
     - setuptools
     - six
     - tabulate
