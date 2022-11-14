@@ -6,15 +6,19 @@ echo "####################################################################"
 
 rm -fr build/
 
+echo "1"
+
 # Apparently, the PATH that conda generates when stacking environments, does not
 # have a logical order, potentially leading to CMake looking for (and finding)
 # things in the wrong (e.g. parent) environment. In particular, we want to avoid
 # finding the wrong Python interpreter.
 export PATH=$PREFIX/bin:$PREFIX:$BUILD_PREFIX/bin:$BUILD_PREFIX:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
 
+echo "2"
+
 # uncomment to debug cmake build
 export CMAKE_VERBOSE_MAKEFILE=1
-
+echo "3"
 export CFLAGS="$(echo $CFLAGS | sed 's/-fvisibility-inlines-hidden//g')"
 export CXXFLAGS="$(echo $CXXFLAGS | sed 's/-fvisibility-inlines-hidden//g')"
 export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,--as-needed//g')"
@@ -22,11 +26,11 @@ export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,-dead_strip_dylibs//g')"
 export LDFLAGS_LD="$(echo $LDFLAGS_LD | sed 's/-dead_strip_dylibs//g')"
 export CXXFLAGS="$CXXFLAGS -Wno-deprecated-declarations"
 export CFLAGS="$CFLAGS -Wno-deprecated-declarations"
-
+echo "4"
 # Dynamic libraries need to be lazily loaded so that torch can be imported on
 # systems without a GPU.
 LDFLAGS="${LDFLAGS//-Wl,-z,now/-Wl,-z,lazy}"
-
+echo "5"
 # Taken from CF. This is a desparate attempt to export the CMake config to all
 # submodules, and hope that it will be picked up.
 for ARG in $CMAKE_ARGS; do
@@ -38,45 +42,45 @@ for ARG in $CMAKE_ARGS; do
     export ${cmake_arg}
   fi
 done
-
+echo "6"
 # This must be unset, else PyTorch complains.
 unset CMAKE_INSTALL_PREFIX
-
+echo "7"
 export PYTORCH_BUILD_VERSION=$PKG_VERSION
 export PYTORCH_BUILD_NUMBER=$PKG_BUILDNUM
-
+echo "8"
 export TH_BINARY_BUILD=1
 export USE_NINJA=1
 export BUILD_TEST=0
 export INSTALL_TEST=0
-
+echo "9"
 # This is the default, but just in case it changes, one day.
 export BUILD_DOCS=OFF
-
+echo "10"
 # The build needs a lot of memory, limit to 4 CPUs to take it easy on builders.
 export MAX_JOBS=$((${CPU_COUNT} > 4 ? 4 : ${CPU_COUNT}))
-
+echo "11"
 case "$build_platform" in
     linux-ppc64le|linux-s390x)
         # Breakpad is missing a ppc64 and s390x port.
         export USE_BREAKPAD=OFF
     ;;
 esac
-
+echo "12"
 export CMAKE_GENERATOR=Ninja
 export CMAKE_SYSROOT=$CONDA_BUILD_SYSROOT
 export CMAKE_LIBRARY_PATH=$PREFIX/lib:$PREFIX/include:$CMAKE_LIBRARY_PATH
 export CMAKE_PREFIX_PATH=$PREFIX
 export CMAKE_BUILD_TYPE=Release
 export CMAKE_CXX_STANDARD=14
-
+echo "13"
 # std=c++14 is required to compile some .cu files
 CPPFLAGS="${CPPFLAGS//-std=c++17/-std=c++14}"
 CXXFLAGS="${CXXFLAGS//-std=c++17/-std=c++14}"
-
+echo "14"
 # Re-export modified env vars so sub-processes see them
 export CFLAGS CPPFLAGS CXXFLAGS LDFLAGS LDFLAGS_LD
-
+echo "15"
 # MacOS build is simple, and will not be done for CUDA.
 if [[ "$OSTYPE" == "darwin"* ]]; then
     # When running the full test suite, some tests expect to find resources in
@@ -89,7 +93,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
         -vvv
     exit $?
 fi
-
+echo "16"
 if [[ ${pytorch_variant} = "gpu" ]]; then
     export USE_CUDA=1
     export TORCH_CUDA_ARCH_LIST="3.5;5.0+PTX"
@@ -122,6 +126,7 @@ else
             export USE_MKLDNN=0
             ;;
         *)
+            echo "16.5"
             echo "[ERROR] Unsupported BLAS implementation '${blas_impl}'" >&2
             exit 1
             ;;
@@ -129,7 +134,7 @@ else
 
     export CMAKE_TOOLCHAIN_FILE="${RECIPE_DIR}/cross-linux.cmake"
 fi
-
+echo "17"
 # When running the full test suite, some tests expect to find resources in
 # work and work/build, hence the in-tree build.
 "$PYTHON" -m pip install . \
@@ -138,3 +143,5 @@ fi
     --no-clean \
     --use-feature=in-tree-build \
     -vvv
+
+echo "18"
