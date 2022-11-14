@@ -1,4 +1,4 @@
-#!/bin/bash -ex
+#!/bin/bash -exv
 
 echo "####################################################################"
 echo "Building PyTorch using BLAS implementation: $blas_impl              "
