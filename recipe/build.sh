@@ -85,12 +85,14 @@ echo "15"
 if [[ "$OSTYPE" == "darwin"* ]]; then
     # When running the full test suite, some tests expect to find resources in
     # work and work/build, hence the in-tree build.
+    echo "15.1"
     "$PYTHON" -m pip install . \
         --no-deps \
         --no-binary :all: \
         --no-clean \
         --use-feature=in-tree-build \
         -vvv
+    echo "15.2"
     exit $?
 fi
 echo "16"
