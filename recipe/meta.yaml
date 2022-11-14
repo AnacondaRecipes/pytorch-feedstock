@@ -109,10 +109,10 @@ requirements:
     - cffi
     - future
     - libuv                           # [win]
-    # Pinnings as per pytorch/.circleci/docker/common/install_conda.sh
+    # Pinnings as per pytorch/.circleci/docker/common/install_conda.sh,
+    # except for python 3.8 because we don't have the version specified
     - numpy =1.21.2 # [py>=310]
-    - numpy =1.19.2 # [py==39]
-    - numpy =1.18.5 # [py<=38]
+    - numpy =1.19.2 # [py<=39]
     - pip
     - pkg-config                      # [unix]
     - python
