@@ -90,7 +90,6 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
         --no-deps \
         --no-binary :all: \
         --no-clean \
-        --use-feature=in-tree-build \
         -vvv
     echo "15.2"
     exit $?
@@ -143,7 +142,6 @@ echo "17"
     --no-deps \
     --no-binary :all: \
     --no-clean \
-    --use-feature=in-tree-build \
     -vvv
 
 echo "18"

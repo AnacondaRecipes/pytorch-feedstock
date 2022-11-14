@@ -113,7 +113,7 @@ requirements:
     # except for python 3.8 because we don't have the version specified
     - numpy =1.21.2 # [py>=310]
     - numpy =1.19.2 # [py<=39]
-    - pip
+    - pip >=21.3.0 # Required for in tree builds
     - pkg-config                      # [unix]
     - python
     - pyyaml
