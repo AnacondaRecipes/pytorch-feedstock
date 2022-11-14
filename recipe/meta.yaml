@@ -7,9 +7,9 @@ package:
 
 source:
   # for local testing use a tarball including submodules
-  #git_url: https://github.com/pytorch/pytorch.git
-  #git_tag: {{ commit }}
-  path: ../../../pytorch
+  git_url: https://github.com/pytorch/pytorch.git
+  git_tag: {{ commit }}
+  #path: ../../../pytorch
   patches:
     # It is unclear that upstream will allow us to integrate the shared linker
     # path below until their Intel compiler issues are resolved.
