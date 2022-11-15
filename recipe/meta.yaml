@@ -145,8 +145,7 @@ requirements:
     - {{ pin_compatible('numpy') }}
     - python
     - typing-extensions
-    # ppc64le compilers still need to be updated to use `_openmp_mutex`.
-    - _openmp_mutex                   # [linux and not ppc64le]
+    - _openmp_mutex                   # [linux]
     - pyyaml
 
 test:
