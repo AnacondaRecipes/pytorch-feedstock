@@ -43,6 +43,8 @@ source:
     - patches/fix-flaky-tests.patch
     # Fixes usage of non-standard ssize_t.
     # - patches/remove-non-standard-ssize_t.patch  # [win] #upstreamed
+    # MAP_ANONYMOUS not defined
+    - patches/fix_map_anonymous.patch
 
 build:
   number: 0
