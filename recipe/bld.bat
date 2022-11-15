@@ -58,12 +58,9 @@ set CMAKE_BUILD_TYPE=Release
 :: This is the default, but just in case it changes, one day.
 set BUILD_DOCS=OFF
 
-:: When running the full test suite, some tests expect to find resources in
-:: work and work/build, hence the in-tree build.
 %PYTHON% -m pip install . ^
     --no-deps ^
     --no-binary :all: ^
     --no-clean ^
-    --use-feature=in-tree-build ^
     -vvv
 if errorlevel 1 exit /b 1

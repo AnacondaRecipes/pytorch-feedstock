@@ -83,8 +83,6 @@ export CFLAGS CPPFLAGS CXXFLAGS LDFLAGS LDFLAGS_LD
 echo "15"
 # MacOS build is simple, and will not be done for CUDA.
 if [[ "$OSTYPE" == "darwin"* ]]; then
-    # When running the full test suite, some tests expect to find resources in
-    # work and work/build, hence the in-tree build.
     echo "15.1"
     "$PYTHON" -m pip install . \
         --no-deps \
@@ -136,8 +134,6 @@ else
     export CMAKE_TOOLCHAIN_FILE="${RECIPE_DIR}/cross-linux.cmake"
 fi
 echo "17"
-# When running the full test suite, some tests expect to find resources in
-# work and work/build, hence the in-tree build.
 "$PYTHON" -m pip install . \
     --no-deps \
     --no-binary :all: \
