@@ -132,7 +132,7 @@ requirements:
     - libopenblas                     # [blas_impl == "openblas"]
     # OpenMP
     - intel-openmp                    # [(osx or win) and x86]
-    #- llvm-openmp                     # [osx and arm64]
+    - llvm-openmp                     # [osx and arm64]
     # GPU requirements
     - {{ pin_compatible('cudatoolkit', max_pin='x.x') }}  # [pytorch_variant == "gpu"]
     - {{ pin_compatible('cudnn') }}                       # [pytorch_variant == "gpu"]
@@ -143,7 +143,7 @@ requirements:
     # CF: needed to load C++ extensions
     - ninja
     - {{ pin_compatible('numpy') }}
-    #- python
+    - python
     - typing-extensions
     # ppc64le compilers still need to be updated to use `_openmp_mutex`.
     - _openmp_mutex                   # [linux and not ppc64le]
