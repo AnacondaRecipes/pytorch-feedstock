@@ -66,11 +66,13 @@ case "$build_platform" in
 esac
 
 export CMAKE_GENERATOR=Ninja
-export CMAKE_SYSROOT=$CONDA_BUILD_SYSROOT
+if [[ "$OSTYPE" != "darwin"* ]]; then
+    export CMAKE_SYSROOT=$CONDA_BUILD_SYSROOT
+fi
 export CMAKE_LIBRARY_PATH=$PREFIX/lib:$PREFIX/include:$CMAKE_LIBRARY_PATH
 export CMAKE_PREFIX_PATH=$PREFIX
 export CMAKE_BUILD_TYPE=Release
-#export CMAKE_CXX_STANDARD=14
+export CMAKE_CXX_STANDARD=14
 
 # std=c++14 is required to compile some .cu files
 CPPFLAGS="${CPPFLAGS//-std=c++17/-std=c++14}"
