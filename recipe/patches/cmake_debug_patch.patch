@@ -2,7 +2,22 @@ Index: pytorch/cmake/Modules/FindMKLDNN.cmake
 ===================================================================
 --- pytorch.orig/cmake/Modules/FindMKLDNN.cmake
 +++ pytorch/cmake/Modules/FindMKLDNN.cmake
-@@ -27,9 +27,12 @@ IF(NOT MKLDNN_FOUND)
+@@ -15,7 +15,7 @@
+ IF(NOT MKLDNN_FOUND)
+   SET(MKLDNN_LIBRARIES)
+   SET(MKLDNN_INCLUDE_DIR)
+-
++  MESSAGE(STATUS "PROJECT_SOURCE_DIR: ${PROJECT_SOURCE_DIR}")
+   SET(IDEEP_ROOT "${PROJECT_SOURCE_DIR}/third_party/ideep")
+   SET(MKLDNN_ROOT "${PROJECT_SOURCE_DIR}/third_party/ideep/mkl-dnn/third_party/oneDNN")
+   IF(NOT APPLE AND NOT WIN32 AND NOT BUILD_LITE_INTERPRETER)
+@@ -23,13 +23,17 @@ IF(NOT MKLDNN_FOUND)
+     SET(LLGA_ROOT "${PROJECT_SOURCE_DIR}/third_party/ideep/mkl-dnn")
+     SET(BUILD_ONEDNN_GRAPH ON)
+   ENDIF(NOT APPLE AND NOT WIN32 AND NOT BUILD_LITE_INTERPRETER)
+-
++  MESSAGE(STATUS "IDEEP_ROOT: ${IDEEP_ROOT}")
++  MESSAGE(STATUS "MKLDNN_ROOT: ${MKLDNN_ROOT}")
    FIND_PACKAGE(BLAS)
    FIND_PATH(IDEEP_INCLUDE_DIR ideep.hpp PATHS ${IDEEP_ROOT} PATH_SUFFIXES include)
    FIND_PATH(MKLDNN_INCLUDE_DIR dnnl.hpp dnnl.h PATHS ${MKLDNN_ROOT} PATH_SUFFIXES include)
