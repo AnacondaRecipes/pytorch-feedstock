@@ -72,11 +72,11 @@ fi
 export CMAKE_LIBRARY_PATH=$PREFIX/lib:$PREFIX/include:$CMAKE_LIBRARY_PATH
 export CMAKE_PREFIX_PATH=$PREFIX
 export CMAKE_BUILD_TYPE=Release
-export CMAKE_CXX_STANDARD=14
+export CMAKE_CXX_STANDARD=17
 
 # std=c++14 is required to compile some .cu files
-CPPFLAGS="${CPPFLAGS//-std=c++17/-std=c++14}"
-CXXFLAGS="${CXXFLAGS//-std=c++17/-std=c++14}"
+#CPPFLAGS="${CPPFLAGS//-std=c++17/-std=c++14}"
+#CXXFLAGS="${CXXFLAGS//-std=c++17/-std=c++14}"
 
 # Re-export modified env vars so sub-processes see them
 export CFLAGS CPPFLAGS CXXFLAGS LDFLAGS LDFLAGS_LD
