@@ -23,7 +23,9 @@ export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,--as-needed//g')"
 export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,-dead_strip_dylibs//g')"
 export LDFLAGS_LD="$(echo $LDFLAGS_LD | sed 's/-dead_strip_dylibs//g')"
 export CXXFLAGS="$CXXFLAGS -Wno-deprecated-declarations"
+export CXXFLAGS="$CXXFLAGS -Wno-bitwise-instead-of-logical"
 export CFLAGS="$CFLAGS -Wno-deprecated-declarations"
+export CFLAGS="$CFLAGS -Wno-bitwise-instead-of-logical"
 
 # Dynamic libraries need to be lazily loaded so that torch can be imported on
 # systems without a GPU.
@@ -72,7 +74,7 @@ fi
 export CMAKE_LIBRARY_PATH=$PREFIX/lib:$PREFIX/include:$CMAKE_LIBRARY_PATH
 export CMAKE_PREFIX_PATH=$PREFIX
 export CMAKE_BUILD_TYPE=Release
-export CMAKE_CXX_STANDARD=17
+#export CMAKE_CXX_STANDARD=17
 
 # std=c++14 is required to compile some .cu files
 #CPPFLAGS="${CPPFLAGS//-std=c++17/-std=c++14}"
