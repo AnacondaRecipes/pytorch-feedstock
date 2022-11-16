@@ -45,6 +45,7 @@ source:
     # - patches/remove-non-standard-ssize_t.patch  # [win] #upstreamed
     # MAP_ANONYMOUS not defined
     - patches/fix_map_anonymous.patch
+    - patches/cmake_debug_patch.patch
 
 build:
   number: 0

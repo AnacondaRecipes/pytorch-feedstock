@@ -1,0 +1,17 @@
+Index: pytorch/cmake/Modules/FindMKLDNN.cmake
+===================================================================
+--- pytorch.orig/cmake/Modules/FindMKLDNN.cmake
++++ pytorch/cmake/Modules/FindMKLDNN.cmake
+@@ -27,9 +27,12 @@ IF(NOT MKLDNN_FOUND)
+   FIND_PACKAGE(BLAS)
+   FIND_PATH(IDEEP_INCLUDE_DIR ideep.hpp PATHS ${IDEEP_ROOT} PATH_SUFFIXES include)
+   FIND_PATH(MKLDNN_INCLUDE_DIR dnnl.hpp dnnl.h PATHS ${MKLDNN_ROOT} PATH_SUFFIXES include)
++  MESSAGE(STATUS "IDEEP_INCLUDE_DIR: ${IDEEP_INCLUDE_DIR}")
++  MESSAGE(STATUS "MKLDNN_INCLUDE_DIR: ${MKLDNN_INCLUDE_DIR}")
+   IF(NOT MKLDNN_INCLUDE_DIR)
+     EXECUTE_PROCESS(COMMAND git${CMAKE_EXECUTABLE_SUFFIX} submodule update --init --jobs 0 mkl-dnn WORKING_DIRECTORY ${IDEEP_ROOT})
+     FIND_PATH(MKLDNN_INCLUDE_DIR dnnl.hpp dnnl.h PATHS ${MKLDNN_ROOT} PATH_SUFFIXES include)
++    MESSAGE(STATUS "MKLDNN_INCLUDE_DIR 2: ${MKLDNN_INCLUDE_DIR}")
+   ENDIF(NOT MKLDNN_INCLUDE_DIR)
+   IF(BUILD_ONEDNN_GRAPH)
+     FIND_PATH(LLGA_INCLUDE_DIR oneapi/dnnl/dnnl_graph.hpp PATHS ${LLGA_ROOT} PATH_SUFFIXES include)
