@@ -46,6 +46,7 @@ source:
     # MAP_ANONYMOUS not defined
     - patches/fix_map_anonymous.patch
     - patches/cmake_debug_patch.patch
+    - patches/suppress_Wbitwise_instead_of_logical_clang.patch
 
 build:
   number: 0
