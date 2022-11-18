@@ -93,9 +93,8 @@ requirements:
     - {{ compiler('cxx') }}
     - cmake
     - make                            # [unix]
-    - git                             # [not win]
+    - git
     - patch                           # [not win]
-    - m2-git                          # [win]
     - m2-patch                        # [win]
     - python ={{PY_VER}}
     - ninja
