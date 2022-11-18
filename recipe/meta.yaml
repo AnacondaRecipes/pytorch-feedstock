@@ -115,10 +115,10 @@ requirements:
     - future
     - libuv                           # [win]
     # Pinnings as per pytorch/.circleci/docker/common/install_conda.sh,
-    # except for python 3.8 because we don't have the version specified
+    # except for python 3.8 because we don't have the numpy version required
     - numpy =1.21.2 # [py>=310]
     - numpy =1.19.2 # [py<=39]
-    - pip >=21.3.0 # Required for in tree builds
+    - pip           # Required for in tree builds
     - pkg-config                      # [unix]
     - python
     - pyyaml
