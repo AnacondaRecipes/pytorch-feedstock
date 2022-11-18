@@ -174,6 +174,8 @@ test:
     # Run pip check so as to ensure that all pytorch packages are installed
     # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/24
     - pip check
+    - python -c "import torch; print(torch.__version__)"
+    - python -c "import torch; assert torch.backends.mkldnn.m.is_available()"  # [x86 and cuda_compiler_version == "None"]
 
 about:
   home: https://pytorch.org/
