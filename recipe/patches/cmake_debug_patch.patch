@@ -2,7 +2,7 @@ Index: pytorch/cmake/Modules/FindMKLDNN.cmake
 ===================================================================
 --- pytorch.orig/cmake/Modules/FindMKLDNN.cmake
 +++ pytorch/cmake/Modules/FindMKLDNN.cmake
-@@ -15,21 +15,42 @@
+@@ -15,26 +15,51 @@
  IF(NOT MKLDNN_FOUND)
    SET(MKLDNN_LIBRARIES)
    SET(MKLDNN_INCLUDE_DIR)
@@ -35,6 +35,9 @@ Index: pytorch/cmake/Modules/FindMKLDNN.cmake
 +  MESSAGE(STATUS "MKLDNN_ROOT: ${MKLDNN_ROOT}")
 +  MESSAGE(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
 +  MESSAGE(STATUS "CMAKE_FIND_ROOT_PATH: ${CMAKE_FIND_ROOT_PATH}")
++  SET(CMAKE_PREFIX_PATH_OLD "${CMAKE_PREFIX_PATH}")
++  SET(CMAKE_PREFIX_PATH "/")
++  MESSAGE(STATUS "CMAKE_PREFIX_PATH 2: ${CMAKE_PREFIX_PATH}")
    FIND_PACKAGE(BLAS)
 -  FIND_PATH(IDEEP_INCLUDE_DIR ideep.hpp PATHS ${IDEEP_ROOT} PATH_SUFFIXES include)
 -  FIND_PATH(MKLDNN_INCLUDE_DIR dnnl.hpp dnnl.h PATHS ${MKLDNN_ROOT} PATH_SUFFIXES include)
@@ -49,3 +52,10 @@ Index: pytorch/cmake/Modules/FindMKLDNN.cmake
    ENDIF(NOT MKLDNN_INCLUDE_DIR)
    IF(BUILD_ONEDNN_GRAPH)
      FIND_PATH(LLGA_INCLUDE_DIR oneapi/dnnl/dnnl_graph.hpp PATHS ${LLGA_ROOT} PATH_SUFFIXES include)
+   ENDIF(BUILD_ONEDNN_GRAPH)
+-
++  SET(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH_OLD}")
++  MESSAGE(STATUS "CMAKE_PREFIX_PATH 3: ${CMAKE_PREFIX_PATH}")
+   IF(NOT IDEEP_INCLUDE_DIR OR NOT MKLDNN_INCLUDE_DIR)
+     MESSAGE(STATUS "MKLDNN source files not found!")
+     RETURN()
