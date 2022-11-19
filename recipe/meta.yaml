@@ -45,7 +45,7 @@ source:
     # - patches/remove-non-standard-ssize_t.patch  # [win] #upstreamed
     # MAP_ANONYMOUS not defined
     - patches/fix_map_anonymous.patch
-    - patches/cmake_debug_patch.patch
+    - patches/cmake-find-ideep-mkldnn-in-sourcetree.patch # [x86] #required for mkl implementation
     - patches/suppress_Wbitwise_instead_of_logical_clang.patch
 
 build:
