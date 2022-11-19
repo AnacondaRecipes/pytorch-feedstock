@@ -1,5 +1,5 @@
 {% set version = "1.12.1" %}
-{% set sha256 = "031c71073db73da732b5d01710220564ce6dd88d812ba053f0cc94296401eccb" %}
+{% set commit = "664058fa83f1d8eede5d66418abff6e20bd76ca8" %}
 
 package:
   name: pytorch
@@ -7,8 +7,8 @@ package:
 
 source:
   # for local testing use a tarball including submodules
-  url: https://github.com/pytorch/pytorch/releases/download/v{{ version }}/pytorch-v{{ version }}.tar.gz
-  sha256: {{ sha256 }}
+  git_url: https://github.com/pytorch/pytorch.git
+  git_tag: {{ commit }}
   #path: ../../../pytorch
   patches:
     # It is unclear that upstream will allow us to integrate the shared linker
