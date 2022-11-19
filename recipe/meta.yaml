@@ -7,7 +7,7 @@ package:
 
 source:
   # for local testing use a tarball including submodules
-  url: https://github.com/pytorch/pytorch/releases/download/v{{ version }}/pytorch-{{ version }}.tar.gz
+  url: https://github.com/pytorch/pytorch/releases/download/v{{ version }}/pytorch-v{{ version }}.tar.gz
   sha256: {{ sha256 }}
   #path: ../../../pytorch
   patches:
