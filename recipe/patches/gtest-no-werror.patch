@@ -1,7 +1,8 @@
-diff -urN a/third_party/googletest/googletest/cmake/internal_utils.cmake b/third_party/googletest/googletest/cmake/internal_utils.cmake
---- a/third_party/googletest/googletest/cmake/internal_utils.cmake	2022-03-06 00:08:38.000000000 +0300
-+++ b/third_party/googletest/googletest/cmake/internal_utils.cmake	2022-03-07 10:27:47.000000000 +0300
-@@ -84,13 +84,13 @@
+Index: pytorch/third_party/googletest/googletest/cmake/internal_utils.cmake
+===================================================================
+--- pytorch.orig/third_party/googletest/googletest/cmake/internal_utils.cmake
++++ pytorch/third_party/googletest/googletest/cmake/internal_utils.cmake
+@@ -84,13 +84,13 @@ macro(config_compiler_and_linker)
      # Ensure MSVC treats source files as UTF-8 encoded.
      set(cxx_base_flags "${cxx_base_flags} -utf-8")
    elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")

@@ -1,6 +1,8 @@
---- a/third_party/pthreadpool/src/gcd.c
-+++ b/third_party/pthreadpool/src/gcd.c
-@@ -119,6 +119,9 @@ PTHREADPOOL_INTERNAL void pthreadpool_parallelize(
+Index: pytorch/third_party/pthreadpool/src/gcd.c
+===================================================================
+--- pytorch.orig/third_party/pthreadpool/src/gcd.c
++++ pytorch/third_party/pthreadpool/src/gcd.c
+@@ -119,6 +119,9 @@ PTHREADPOOL_INTERNAL void pthreadpool_pa
  		range_start = range_end;
  	}
  

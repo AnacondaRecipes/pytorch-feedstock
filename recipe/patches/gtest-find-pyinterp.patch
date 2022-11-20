@@ -1,6 +1,8 @@
---- a/third_party/googletest/googletest/cmake/internal_utils.cmake	2022-03-06 00:08:38.000000000 +0300
-+++ b/third_party/googletest/googletest/cmake/internal_utils.cmake	2022-03-06 00:28:54.000000000 +0300
-@@ -247,13 +247,7 @@
+Index: pytorch/third_party/googletest/googletest/cmake/internal_utils.cmake
+===================================================================
+--- pytorch.orig/third_party/googletest/googletest/cmake/internal_utils.cmake
++++ pytorch/third_party/googletest/googletest/cmake/internal_utils.cmake
+@@ -247,13 +247,7 @@ function(cxx_executable name dir libs)
  endfunction()
  
  # Sets PYTHONINTERP_FOUND and PYTHON_EXECUTABLE.
