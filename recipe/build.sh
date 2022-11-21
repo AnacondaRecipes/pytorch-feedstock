@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -x
+set -ex
 
 echo "####################################################################"
 echo "Building PyTorch using BLAS implementation: $blas_impl              "
