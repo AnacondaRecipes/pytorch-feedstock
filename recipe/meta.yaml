@@ -72,7 +72,6 @@ build:
     - "**/libtorch_cpu.dylib"     # [osx]
     - "**/libtorch_python.dylib"  # [osx]
     - "**/libiomp5.dylib"         # [osx]
-    - "**/libomp.dylib"           # [osx]
     - "**/libc++.1.dylib"         # [osx]
     - "**/asmjit.dll"             # [win]
     - "**/c10.dll"                # [win]
@@ -98,6 +97,7 @@ requirements:
     - m2-patch                        # [win]
     - python ={{PY_VER}}
     - ninja
+    - llvm-openmp                     # [osx]
   host:
     # GPU requirements
     - cudatoolkit {{ cudatoolkit }}*  # [pytorch_variant == "gpu"]
@@ -124,7 +124,7 @@ requirements:
     - pyyaml
     - requests
     # CF: PyTorch relies on features that were removed in later versions.
-    - setuptools <59.6
+    - setuptools
     - typing-extensions
     - wheel
   run:
