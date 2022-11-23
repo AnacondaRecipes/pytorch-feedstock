@@ -1,21 +1,24 @@
-diff -urN a/test/distributed/elastic/timer/local_timer_test.py b/test/distributed/elastic/timer/local_timer_test.py
---- a/test/distributed/elastic/timer/local_timer_test.py	2022-03-06 00:07:42.000000000 +0300
-+++ b/test/distributed/elastic/timer/local_timer_test.py	2022-03-08 14:19:05.000000000 +0300
-@@ -205,8 +205,8 @@
-             time.sleep(wait)
+Index: pytorch/test/distributed/elastic/timer/local_timer_test.py
+===================================================================
+--- pytorch.orig/test/distributed/elastic/timer/local_timer_test.py
++++ pytorch/test/distributed/elastic/timer/local_timer_test.py
+@@ -224,9 +224,9 @@ if not (IS_WINDOWS or IS_MACOS or TEST_W
              self.server.stop()
              watchdog_call_count = self.server._run_watchdog.call_count
--            self.assertGreaterEqual(watchdog_call_count, int(wait / self.max_interval) - 1)
+             self.assertGreaterEqual(
+-                watchdog_call_count, int(wait / self.max_interval) - 1
++                watchdog_call_count, int(wait / self.max_interval) - 2
+             )
 -            self.assertLessEqual(watchdog_call_count, int(wait / self.max_interval) + 1)
-+            self.assertGreaterEqual(watchdog_call_count, int(wait / self.max_interval) - 2)
 +            self.assertLessEqual(watchdog_call_count, int(wait / self.max_interval) + 2)
  
          def test_watchdog_empty_queue(self):
              """
-diff -urN a/test/test_functional_autograd_benchmark.py b/test/test_functional_autograd_benchmark.py
---- a/test/test_functional_autograd_benchmark.py	2022-03-06 00:07:43.000000000 +0300
-+++ b/test/test_functional_autograd_benchmark.py	2022-03-09 12:20:48.000000000 +0300
-@@ -4,6 +4,7 @@
+Index: pytorch/test/test_functional_autograd_benchmark.py
+===================================================================
+--- pytorch.orig/test/test_functional_autograd_benchmark.py
++++ pytorch/test/test_functional_autograd_benchmark.py
+@@ -6,6 +6,7 @@ import subprocess
  import tempfile
  import os
  import unittest
@@ -23,12 +26,12 @@ diff -urN a/test/test_functional_autograd_benchmark.py b/test/test_functional_au
  
  PYTORCH_COLLECT_COVERAGE = bool(os.environ.get("PYTORCH_COLLECT_COVERAGE"))
  
-@@ -15,7 +16,7 @@
+@@ -17,7 +18,7 @@ class TestFunctionalAutogradBenchmark(Te
          # is not allowed to open it again. As this is a simple smoke test, we choose for now
          # not to run this on windows and keep the code here simple.
          with tempfile.NamedTemporaryFile() as out_file:
--            cmd = ['python', '../benchmarks/functional_autograd_benchmark/functional_autograd_benchmark.py']
-+            cmd = [sys.executable, '../benchmarks/functional_autograd_benchmark/functional_autograd_benchmark.py']
+-            cmd = ['python3',
++            cmd = [sys.executable,
+                    '../benchmarks/functional_autograd_benchmark/functional_autograd_benchmark.py']
              # Only run the warmup
              cmd += ['--num-iters', '0']
-             # Only run the vjp task (fastest one)

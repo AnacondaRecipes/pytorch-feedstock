@@ -1,7 +1,8 @@
-diff -urN a/torch/utils/cpp_extension.py b/torch/utils/cpp_extension.py
---- a/torch/utils/cpp_extension.py	2022-02-14 18:04:40.000000000 +0300
-+++ b/torch/utils/cpp_extension.py	2022-02-14 18:55:09.000000000 +0300
-@@ -435,12 +435,13 @@
+Index: pytorch/torch/utils/cpp_extension.py
+===================================================================
+--- pytorch.orig/torch/utils/cpp_extension.py
++++ pytorch/torch/utils/cpp_extension.py
+@@ -465,12 +465,13 @@ class BuildExtension(build_ext, object):
          else:
              original_compile = self.compiler._compile
  
@@ -17,7 +18,7 @@ diff -urN a/torch/utils/cpp_extension.py b/torch/utils/cpp_extension.py
              if not any(flag.startswith(cpp_flag_prefix) for flag in cflags):
                  cflags.append(cpp_flag)
  
-@@ -481,11 +482,13 @@
+@@ -511,11 +512,13 @@ class BuildExtension(build_ext, object):
                          cflags = COMMON_HIPCC_FLAGS + cflags + _get_rocm_arch_flags(cflags)
                      else:
                          cflags = unix_cuda_flags(cflags)
@@ -32,7 +33,7 @@ diff -urN a/torch/utils/cpp_extension.py b/torch/utils/cpp_extension.py
  
                  original_compile(obj, src, ext, cc_args, cflags, pp_opts)
              finally:
-@@ -534,7 +537,7 @@
+@@ -564,7 +567,7 @@ class BuildExtension(build_ext, object):
                  post_cflags = list(extra_postargs)
              if IS_HIP_EXTENSION:
                  post_cflags = COMMON_HIP_FLAGS + post_cflags
@@ -41,7 +42,7 @@ diff -urN a/torch/utils/cpp_extension.py b/torch/utils/cpp_extension.py
  
              cuda_post_cflags = None
              cuda_cflags = None
-@@ -549,7 +552,7 @@
+@@ -579,7 +582,7 @@ class BuildExtension(build_ext, object):
                      cuda_post_cflags = COMMON_HIP_FLAGS + COMMON_HIPCC_FLAGS + cuda_post_cflags
                  else:
                      cuda_post_cflags = unix_cuda_flags(cuda_post_cflags)
@@ -50,7 +51,7 @@ diff -urN a/torch/utils/cpp_extension.py b/torch/utils/cpp_extension.py
                  cuda_cflags = [shlex.quote(f) for f in cuda_cflags]
                  cuda_post_cflags = [shlex.quote(f) for f in cuda_post_cflags]
  
-@@ -680,7 +683,7 @@
+@@ -710,7 +713,7 @@ class BuildExtension(build_ext, object):
                  post_cflags = extra_postargs['cxx']
              else:
                  post_cflags = list(extra_postargs)

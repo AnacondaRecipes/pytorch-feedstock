@@ -1,8 +1,10 @@
-#!/bin/bash -e
+#!/bin/bash
 
-echo "####################################################################" >&2
-echo "Building PyTorch using BLAS implementation: $blas_impl              " >&2
-echo "####################################################################" >&2
+set -ex
+
+echo "####################################################################"
+echo "Building PyTorch using BLAS implementation: $blas_impl              "
+echo "####################################################################"
 
 rm -fr build/
 
@@ -64,28 +66,22 @@ case "$build_platform" in
 esac
 
 export CMAKE_GENERATOR=Ninja
-export CMAKE_SYSROOT=$CONDA_BUILD_SYSROOT
+if [[ "$OSTYPE" != "darwin"* ]]; then
+    export CMAKE_SYSROOT=$CONDA_BUILD_SYSROOT
+fi
 export CMAKE_LIBRARY_PATH=$PREFIX/lib:$PREFIX/include:$CMAKE_LIBRARY_PATH
 export CMAKE_PREFIX_PATH=$PREFIX
 export CMAKE_BUILD_TYPE=Release
-export CMAKE_CXX_STANDARD=14
-
-# std=c++14 is required to compile some .cu files
-CPPFLAGS="${CPPFLAGS//-std=c++17/-std=c++14}"
-CXXFLAGS="${CXXFLAGS//-std=c++17/-std=c++14}"
 
 # Re-export modified env vars so sub-processes see them
 export CFLAGS CPPFLAGS CXXFLAGS LDFLAGS LDFLAGS_LD
 
 # MacOS build is simple, and will not be done for CUDA.
 if [[ "$OSTYPE" == "darwin"* ]]; then
-    # When running the full test suite, some tests expect to find resources in
-    # work and work/build, hence the in-tree build.
     "$PYTHON" -m pip install . \
         --no-deps \
         --no-binary :all: \
         --no-clean \
-        --use-feature=in-tree-build \
         -vvv
     exit $?
 fi
@@ -130,11 +126,8 @@ else
     export CMAKE_TOOLCHAIN_FILE="${RECIPE_DIR}/cross-linux.cmake"
 fi
 
-# When running the full test suite, some tests expect to find resources in
-# work and work/build, hence the in-tree build.
 "$PYTHON" -m pip install . \
     --no-deps \
     --no-binary :all: \
     --no-clean \
-    --use-feature=in-tree-build \
     -vvv

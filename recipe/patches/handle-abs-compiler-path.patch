@@ -1,6 +1,8 @@
---- a/torch/utils/cpp_extension.py	2022-03-06 00:07:51.000000000 +0300
-+++ b/torch/utils/cpp_extension.py	2022-03-09 13:27:23.000000000 +0300
-@@ -251,6 +251,8 @@
+Index: pytorch/torch/utils/cpp_extension.py
+===================================================================
+--- pytorch.orig/torch/utils/cpp_extension.py
++++ pytorch/torch/utils/cpp_extension.py
+@@ -277,6 +277,8 @@ def check_compiler_ok_for_platform(compi
      '''
      if IS_WINDOWS:
          return True

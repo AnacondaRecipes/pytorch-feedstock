@@ -1,6 +1,7 @@
-diff -urN a/torch/csrc/DataLoader.cpp b/torch/csrc/DataLoader.cpp
---- a/torch/csrc/DataLoader.cpp	2022-02-14 18:04:36.000000000 +0300
-+++ b/torch/csrc/DataLoader.cpp	2022-02-14 18:26:50.000000000 +0300
+Index: pytorch/torch/csrc/DataLoader.cpp
+===================================================================
+--- pytorch.orig/torch/csrc/DataLoader.cpp
++++ pytorch/torch/csrc/DataLoader.cpp
 @@ -12,6 +12,7 @@
  
  #ifndef _WIN32
