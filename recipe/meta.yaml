@@ -49,6 +49,7 @@ source:
     - patches/suppress_Wbitwise_instead_of_logical_clang.patch
 
 build:
+  # Trigger 1
   number: 0
   # Automated s390x builds fail. The exact reason is unknown but probably due
   # to resource constraints (the build is very memory intensive). Manual builds
