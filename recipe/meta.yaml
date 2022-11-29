@@ -50,7 +50,7 @@ source:
 
 build:
   # Trigger 1
-  number: 0
+  number: 1
   # Automated s390x builds fail. The exact reason is unknown but probably due
   # to resource constraints (the build is very memory intensive). Manual builds
   # may or may not go through, your mileage may vary.
@@ -117,8 +117,8 @@ requirements:
     - libuv                           # [win]
     # Pinnings as per pytorch/.circleci/docker/common/install_conda.sh,
     # except for python 3.8 because we don't have the numpy version required
-    - numpy >=1.21.2,<1.22.0 # [py>=310]
-    - numpy >=1.19.2,<1.20.0 # [py<=39]
+    - numpy >=1.21,<1.22 # [py>=310]
+    - numpy >=1.19,<1.20 # [py<=39]
     - pip           # Required for in tree builds
     - pkg-config                      # [unix]
     - python
@@ -144,8 +144,8 @@ requirements:
     - future
     # CF: needed to load C++ extensions
     - ninja
-    - numpy >=1.21.2,<2 # [py>=310]
-    - numpy >=1.19.2,<2 # [py<=39]
+    - numpy >=1.21,<2 # [py>=310]
+    - numpy >=1.19,<2 # [py<=39]
     - python
     - typing-extensions
     - _openmp_mutex                   # [linux]

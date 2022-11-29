@@ -56,6 +56,7 @@ set LIB=%LIBRARY_PREFIX%\lib;%LIB%
 set CMAKE_PREFIX_PATH=%LIBRARY_PREFIX%
 set CMAKE_BUILD_TYPE=Release
 set Python_EXECUTABLE=%PYTHON%
+set CONTINUE_THROUGH_ERROR=1
 
 :: This is the default, but just in case it changes, one day.
 set BUILD_DOCS=OFF

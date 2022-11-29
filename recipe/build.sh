@@ -51,6 +51,7 @@ export TH_BINARY_BUILD=1
 export USE_NINJA=1
 export BUILD_TEST=0
 export INSTALL_TEST=0
+export CONTINUE_THROUGH_ERROR=1
 
 # This is the default, but just in case it changes, one day.
 export BUILD_DOCS=OFF
