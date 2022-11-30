@@ -14,3 +14,7 @@ cxx_compiler:          # [win]
 pytorch_variant:
   - cpu
 # - gpu
+# linux-ppc64le; linux-aarch64 failed on test_nn, first with SIGSEGV, second with failures; and INFO  OpenBLAS Warning : Detect OpenMP Loop and this application may hang. Please rebuild the library with USE_OPENMP=1 option: 
+# osx-arm64, osx-64, linux-64 all failed on test_ops_gradients with unexpected successes
+# win-64 failed on test_ops with failures
+# linux-s390x failed on test_autograd with errors

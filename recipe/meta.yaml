@@ -172,6 +172,8 @@ test:
   commands:
     # We seem to have individual platform-specific test failures or flaky
     # tests, but the majority of tests passes.
+    - set CONTINUE_THROUGH_ERROR=1 # [win]
+    - export CONTINUE_THROUGH_ERROR=1 # [not win]
     - python ./test/run_test.py --core || true
     # Run pip check so as to ensure that all pytorch packages are installed
     # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/24
