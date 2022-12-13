@@ -65,7 +65,7 @@ case "$build_platform" in
     ;;
 esac
 
-#export CMAKE_GENERATOR=Ninja
+export CMAKE_GENERATOR=Ninja
 if [[ "$OSTYPE" != "darwin"* ]]; then
     export CMAKE_SYSROOT=$CONDA_BUILD_SYSROOT
 fi
