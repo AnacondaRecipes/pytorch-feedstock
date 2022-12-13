@@ -17,32 +17,38 @@ export PATH=$PREFIX/bin:$PREFIX:$BUILD_PREFIX/bin:$BUILD_PREFIX:/usr/local/bin:/
 # uncomment to debug cmake build
 export CMAKE_VERBOSE_MAKEFILE=1
 
-export CFLAGS="$(echo $CFLAGS | sed 's/-fvisibility-inlines-hidden//g')"
-export CXXFLAGS="$(echo $CXXFLAGS | sed 's/-fvisibility-inlines-hidden//g')"
-export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,--as-needed//g')"
-export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,-dead_strip_dylibs//g')"
-export LDFLAGS_LD="$(echo $LDFLAGS_LD | sed 's/-dead_strip_dylibs//g')"
-export CXXFLAGS="$CXXFLAGS -Wno-deprecated-declarations"
-export CFLAGS="$CFLAGS -Wno-deprecated-declarations"
+# # The reason for these flags being removed has been lost in time. It would
+# # be nice to investigate why they're here at some point.
+# export CFLAGS="$(echo $CFLAGS | sed 's/-fvisibility-inlines-hidden//g')"
+# export CXXFLAGS="$(echo $CXXFLAGS | sed 's/-fvisibility-inlines-hidden//g')"
+# export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,--as-needed//g')"
+# export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,-dead_strip_dylibs//g')"
+# export LDFLAGS_LD="$(echo $LDFLAGS_LD | sed 's/-dead_strip_dylibs//g')"
+# export CXXFLAGS="$CXXFLAGS -Wno-deprecated-declarations"
+# export CFLAGS="$CFLAGS -Wno-deprecated-declarations"
 
 # Dynamic libraries need to be lazily loaded so that torch can be imported on
 # systems without a GPU.
 LDFLAGS="${LDFLAGS//-Wl,-z,now/-Wl,-z,lazy}"
 
-# Taken from CF. This is a desparate attempt to export the CMake config to all
+# Taken from CF. This is a desperate attempt to export the CMake config to all
 # submodules, and hope that it will be picked up.
-for ARG in $CMAKE_ARGS; do
-  if [[ "$ARG" == "-DCMAKE_"* ]]; then
-    cmake_arg=$(echo $ARG | cut -d= -f1)
-    cmake_arg=$(echo $cmake_arg| cut -dD -f2-)
-    cmake_val=$(echo $ARG | cut -d= -f2-)
-    printf -v $cmake_arg "$cmake_val"
-    export ${cmake_arg}
-  fi
-done
+# It would be great to have a look at these flags and set the ones that we need
+# explicitly. Also to try and understand which CMake config these are coming from.
+# TODO: try taking this out.
+# for ARG in $CMAKE_ARGS; do
+#   if [[ "$ARG" == "-DCMAKE_"* ]]; then
+#     cmake_arg=$(echo $ARG | cut -d= -f1)
+#     cmake_arg=$(echo $cmake_arg| cut -dD -f2-)
+#     cmake_val=$(echo $ARG | cut -d= -f2-)
+#     printf -v $cmake_arg "$cmake_val"
+#     export ${cmake_arg}
+#   fi
+# done
 
 # This must be unset, else PyTorch complains.
-unset CMAKE_INSTALL_PREFIX
+# Test - try removing - delete this if it's ok without
+#unset CMAKE_INSTALL_PREFIX
 
 export PYTORCH_BUILD_VERSION=$PKG_VERSION
 export PYTORCH_BUILD_NUMBER=$PKG_BUILDNUM
@@ -123,7 +129,7 @@ else
             ;;
     esac
 
-    export CMAKE_TOOLCHAIN_FILE="${RECIPE_DIR}/cross-linux.cmake"
+    # export CMAKE_TOOLCHAIN_FILE="${RECIPE_DIR}/cross-linux.cmake"
 fi
 
 "$PYTHON" -m pip install . \

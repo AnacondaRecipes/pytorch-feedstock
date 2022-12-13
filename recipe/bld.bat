@@ -45,16 +45,16 @@ set CUDNN_INCLUDE_DIR=%LIBRARY_PREFIX%\include
 
 
 set DISTUTILS_USE_SDK=1
-set INSTALL_TEST=0
+set BUILD_TEST=0
 set CPU_COUNT=2
 set MAX_JOBS=%CPU_COUNT%
 
 set CMAKE_GENERATOR=Ninja
-set CMAKE_GENERATOR_PLATFORM=
 set CMAKE_INCLUDE_PATH=%LIBRARY_PREFIX%\include
 set LIB=%LIBRARY_PREFIX%\lib;%LIB%
 set CMAKE_PREFIX_PATH=%LIBRARY_PREFIX%
 set CMAKE_BUILD_TYPE=Release
+:: TODO - comment the reason for this
 set Python_EXECUTABLE=%PYTHON%
 
 :: This is the default, but just in case it changes, one day.

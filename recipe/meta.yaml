@@ -55,11 +55,13 @@ build:
   # to resource constraints (the build is very memory intensive). Manual builds
   # may or may not go through, your mileage may vary.
   skip: True  # [py<37]
-  string: cuda{{ cudatoolkit | replace('.', '') }}py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}  # [pytorch_variant == "gpu"]
+  # TODO: note that at the moment we only use CUDA backend, e.g. would be different for mac
+  string: gpu_cuda{{ cudatoolkit | replace('.', '') }}py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}  # [pytorch_variant == "gpu"]
   string: cpu_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                      # [pytorch_variant == "cpu"]
   detect_binary_files_with_prefix: False
   missing_dso_whitelist:
-    # It is not clear, why conda-build cannot figure these out:
+    # It is not clear why conda-build cannot figure these out.
+    # It would be nice to figure out why at some point.
     - "**/ld64.so.*"              # [linux]
     - "**/libc10.so"              # [linux]
     - "**/libshm.so"              # [linux]
@@ -172,14 +174,17 @@ test:
   commands:
     # We seem to have individual platform-specific test failures or flaky
     # tests, but the majority of tests passes.
-    - set CONTINUE_THROUGH_ERROR=1 # [win]
-    - export CONTINUE_THROUGH_ERROR=1 # [not win]
+    - set CONTINUE_THROUGH_ERROR=1     # [win]
+    - export CONTINUE_THROUGH_ERROR=1  # [not win]
     - python ./test/run_test.py --core || true
     # Run pip check so as to ensure that all pytorch packages are installed
     # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/24
     - pip check
     - python -c "import torch; print(torch.__version__)"
     - python -c "import torch; assert torch.backends.mkldnn.m.is_available()"  # [x86 and cuda_compiler_version == "None"]
+    - python -c "import torch; assert torch.backends.cuda.is_built()"          # [pytorch_variant == "gpu"]
+    - python -c "import torch; assert torch.backends.cudnn.is_available()"     # [pytorch_variant == "gpu"]
+    - python -c "import torch; assert torch.backends.cudnn.enabled()"          # [pytorch_variant == "gpu"]
 
 about:
   home: https://pytorch.org/
