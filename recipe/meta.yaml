@@ -103,7 +103,7 @@ requirements:
     # GPU requirements
     - cudatoolkit {{ cudatoolkit }}*  # [pytorch_variant == "gpu"]
     - cudnn {{ cudnn }}*              # [pytorch_variant == "gpu"]
-    - magma                           # [pytorch_variant == "gpu"]
+    - magma 2.5.0                     # [pytorch_variant == "gpu"]
     # OpenBLAS or MKL
     - mkl-devel {{ mkl }}.*           # [blas_impl == "mkl"]
     - mkl {{ mkl }}.*                 # [blas_impl == "mkl"]
