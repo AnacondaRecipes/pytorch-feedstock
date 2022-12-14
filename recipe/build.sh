@@ -22,8 +22,9 @@ export CMAKE_VERBOSE_MAKEFILE=1
 # export CFLAGS="$(echo $CFLAGS | sed 's/-fvisibility-inlines-hidden//g')"
 # export CXXFLAGS="$(echo $CXXFLAGS | sed 's/-fvisibility-inlines-hidden//g')"
 # export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,--as-needed//g')"
-# export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,-dead_strip_dylibs//g')"
-# export LDFLAGS_LD="$(echo $LDFLAGS_LD | sed 's/-dead_strip_dylibs//g')"
+# The default conda LDFLAGs include -Wl,-dead_strip_dylibs, which conveniently decides to remove all the MKL sequential, core, etc. libraries, resulting in Symbol not found: _mkl_blas_caxpy error on osx-64.
+export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,-dead_strip_dylibs//g')"
+export LDFLAGS_LD="$(echo $LDFLAGS_LD | sed 's/-dead_strip_dylibs//g')"
 # export CXXFLAGS="$CXXFLAGS -Wno-deprecated-declarations"
 # export CFLAGS="$CFLAGS -Wno-deprecated-declarations"
 
