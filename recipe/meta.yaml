@@ -101,6 +101,10 @@ requirements:
     - python ={{PY_VER}}
     - ninja
     - llvm-openmp                     # [osx]
+    # Keep libprotobuf here so that a compatibile version
+    # of protobuf is installed between build and host
+    - libprotobuf
+    - protobuf
   host:
     # GPU requirements
     - cudatoolkit {{ cudatoolkit }}*  # [pytorch_variant == "gpu"]
@@ -116,6 +120,7 @@ requirements:
     # Other requirements
     - cffi
     - future
+    - libprotobuf
     - libuv                           # [win]
     # Pinnings as per pytorch/.circleci/docker/common/install_conda.sh,
     # except for python 3.8 because we don't have the numpy version required
@@ -128,6 +133,7 @@ requirements:
     - requests
     # CF: PyTorch relies on features that were removed in later versions.
     - setuptools
+    - sleef
     - typing-extensions
     - wheel
   run:

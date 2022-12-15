@@ -58,7 +58,12 @@ export PYTORCH_BUILD_NUMBER=$PKG_BUILDNUM
 #export TH_BINARY_BUILD=1
 export USE_NINJA=1
 export BUILD_TEST=0
+# This is implicit anyway; this makes it explicit
 export USE_NUMA=0
+# Use our sleef and protobuf
+export USE_SYSTEM_SLEEF=1
+export BUILD_CUSTOM_PROTOBUF=OFF
+
 #export INSTALL_TEST=0
 
 # This is the default, but just in case it changes, one day.
