@@ -90,14 +90,13 @@ export CMAKE_BUILD_TYPE=Release
 # Re-export modified env vars so sub-processes see them
 export CFLAGS CPPFLAGS CXXFLAGS LDFLAGS LDFLAGS_LD
 
-# MacOS build is simple, and will not be done for CUDA.
+# Produce macOS builds with torch.distributed support.
+# This is enabled by default on Linux, but disabled by default on macOS,
+# because it requires an non-bundled compile-time dependency (libuv
+# through gloo). This dependency is made available through meta.yaml, so
+# we can override the default and set USE_DISTRIBUTED=1.
 if [[ "$OSTYPE" == "darwin"* ]]; then
-    "$PYTHON" -m pip install . \
-        --no-deps \
-        --no-binary :all: \
-        --no-clean \
-        -vvv
-    exit $?
+    export USE_DISTRIBUTED=1
 fi
 
 # Warning from pytorch v1.12.1: In the future we will require one to 
