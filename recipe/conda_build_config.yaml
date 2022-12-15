@@ -21,7 +21,7 @@ cudnn:
 
 # From pytorch docker specs:
 #    CUDA_VERSION              = 11.3
-#    CUDNN_VERSION             = 8
+#    CUDNN_VERSION             = 8 
 # We choose 10.0 and 7.6 respectively because of the dependency on the magma from our defaults,
 # which was built using 10.0.
 
