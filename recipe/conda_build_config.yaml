@@ -15,9 +15,9 @@ pytorch_variant:
   - cpu
   - gpu                # [linux64]
 cudatoolkit:
-  - 10.0
+  - 11.3
 cudnn:
-  - 7.6
+  - 8
 
 # From pytorch docker specs:
 #    CUDA_VERSION              = 11.3
