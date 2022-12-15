@@ -22,7 +22,8 @@ export CMAKE_VERBOSE_MAKEFILE=1
 # export CFLAGS="$(echo $CFLAGS | sed 's/-fvisibility-inlines-hidden//g')"
 # export CXXFLAGS="$(echo $CXXFLAGS | sed 's/-fvisibility-inlines-hidden//g')"
 # export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,--as-needed//g')"
-# The default conda LDFLAGs include -Wl,-dead_strip_dylibs, which conveniently decides to remove all the MKL sequential, core, etc. libraries, resulting in Symbol not found: _mkl_blas_caxpy error on osx-64.
+# The default conda LDFLAGs include -Wl,-dead_strip_dylibs, which conveniently
+# decides to remove all the MKL sequential, core, etc. libraries, resulting in Symbol not found: _mkl_blas_caxpy error on osx-64.
 export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,-dead_strip_dylibs//g')"
 export LDFLAGS_LD="$(echo $LDFLAGS_LD | sed 's/-dead_strip_dylibs//g')"
 # export CXXFLAGS="$CXXFLAGS -Wno-deprecated-declarations"
@@ -57,6 +58,7 @@ export PYTORCH_BUILD_NUMBER=$PKG_BUILDNUM
 #export TH_BINARY_BUILD=1
 export USE_NINJA=1
 export BUILD_TEST=0
+export USE_NUMA=0
 #export INSTALL_TEST=0
 
 # This is the default, but just in case it changes, one day.
@@ -93,22 +95,35 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     exit $?
 fi
 
+# Warning from pytorch v1.12.1: In the future we will require one to 
+# explicitly pass TORCH_CUDA_ARCH_LIST to cmake instead of implicitly
+# setting it as an env variable.
 if [[ ${pytorch_variant} = "gpu" ]]; then
     export USE_CUDA=1
-    export TORCH_CUDA_ARCH_LIST="3.5;5.0+PTX"
-    if [[ ${cudatoolkit} == 9.0* ]]; then
-        export TORCH_CUDA_ARCH_LIST="$TORCH_CUDA_ARCH_LIST;6.0;7.0"
-    elif [[ ${cudatoolkit} == 9.2* ]]; then
-        export TORCH_CUDA_ARCH_LIST="$TORCH_CUDA_ARCH_LIST;6.0;6.1;7.0"
-    elif [[ ${cudatoolkit} == 10.0* ]]; then
-        export TORCH_CUDA_ARCH_LIST="$TORCH_CUDA_ARCH_LIST;6.0;6.1;7.0;7.5"
-    elif [[ ${cudatoolkit} == 10.1* ]]; then
-        export TORCH_CUDA_ARCH_LIST="$TORCH_CUDA_ARCH_LIST;6.0;6.1;7.0;7.5"
+    # Use PTX with the latest CUDA architecture
+    if [[ ${cuda_compiler_version} == 9.0* ]]; then
+        export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;7.0+PTX"
+    elif [[ ${cuda_compiler_version} == 9.2* ]]; then
+        export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0+PTX"
+    elif [[ ${cuda_compiler_version} == 10.* ]]; then
+        export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5+PTX"
+    elif [[ ${cuda_compiler_version} == 11.0* ]]; then
+        export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0+PTX"
+    elif [[ ${cuda_compiler_version} == 11.1 ]]; then
+        export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX"
+    elif [[ ${cuda_compiler_version} == 11.2 ]]; then
+        export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX"
+    elif [[ ${cuda_compiler_version} == 11.3 ]]; then
+        export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX"
+    else
+        echo "No CUDA architecture list exists for cuda_compiler_version==${cuda_compiler_version}"
+        echo "in build.sh. Use https://en.wikipedia.org/wiki/CUDA#GPUs_supported to make one."
+        exit 1
     fi
     export TORCH_NVCC_FLAGS="-Xfatbin -compress-all"
     export NCCL_ROOT_DIR=/usr/local/cuda
     export USE_STATIC_NCCL=1
-    export CUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda
+    export CUDACXX=/usr/local/cuda/bin/nvcc
     export MAGMA_HOME="${PREFIX}"
 else
     export USE_CUDA=0
