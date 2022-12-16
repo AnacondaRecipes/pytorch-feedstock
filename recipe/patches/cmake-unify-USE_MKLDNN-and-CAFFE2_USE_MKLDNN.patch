@@ -1,0 +1,393 @@
+From da59f4d654423ad29aaa775395d7d449abe2ab2b Mon Sep 17 00:00:00 2001
+From: XiaobingSuper <xiaobing.zhang@intel.com>
+Date: Wed, 6 Apr 2022 18:28:59 +0800
+Subject: [PATCH 2/3] unify USE_MKLDNN with CAFFE2_USE_MKLDNN
+
+---
+ caffe2/contrib/ideep/CMakeLists.txt      | 2 +-
+ caffe2/contrib/warpctc/ctc_op.cpp        | 4 ++--
+ caffe2/core/macros.h.in                  | 2 +-
+ caffe2/ideep/CMakeLists.txt              | 2 +-
+ caffe2/image/image_input_op.cc           | 4 ++--
+ caffe2/operators/atomic_ops.cc           | 4 ++--
+ caffe2/operators/batch_permutation_op.cc | 4 ++--
+ caffe2/operators/distance_op.cc          | 4 ++--
+ caffe2/operators/resize_3d_op.cc         | 4 ++--
+ caffe2/operators/resize_op.cc            | 4 ++--
+ caffe2/operators/stylizer_ops.cc         | 4 ++--
+ caffe2/opt/optimize_ideep.cc             | 6 +++---
+ caffe2/python/CMakeLists.txt             | 2 +-
+ caffe2/python/pybind_state.cc            | 6 +++---
+ caffe2/queue/blobs_queue_db.cc           | 4 ++--
+ caffe2/sgd/iter_op.cc                    | 4 ++--
+ cmake/Dependencies.cmake                 | 2 --
+ cmake/Summary.cmake                      | 2 +-
+ 18 files changed, 31 insertions(+), 33 deletions(-)
+
+Index: pytorch/caffe2/contrib/ideep/CMakeLists.txt
+===================================================================
+--- pytorch.orig/caffe2/contrib/ideep/CMakeLists.txt
++++ pytorch/caffe2/contrib/ideep/CMakeLists.txt
+@@ -1,4 +1,4 @@
+-if(CAFFE2_USE_MKLDNN)
++if(USE_MKLDNN)
+   message(STATUS "Including IDEEP operators")
+ 
+   # ---[ CPU files.
+Index: pytorch/caffe2/contrib/warpctc/ctc_op.cpp
+===================================================================
+--- pytorch.orig/caffe2/contrib/warpctc/ctc_op.cpp
++++ pytorch/caffe2/contrib/warpctc/ctc_op.cpp
+@@ -2,7 +2,7 @@
+ #include "caffe2/core/context_gpu.h"
+ #include "caffe2/core/operator.h"
+ 
+-#ifdef CAFFE2_USE_MKLDNN
++#ifdef USE_MKLDNN
+ #include <caffe2/ideep/operators/operator_fallback_ideep.h>
+ #include <caffe2/ideep/utils/ideep_operator.h>
+ #endif
+@@ -25,7 +25,7 @@ REGISTER_CPU_OPERATOR(CTC, CTCOp<float,
+ OPERATOR_SCHEMA(CTC).NumInputs(3, 4).NumOutputs(2, 3);
+ //    .EnforceInputOutputGradient({{0, 0}});
+ 
+-#ifdef CAFFE2_USE_MKLDNN
++#ifdef USE_MKLDNN
+ REGISTER_IDEEP_OPERATOR(CTC, IDEEPFallbackOp<CTCOp<float, CPUContext>>);
+ #endif
+ 
+Index: pytorch/caffe2/core/macros.h.in
+===================================================================
+--- pytorch.orig/caffe2/core/macros.h.in
++++ pytorch/caffe2/core/macros.h.in
+@@ -40,7 +40,7 @@ static_assert(
+ #cmakedefine CAFFE2_USE_GOOGLE_GLOG
+ #cmakedefine CAFFE2_USE_LITE_PROTO
+ #cmakedefine CAFFE2_USE_MKL
+-#cmakedefine CAFFE2_USE_MKLDNN
++#cmakedefine USE_MKLDNN
+ #cmakedefine CAFFE2_USE_NVTX
+ #cmakedefine CAFFE2_USE_TRT
+ 
+Index: pytorch/caffe2/ideep/CMakeLists.txt
+===================================================================
+--- pytorch.orig/caffe2/ideep/CMakeLists.txt
++++ pytorch/caffe2/ideep/CMakeLists.txt
+@@ -1,4 +1,4 @@
+-if(CAFFE2_USE_MKLDNN)
++if(USE_MKLDNN)
+   message(STATUS "Including IDEEP operators")
+ 
+   # ---[ CPU files.
+Index: pytorch/caffe2/image/image_input_op.cc
+===================================================================
+--- pytorch.orig/caffe2/image/image_input_op.cc
++++ pytorch/caffe2/image/image_input_op.cc
+@@ -1,6 +1,6 @@
+ #include "caffe2/image/image_input_op.h"
+ 
+-#ifdef CAFFE2_USE_MKLDNN
++#ifdef USE_MKLDNN
+ #include <caffe2/ideep/operators/operator_fallback_ideep.h>
+ #include <caffe2/ideep/utils/ideep_operator.h>
+ #endif
+@@ -160,7 +160,7 @@ The dimension of the output image will a
+ 
+ NO_GRADIENT(ImageInput);
+ 
+-#ifdef CAFFE2_USE_MKLDNN
++#ifdef USE_MKLDNN
+ REGISTER_IDEEP_OPERATOR(ImageInput, IDEEPFallbackOp<ImageInputOp<CPUContext>>);
+ #endif
+ 
+Index: pytorch/caffe2/operators/atomic_ops.cc
+===================================================================
+--- pytorch.orig/caffe2/operators/atomic_ops.cc
++++ pytorch/caffe2/operators/atomic_ops.cc
+@@ -3,7 +3,7 @@
+ #include "caffe2/core/context.h"
+ #include "caffe2/core/operator.h"
+ 
+-#ifdef CAFFE2_USE_MKLDNN
++#ifdef USE_MKLDNN
+ #include <caffe2/ideep/operators/operator_fallback_ideep.h>
+ #include <caffe2/ideep/utils/ideep_operator.h>
+ #endif
+@@ -97,7 +97,7 @@ REGISTER_CPU_OPERATOR(CreateMutex, Creat
+ REGISTER_CPU_OPERATOR(AtomicFetchAdd, AtomicFetchAddOp<int32_t>);
+ REGISTER_CPU_OPERATOR(AtomicFetchAdd64, AtomicFetchAddOp<int64_t>);
+ 
+-#ifdef CAFFE2_USE_MKLDNN
++#ifdef USE_MKLDNN
+ REGISTER_IDEEP_OPERATOR(
+     CreateMutex,
+     IDEEPFallbackOp<CreateMutexOp, SkipIndices<0>>);
+Index: pytorch/caffe2/operators/batch_permutation_op.cc
+===================================================================
+--- pytorch.orig/caffe2/operators/batch_permutation_op.cc
++++ pytorch/caffe2/operators/batch_permutation_op.cc
+@@ -3,7 +3,7 @@
+ #include <cstring>
+ #include <vector>
+ 
+-#ifdef CAFFE2_USE_MKLDNN
++#ifdef USE_MKLDNN
+ #include <caffe2/ideep/operators/operator_fallback_ideep.h>
+ #include <caffe2/ideep/utils/ideep_operator.h>
+ #endif
+@@ -89,7 +89,7 @@ bool BatchPermutationGradientOp<float, C
+   return true;
+ }
+ 
+-#ifdef CAFFE2_USE_MKLDNN
++#ifdef USE_MKLDNN
+ REGISTER_IDEEP_OPERATOR(
+     BatchPermutation,
+     IDEEPFallbackOp<BatchPermutationOp<float, CPUContext>>);
+Index: pytorch/caffe2/operators/distance_op.cc
+===================================================================
+--- pytorch.orig/caffe2/operators/distance_op.cc
++++ pytorch/caffe2/operators/distance_op.cc
+@@ -1,7 +1,7 @@
+ #include "caffe2/operators/distance_op.h"
+ #include "caffe2/core/types.h"
+ #include "caffe2/utils/eigen_utils.h"
+-#ifdef CAFFE2_USE_MKLDNN
++#ifdef USE_MKLDNN
+ #include <caffe2/ideep/operators/operator_fallback_ideep.h>
+ #include <caffe2/ideep/utils/ideep_operator.h>
+ #endif
+@@ -420,7 +420,7 @@ REGISTER_CPU_OPERATOR(L1Distance, L1Dist
+ REGISTER_CPU_OPERATOR(
+     L1DistanceGradient,
+     L1DistanceGradientOp<float, CPUContext>);
+-#ifdef CAFFE2_USE_MKLDNN
++#ifdef USE_MKLDNN
+ REGISTER_IDEEP_OPERATOR(
+     L1DistanceGradient,
+     IDEEPFallbackOp<L1DistanceGradientOp<float, CPUContext>>);
+Index: pytorch/caffe2/operators/resize_3d_op.cc
+===================================================================
+--- pytorch.orig/caffe2/operators/resize_3d_op.cc
++++ pytorch/caffe2/operators/resize_3d_op.cc
+@@ -2,7 +2,7 @@
+ 
+ #include "caffe2/utils/math.h"
+ 
+-#ifdef CAFFE2_USE_MKLDNN
++#ifdef USE_MKLDNN
+ #include "caffe2/ideep/operators/operator_fallback_ideep.h"
+ #include "caffe2/ideep/utils/ideep_operator.h"
+ #endif
+@@ -165,7 +165,7 @@ REGISTER_CPU_GRADIENT_OPERATOR(
+     ResizeNearest3DGradient,
+     ResizeNearest3DGradientOp<float, CPUContext>);
+ 
+-#ifdef CAFFE2_USE_MKLDNN
++#ifdef USE_MKLDNN
+ REGISTER_IDEEP_OPERATOR(
+     ResizeNearest3D,
+     IDEEPFallbackOp<ResizeNearest3DOp<float, CPUContext>>);
+Index: pytorch/caffe2/operators/resize_op.cc
+===================================================================
+--- pytorch.orig/caffe2/operators/resize_op.cc
++++ pytorch/caffe2/operators/resize_op.cc
+@@ -3,7 +3,7 @@
+ #include "caffe2/utils/cpu_neon.h"
+ #include "caffe2/utils/math.h"
+ 
+-#ifdef CAFFE2_USE_MKLDNN
++#ifdef USE_MKLDNN
+ #include "caffe2/ideep/operators/operator_fallback_ideep.h"
+ #include "caffe2/ideep/utils/ideep_operator.h"
+ #endif
+@@ -297,7 +297,7 @@ REGISTER_CPU_GRADIENT_OPERATOR(
+     ResizeNearestGradient,
+     ResizeNearestGradientOp<float, CPUContext>);
+ 
+-#ifdef CAFFE2_USE_MKLDNN
++#ifdef USE_MKLDNN
+ REGISTER_IDEEP_OPERATOR(
+     ResizeNearest,
+     IDEEPFallbackOp<ResizeNearestOp<float, CPUContext>>);
+Index: pytorch/caffe2/operators/stylizer_ops.cc
+===================================================================
+--- pytorch.orig/caffe2/operators/stylizer_ops.cc
++++ pytorch/caffe2/operators/stylizer_ops.cc
+@@ -2,7 +2,7 @@
+ #include "caffe2/utils/cpu_neon.h"
+ #include "caffe2/utils/math.h"
+ 
+-#ifdef CAFFE2_USE_MKLDNN
++#ifdef USE_MKLDNN
+ #include <caffe2/ideep/operators/operator_fallback_ideep.h>
+ #include <caffe2/ideep/utils/ideep_operator.h>
+ #endif
+@@ -584,7 +584,7 @@ OPERATOR_SCHEMA(BRGNCHWCToPackedInt8BGRA
+     .NumInputs(2)
+     .NumOutputs(1);
+ 
+-#ifdef CAFFE2_USE_MKLDNN
++#ifdef USE_MKLDNN
+ REGISTER_IDEEP_OPERATOR(
+     BRGNCHWCToPackedInt8BGRAStylizerDeprocess,
+     IDEEPFallbackOp<BRGNCHWCToPackedInt8BGRAStylizerDeprocessOp, SkipIndices<0>>);
+Index: pytorch/caffe2/opt/optimize_ideep.cc
+===================================================================
+--- pytorch.orig/caffe2/opt/optimize_ideep.cc
++++ pytorch/caffe2/opt/optimize_ideep.cc
+@@ -1,7 +1,7 @@
+ #include "caffe2/opt/optimize_ideep.h"
+ #include "caffe2/opt/converter.h"
+ 
+-#ifdef CAFFE2_USE_MKLDNN
++#ifdef USE_MKLDNN
+ #include <cpuinfo.h>
+ #include "caffe2/ideep/ideep_utils.h"
+ #endif
+@@ -11,7 +11,7 @@ namespace opt {
+ 
+ using namespace nom;
+ 
+-#ifndef CAFFE2_USE_MKLDNN
++#ifndef USE_MKLDNN
+ void OptimizeForMkldnn(
+     repr::NNModule* nn,
+     caffe2::Workspace* ws,
+@@ -1012,7 +1012,7 @@ void OptimizeForMkldnn(
+   setPoolingInferenceMode(nn);
+ }
+ 
+-#endif // CAFFE2_USE_MKLDNN
++#endif // USE_MKLDNN
+ 
+ } // namespace opt
+ } // namespace caffe2
+Index: pytorch/caffe2/python/CMakeLists.txt
+===================================================================
+--- pytorch.orig/caffe2/python/CMakeLists.txt
++++ pytorch/caffe2/python/CMakeLists.txt
+@@ -7,7 +7,7 @@ set(Caffe2_CPU_PYTHON_SRCS
+     "/pybind_state_int8.cc"
+ )
+ 
+-if(CAFFE2_USE_MKLDNN)
++if(USE_MKLDNN)
+   set(Caffe2_CPU_PYTHON_SRCS
+       ${Caffe2_CPU_PYTHON_SRCS}
+       "/pybind_state_ideep.cc"
+Index: pytorch/caffe2/python/pybind_state.cc
+===================================================================
+--- pytorch.orig/caffe2/python/pybind_state.cc
++++ pytorch/caffe2/python/pybind_state.cc
+@@ -1057,11 +1057,11 @@ void addGlobalMethods(py::module& m) {
+   m.attr("has_mkldnn") = py::bool_(false);
+ 
+   m.attr("use_mkldnn") = py::bool_(
+-#ifdef CAFFE2_USE_MKLDNN
++#ifdef USE_MKLDNN
+       true
+-#else // CAFFE2_USE_MKLDNN
++#else // USE_MKLDNN
+       false
+-#endif // CAFFE2_USE_MKLDNN
++#endif // USE_MKLDNN
+   );
+ 
+   // if the binary is built with USE_ROCM, this is a ROCm build
+Index: pytorch/caffe2/queue/blobs_queue_db.cc
+===================================================================
+--- pytorch.orig/caffe2/queue/blobs_queue_db.cc
++++ pytorch/caffe2/queue/blobs_queue_db.cc
+@@ -10,7 +10,7 @@
+ #include "caffe2/core/operator.h"
+ #include "caffe2/queue/blobs_queue.h"
+ 
+-#ifdef CAFFE2_USE_MKLDNN
++#ifdef USE_MKLDNN
+ #include <caffe2/ideep/operators/operator_fallback_ideep.h>
+ #include <caffe2/ideep/utils/ideep_operator.h>
+ #endif
+@@ -42,7 +42,7 @@ class CreateBlobsQueueDBOp : public Oper
+ 
+ REGISTER_CPU_OPERATOR(CreateBlobsQueueDB, CreateBlobsQueueDBOp<CPUContext>);
+ 
+-#ifdef CAFFE2_USE_MKLDNN
++#ifdef USE_MKLDNN
+ REGISTER_IDEEP_OPERATOR(
+     CreateBlobsQueueDB,
+     IDEEPFallbackOp<CreateBlobsQueueDBOp<CPUContext>, SkipIndices<0>>);
+Index: pytorch/caffe2/sgd/iter_op.cc
+===================================================================
+--- pytorch.orig/caffe2/sgd/iter_op.cc
++++ pytorch/caffe2/sgd/iter_op.cc
+@@ -1,6 +1,6 @@
+ #include "caffe2/sgd/iter_op.h"
+ 
+-#ifdef CAFFE2_USE_MKLDNN
++#ifdef USE_MKLDNN
+ #include <caffe2/ideep/operators/operator_fallback_ideep.h>
+ #include <caffe2/ideep/utils/ideep_operator.h>
+ #endif
+@@ -28,7 +28,7 @@ void MutexDeserializer::Deserialize(cons
+ REGISTER_CPU_OPERATOR(Iter, IterOp<CPUContext>);
+ REGISTER_CPU_OPERATOR(AtomicIter, AtomicIterOp<CPUContext>);
+ 
+-#ifdef CAFFE2_USE_MKLDNN
++#ifdef USE_MKLDNN
+ REGISTER_IDEEP_OPERATOR(AtomicIter, IDEEPFallbackOp<AtomicIterOp<CPUContext>>);
+ #endif
+ 
+Index: pytorch/cmake/Dependencies.cmake
+===================================================================
+--- pytorch.orig/cmake/Dependencies.cmake
++++ pytorch/cmake/Dependencies.cmake
+@@ -1742,7 +1742,6 @@ if(NOT INTERN_BUILD_MOBILE)
+   endif()
+ 
+   set(AT_MKLDNN_ENABLED 0)
+-  set(CAFFE2_USE_MKLDNN OFF)
+   if(USE_MKLDNN)
+     if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
+       message(WARNING
+@@ -1758,7 +1757,6 @@ if(NOT INTERN_BUILD_MOBILE)
+       set(AT_MKLDNN_ENABLED 1)
+       include_directories(AFTER SYSTEM ${MKLDNN_INCLUDE_DIR})
+       if(BUILD_CAFFE2_OPS)
+-        set(CAFFE2_USE_MKLDNN ON)
+         list(APPEND Caffe2_PUBLIC_DEPENDENCY_LIBS caffe2::mkldnn)
+       endif(BUILD_CAFFE2_OPS)
+     else()
+Index: pytorch/cmake/Summary.cmake
+===================================================================
+--- pytorch.orig/cmake/Summary.cmake
++++ pytorch/cmake/Summary.cmake
+@@ -142,7 +142,7 @@ function(caffe2_print_configuration_summ
+   message(STATUS "  USE_FFTW              : ${USE_FFTW}")
+   message(STATUS "  USE_MKL               : ${CAFFE2_USE_MKL}")
+   message(STATUS "  USE_MKLDNN            : ${USE_MKLDNN}")
+-  if(${CAFFE2_USE_MKLDNN})
++  if(${USE_MKLDNN})
+     message(STATUS "  USE_MKLDNN_ACL        : ${USE_MKLDNN_ACL}")
+     message(STATUS "  USE_MKLDNN_CBLAS      : ${USE_MKLDNN_CBLAS}")
+   endif()
+Index: pytorch/modules/detectron/upsample_nearest_op.cc
+===================================================================
+--- pytorch.orig/modules/detectron/upsample_nearest_op.cc
++++ pytorch/modules/detectron/upsample_nearest_op.cc
+@@ -15,13 +15,13 @@
+  */
+ 
+ #include "upsample_nearest_op.h"
+-#ifdef CAFFE2_USE_MKLDNN
++#ifdef USE_MKLDNN
+ #include "caffe2/ideep/operators/operator_fallback_ideep.h"
+ #include "caffe2/ideep/utils/ideep_operator.h"
+ #endif
+ 
+ namespace caffe2 {
+-#ifdef CAFFE2_USE_MKLDNN
++#ifdef USE_MKLDNN
+ REGISTER_IDEEP_OPERATOR(
+     UpsampleNearest,
+     IDEEPFallbackOp<UpsampleNearestOp<float, CPUContext>>);

@@ -34,6 +34,12 @@ source:
     # This is required in order to use our Pybind instead of the one
     # submoduled into the Pytorch repo
     - patches/cmake-fix-pybind-option.patch
+    # This patch was taken from conda-forge. There was a variable
+    # which directed the build system to use mkldnn for caffe2
+    # specifically, but since it was just turned on by the global
+    # mkldnn variable anyway, it was superfluous.
+    # Some of the changes in the original patch had been upstreamed.
+    - patches/cmake-unify-USE_MKLDNN-and-CAFFE2_USE_MKLDNN.patch
 
 build:
   # Trigger 1
