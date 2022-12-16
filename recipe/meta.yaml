@@ -33,7 +33,7 @@ source:
     - patches/suppress_Wbitwise_instead_of_logical_clang.patch
     # This is required in order to use our Pybind instead of the one
     # submoduled into the Pytorch repo
-    - patches/fix-pybind-cmake-option.patch
+    - patches/cmake-fix-pybind-option.patch
 
 build:
   # Trigger 1
