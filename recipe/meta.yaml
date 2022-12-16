@@ -141,6 +141,7 @@ requirements:
     - typing-extensions
     - wheel
     - pybind11
+    - eigen
   run:
     # OpenBLAS or MKL
     - mkl {{ mkl }}.*                 # [blas_impl == "mkl"]

@@ -60,12 +60,14 @@ export USE_NINJA=1
 export BUILD_TEST=0
 # This is implicit anyway; this makes it explicit
 export USE_NUMA=0
-# Use our sleef (only available on osx-arm64) and protobuf
+# Use our sleef (only available on osx-arm64), protobuf,\
+# Pybind, Eigen
 if [[ "${build_platform}" = "osx-arm64" ]]; then
     export USE_SYSTEM_SLEEF=1
 fi
 export BUILD_CUSTOM_PROTOBUF=OFF
 export USE_SYSTEM_PYBIND11=1
+export USE_SYSTEM_EIGEN_INSTALL=1
 
 #export INSTALL_TEST=0
 
