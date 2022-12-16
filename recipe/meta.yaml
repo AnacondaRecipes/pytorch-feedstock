@@ -47,6 +47,9 @@ source:
     - patches/fix_map_anonymous.patch
     - patches/cmake-find-ideep-mkldnn-in-sourcetree.patch # [x86] #required for mkl implementation
     - patches/suppress_Wbitwise_instead_of_logical_clang.patch
+    # This is required in order to use our Pybind instead of the one
+    # submoduled into the Pytorch repo
+    - patches/fix-pybind-cmake-option.patch
 
 build:
   # Trigger 1
@@ -137,6 +140,7 @@ requirements:
     - sleef                           # [osx and arm64]
     - typing-extensions
     - wheel
+    - pybind11
   run:
     # OpenBLAS or MKL
     - mkl {{ mkl }}.*                 # [blas_impl == "mkl"]

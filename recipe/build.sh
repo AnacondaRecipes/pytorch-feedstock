@@ -65,6 +65,7 @@ if [[ "${build_platform}" = "osx-arm64" ]]; then
     export USE_SYSTEM_SLEEF=1
 fi
 export BUILD_CUSTOM_PROTOBUF=OFF
+export USE_SYSTEM_PYBIND11=1
 
 #export INSTALL_TEST=0
 
