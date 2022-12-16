@@ -134,7 +134,7 @@ requirements:
     - requests
     # CF: PyTorch relies on features that were removed in later versions.
     - setuptools
-    - sleef
+    - sleef                           # [osx and arm64]
     - typing-extensions
     - wheel
   run:

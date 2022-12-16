@@ -60,8 +60,10 @@ export USE_NINJA=1
 export BUILD_TEST=0
 # This is implicit anyway; this makes it explicit
 export USE_NUMA=0
-# Use our sleef and protobuf
-export USE_SYSTEM_SLEEF=1
+# Use our sleef (only available on osx-arm64) and protobuf
+if [[ "${build_platform}" = "osx-arm64" ]]; then
+    export USE_SYSTEM_SLEEF=1
+fi
 export BUILD_CUSTOM_PROTOBUF=OFF
 
 #export INSTALL_TEST=0
