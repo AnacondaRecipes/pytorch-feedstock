@@ -17,6 +17,9 @@ source:
     - patches/fix_std_stdint.patch
     - patches/fix_dispatch_apply_auto.patch
     - patches/cpp_extension.patch
+    # Some third-party modules seem to expect TARGET_OS_OSX to be set, whereas
+    # the actual define in use nowadays seems to be TARGET_OS_MAC.
+    - patches/fix-target-os-osx-macro.patch  # [osx]
     # PyTorch (and most submodules) search for Python differently than gtest,
     # which ends up using (and wanting to link to) the system Python in some
     # constellations, which messes up the build.
