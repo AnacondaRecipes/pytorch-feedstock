@@ -24,3 +24,9 @@ To build a conda pytorch package with GPU support
     ```
     conda build .
     ```
+# Further unvendoring
+Caffe2 could be conda-packaged, and this could then be unvendored.
+Fmt and zstd are dependencies of caffe2, and although these are conda
+packages, they haven't been separated from caffe2 in pytorch's build
+system, because the halfway-solution seemed error-prone and not worth
+the effort (the ideal way being to package and unvendor caffe2).

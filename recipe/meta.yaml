@@ -9,7 +9,6 @@ source:
   # for local testing use a tarball including submodules
   url: https://github.com/pytorch/pytorch/releases/download/v{{ version }}/pytorch-v{{ version }}.tar.gz
   sha256: {{ sha256 }}
-  #path: ../../../pytorch
   patches:
     # It is unclear that upstream will allow us to integrate the shared linker
     # path below until their Intel compiler issues are resolved.
@@ -18,19 +17,6 @@ source:
     - patches/fix_std_stdint.patch
     - patches/fix_dispatch_apply_auto.patch
     - patches/cpp_extension.patch
-    # Fixes invalid use of a preprocessor macro meant to be used on char
-    # literals, but used on a variable instead.
-    # - patches/fix-invalid-cpp-use-unit8c.patch  # [osx] # Code moved to oneDNN and fixed.
-    # Some third-party modules seem to expect TARGET_OS_OSX to be set, whereas
-    # the actual define in use nowadays seems to be TARGET_OS_MAC.
-    - patches/fix-target-os-osx-macro.patch  # [osx]
-    # Fixes compiler crash on (potentially) invalid use of #pragma omp critical
-    # See also https://github.com/pytorch/pytorch/pull/65655
-    # - patches/parallel-for-not-backed-by-omp.patch  # [osx] # Patch upstreamed
-    # Fixes use of stdout without iostream included.
-    # - patches/remove-unused-dump-methods.patch # Patch upstreamed
-    # Fixes a problem with altivec optimizations compilation.
-    # - patches/add-dummy-bfloat16-impl.patch # Patch upstreamed
     # PyTorch (and most submodules) search for Python differently than gtest,
     # which ends up using (and wanting to link to) the system Python in some
     # constellations, which messes up the build.
@@ -41,8 +27,6 @@ source:
     - patches/handle-abs-compiler-path.patch
     # Fix little problems with the test suite.
     - patches/fix-flaky-tests.patch
-    # Fixes usage of non-standard ssize_t.
-    # - patches/remove-non-standard-ssize_t.patch  # [win] #upstreamed
     # MAP_ANONYMOUS not defined
     - patches/fix_map_anonymous.patch
     - patches/cmake-find-ideep-mkldnn-in-sourcetree.patch # [x86] #required for mkl implementation
