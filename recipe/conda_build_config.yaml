@@ -13,19 +13,8 @@ cxx_compiler:          # [win]
   - vs2019             # [win]
 pytorch_variant:
   - cpu
-#  - gpu                # [linux64]
+#  - gpu                # [linux64 or win]
 cudatoolkit:
   - 11.3
 cudnn:
   - 8
-
-# From pytorch docker specs:
-#    CUDA_VERSION              = 11.3
-#    CUDNN_VERSION             = 8 
-# We choose 10.0 and 7.6 respectively because of the dependency on the magma from our defaults,
-# which was built using 10.0.
-
-# linux-ppc64le; linux-aarch64 failed on test_nn, first with SIGSEGV, second with failures; and INFO  OpenBLAS Warning : Detect OpenMP Loop and this application may hang. Please rebuild the library with USE_OPENMP=1 option: 
-# osx-arm64, osx-64, linux-64 all failed on test_ops_gradients with unexpected successes
-# win-64 failed on test_ops with failures
-# linux-s390x failed on test_autograd with errors

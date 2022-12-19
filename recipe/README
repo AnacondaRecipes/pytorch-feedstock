@@ -1,30 +1,26 @@
-To build a conda pytorch package with GPU support
+# Package overview
 
-* Build the required Docker containers:
+Pytorch is configurable via a variety of environment variables, many of
+which are documented in the header of their setup.py. For example, the
+acceleration backend can be provided by CUDA, MKL, or OpenBLAS.
 
-    Dockerfiles can be found at: https://github.com/jjhelmus/docker-images
+Build.sh and bld.bat in this package mostly deal with setting the
+environment variables that we want to set, before calling setup.py, which
+is the entry point to the Pytorch build system.
 
-    CUDA 9.0: pkg_build_cos6_cuda90
-    CUDA 9.2: pkg_build_cos6_cuda92
-    CUDA 10.0: pkg_build_cos6_cuda100
 
-* Start the docker container using:
+# GPU building
 
-    ```
-    sudo nvidia-docker run -v `pwd`:/io -it pkg_build_cos6_cuda90
-    ```
+To build with GPU support, uncomment the line `#  - gpu                # [linux64 or win]`
+in conda_build_config.yaml. Currently, these builds need to be done manually
+on a machine with cudatoolkit installed, as the CI system does not support
+them.
 
-* Update conda and conda-build, and navigate to the recipe root folder.
 
-    Modify conda_build_config.yaml in this directory to specify the
-    CUDA, CuDNN, and python versions.
+# Further work
 
-    To start a build use:
+## Unvendoring
 
-    ```
-    conda build .
-    ```
-# Further unvendoring
 Caffe2 could be conda-packaged, and this could then be unvendored.
 Fmt and zstd are dependencies of caffe2, and although these are conda
 packages, they haven't been separated from caffe2 in pytorch's build
