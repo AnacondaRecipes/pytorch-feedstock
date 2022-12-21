@@ -5,7 +5,7 @@ set -ex
 echo "####################################################################"
 echo "Building PyTorch using BLAS implementation: $blas_impl              "
 echo "####################################################################"
-
+echo "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}, ${CXXFLAGS}"
 rm -fr build/
 
 # uncomment to debug cmake build
@@ -150,7 +150,7 @@ fi
 
 # The build needs a lot of memory. Limit to 4 CPUs to take it easy on builders.
 export MAX_JOBS=$((${CPU_COUNT} > 4 ? 4 : ${CPU_COUNT}))
-
+echo "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}, ${CXXFLAGS}"
 
 # The Pytorch build system is invoked
 # via their setup.py
