@@ -30,7 +30,11 @@ export PATH=$PREFIX/bin:$PREFIX:$BUILD_PREFIX/bin:$BUILD_PREFIX:/usr/local/bin:/
 export CMAKE_GENERATOR=Ninja
 
 
-########################## ADJUST LINKER FLAGS ##########################
+#################### ADJUST COMPILER AND LINKER FLAGS #####################
+# Pytorch's build system doesn't like us setting the c++ standard and will
+# issue a warning. In particular, if it's set to anything other than c++14,
+# we'll get compiler errors. Let's just remove it like we're told.
+export CXXFLAGS="$(echo $CXXFLAGS | sed 's/-std=c++[0-9][0-9]//g')"
 # The default conda LDFLAGs include -Wl,-dead_strip_dylibs, which removes all the
 # MKL sequential, core, etc. libraries, resulting in a "Symbol not found: _mkl_blas_caxpy"
 # error on osx-64.
