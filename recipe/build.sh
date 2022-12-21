@@ -42,7 +42,7 @@ export LDFLAGS_LD="$(echo $LDFLAGS_LD | sed 's/-dead_strip_dylibs//g')"
 export LDFLAGS="${LDFLAGS//-Wl,-z,now/-Wl,-z,lazy}"
 
 # Re-export modified env vars so sub-processes see them
-# export CFLAGS CPPFLAGS CXXFLAGS LDFLAGS LDFLAGS_LD
+export CFLAGS CPPFLAGS CXXFLAGS LDFLAGS LDFLAGS_LD
 
 
 
