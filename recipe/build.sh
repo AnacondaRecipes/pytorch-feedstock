@@ -98,22 +98,22 @@ if [[ ${pytorch_variant} = "gpu" ]]; then
     # setting it as an env variable.
     #
     # Use PTX with the latest CUDA architecture
-    if [[ ${cuda_compiler_version} == 9.0* ]]; then
+    if [[ ${cudatoolkit} == 9.0* ]]; then
         export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;7.0+PTX"
-    elif [[ ${cuda_compiler_version} == 9.2* ]]; then
+    elif [[ ${cudatoolkit} == 9.2* ]]; then
         export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0+PTX"
-    elif [[ ${cuda_compiler_version} == 10.* ]]; then
+    elif [[ ${cudatoolkit} == 10.* ]]; then
         export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5+PTX"
-    elif [[ ${cuda_compiler_version} == 11.0* ]]; then
+    elif [[ ${cudatoolkit} == 11.0* ]]; then
         export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0+PTX"
-    elif [[ ${cuda_compiler_version} == 11.1 ]]; then
+    elif [[ ${cudatoolkit} == 11.1 ]]; then
         export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX"
-    elif [[ ${cuda_compiler_version} == 11.2 ]]; then
+    elif [[ ${cudatoolkit} == 11.2 ]]; then
         export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX"
-    elif [[ ${cuda_compiler_version} == 11.3 ]]; then
+    elif [[ ${cudatoolkit} == 11.3 ]]; then
         export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX"
     else
-        echo "No CUDA architecture list exists for cuda_compiler_version==${cuda_compiler_version}"
+        echo "No CUDA architecture list exists for cuda_compiler_version==${cudatoolkit}"
         echo "in build.sh. Use https://en.wikipedia.org/wiki/CUDA#GPUs_supported to make one."
         exit 1
     fi
