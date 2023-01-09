@@ -106,6 +106,8 @@ requirements:
     - cudatoolkit {{ cudatoolkit }}*  # [pytorch_variant == "gpu"]
     - cudnn {{ cudnn }}*              # [pytorch_variant == "gpu"]
     - magma                           # [pytorch_variant == "gpu"]
+    # Required for GPU profiler
+    - cupti                           # [pytorch_variant == "gpu"]
     # OpenBLAS or MKL
     - mkl-devel {{ mkl }}.*           # [blas_impl == "mkl"]
     - mkl {{ mkl }}.*                 # [blas_impl == "mkl"]
@@ -145,6 +147,8 @@ requirements:
     # GPU requirements
     - {{ pin_compatible('cudatoolkit', max_pin='x.x') }}  # [pytorch_variant == "gpu"]
     - {{ pin_compatible('cudnn') }}                       # [pytorch_variant == "gpu"]
+    # Required for GPU profiler
+    - cupti                           # [pytorch_variant == "gpu"]
     # other requirements
     - cffi
     # CF: pip check may fail if future is not installed
