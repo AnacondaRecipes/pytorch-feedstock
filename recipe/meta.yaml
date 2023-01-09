@@ -193,7 +193,8 @@ test:
     - python -c "import torch; assert torch.backends.mkldnn.m.is_available()"  # [x86 and cuda_compiler_version == "None"]
     - python -c "import torch; assert torch.backends.cuda.is_built()"          # [pytorch_variant == "gpu"]
     - python -c "import torch; assert torch.backends.cudnn.is_available()"     # [pytorch_variant == "gpu"]
-    - python -c "import torch; assert torch.backends.cudnn.enabled()"          # [pytorch_variant == "gpu"]
+    - python -c "import torch; assert torch.cuda.is_available()"               # [pytorch_variant == "gpu"]
+    - python -c "import torch; assert torch.backends.cudnn.enabled"            # [pytorch_variant == "gpu"]
 
 about:
   home: https://pytorch.org/
