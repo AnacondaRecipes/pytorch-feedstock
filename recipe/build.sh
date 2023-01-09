@@ -126,6 +126,8 @@ if [[ ${pytorch_variant} = "gpu" ]]; then
     export NCCL_ROOT_DIR=/usr/local/cuda
     export USE_STATIC_NCCL=1
     export CUDACXX=/usr/local/cuda/bin/nvcc
+    export CUDAHOSTCXX="${CXX}"                # If this isn't included, CUDA will use the system compiler to compile host
+                                               # files, rather than the one in the conda environment, resulting in compiler errors
     export MAGMA_HOME="${PREFIX}"
 
 else
