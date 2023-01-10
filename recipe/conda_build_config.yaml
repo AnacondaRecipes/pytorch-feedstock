@@ -1,3 +1,4 @@
+# MKL is only available on intel platforms, and it's faster on those platforms than openBLAS so we use it there.
 blas_impl:
   - mkl                # [x86]
   - openblas           # [not x86]
