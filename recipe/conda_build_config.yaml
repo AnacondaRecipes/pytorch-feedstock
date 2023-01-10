@@ -14,7 +14,12 @@ cxx_compiler:          # [win]
   - vs2019             # [win]
 pytorch_variant:
   - cpu
-#  - gpu                # [linux64 or win]
+# We currently haven't implemented and tested GPU acceleration on OSX (although it's possible for osx-arm64).
+# This is also the case for linux powerPC and ARM cores.
+# We also don't support it on Windows, because we need magma as a dependency and on windows, CMake isn’t playing ball
+# with building it with CUDA support.
+# So, only linux-64 for now.
+#  - gpu                # [linux64]
 cudatoolkit:
   - 11.3
 cudnn:
