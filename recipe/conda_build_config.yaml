@@ -2,25 +2,23 @@
 blas_impl:
   - mkl                # [x86]
   - openblas           # [not x86]
-c_compiler_version:    # [linux and not aarch64]
-  - 9                  # [linux and not (aarch64 or ppc64le)]
-  - 8                  # [linux and ppc64le]
-cxx_compiler_version:  # [linux and not aarch64]
-  - 9                  # [linux and not (aarch64 or ppc64le)]
-  - 8                  # [linux and ppc64le]
-c_compiler:            # [win]
-  - vs2019             # [win]
-cxx_compiler:          # [win]
-  - vs2019             # [win]
 pytorch_variant:
   - cpu
-# We currently haven't implemented and tested GPU acceleration on OSX (although it's possible for osx-arm64).
-# This is also the case for linux powerPC and ARM cores.
-# We also don't support it on Windows, because we need magma as a dependency and on windows, CMake isn’t playing ball
-# with building it with CUDA support.
-# So, only linux-64 for now.
-#  - gpu                # [linux64]
-cudatoolkit:
-  - 11.3
-cudnn:
-  - 8
+################# For GPU building, uncomment everything below and comment out the two lines above this #############
+## We currently haven't implemented and tested GPU acceleration on OSX (although it's possible for osx-arm64).
+## This is also the case for linux powerPC and ARM cores.
+## We also don't support it on Windows, because we need magma as a dependency and on windows, CMake isn’t playing ball
+## with building it with CUDA support.
+## So, only linux-64 for now.
+## Additionally, we need to pin the compiler if we're building with CUDA support (but not otherwise), see here:
+## https://docs.nvidia.com/cuda/archive/11.3.0/cuda-installation-guide-linux/index.html
+# pytorch_variant:
+#  - gpu                 # [linux64]
+# c_compiler_version:
+#   - 9                  # [linux64]
+# cxx_compiler_version:
+#   - 9                  # [linux64]
+# cudatoolkit:
+#   - 11.3
+# cudnn:
+#   - 8
