@@ -39,6 +39,12 @@ export CMAKE_GENERATOR=Ninja
 # issue a warning. In particular, if it's set to anything other than c++14,
 # we'll get compiler errors. Let's just remove it like we're told.
 export CXXFLAGS="$(echo $CXXFLAGS | sed 's/-std=c++[0-9][0-9]//g')"
+# The below three lines expose symbols that would otherwise be hidden or
+# optimised away. They were here before, so removing them would potentially
+# break users' programs
+export CFLAGS="$(echo $CFLAGS | sed 's/-fvisibility-inlines-hidden//g')"
+export CXXFLAGS="$(echo $CXXFLAGS | sed 's/-fvisibility-inlines-hidden//g')"
+export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,--as-needed//g')"
 # The default conda LDFLAGs include -Wl,-dead_strip_dylibs, which removes all the
 # MKL sequential, core, etc. libraries, resulting in a "Symbol not found: _mkl_blas_caxpy"
 # error on osx-64.
