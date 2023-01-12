@@ -2,6 +2,13 @@
 blas_impl:
   - mkl                # [x86]
   - openblas           # [not x86]
+# If we don't pin the compiler on windows, we get compiler syntax errors. This could be because conda-build pulls in a
+# different runtime version from the compiler version, for some reason. Upstream uses 2019 on their CI, and it's our
+# most recent, so let's use that.
+c_compiler:            # [win]
+  - vs2019             # [win]
+cxx_compiler:          # [win]
+  - vs2019             # [win]
 pytorch_variant:
   - cpu
 ################# For GPU building, uncomment everything below and comment out the two lines above this #############
