@@ -25,7 +25,11 @@ export CMAKE_BUILD_TYPE=Release
 # have a logical order, potentially leading to CMake looking for (and finding)
 # things in the wrong (e.g. parent) environment. In particular, we want to avoid
 # finding the wrong Python interpreter.
-export PATH=$PREFIX/bin:$PREFIX:$BUILD_PREFIX/bin:$BUILD_PREFIX:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+# Additionally, we explicitly tell CMake where the correct Python interpreter is,
+# because simply setting the PATH doesn't work completely.
+export PATH=$PREFIX/bin:$PREFIX:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH
+export Python3_ROOT_DIR=${PREFIX}
+export Python3_EXECUTABLE="${PYTHON}"
 
 export CMAKE_GENERATOR=Ninja
 

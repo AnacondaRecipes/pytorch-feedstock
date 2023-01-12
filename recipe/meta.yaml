@@ -78,6 +78,7 @@ build:
     - "**/shm.dll"                # [win]
     - "**/torch_cpu.dll"          # [win]
     - "**/torch_python.dll"       # [win]
+    - "**/libcuda.so*"            # [pytorch_variant == "gpu"]
 
 requirements:
   # WARNING:
@@ -161,6 +162,7 @@ requirements:
     - typing-extensions
     - _openmp_mutex                   # [linux]
     - pyyaml
+    - magma                           # [pytorch_variant == "gpu"]
 
 test:
   requires:
