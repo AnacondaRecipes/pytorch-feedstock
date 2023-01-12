@@ -100,8 +100,10 @@ requirements:
     - llvm-openmp                     # [osx]
     # Keep libprotobuf here so that a compatibile version
     # of protobuf is installed between build and host
-    - libprotobuf
-    - protobuf
+    # Unvendoring protobuf doesn't work properly for windows
+    # (due to errors in the Pytorch build system)
+    - libprotobuf                     # [not win]
+    - protobuf                        # [not win]
   host:
     # GPU requirements
     - cudatoolkit {{ cudatoolkit }}*  # [pytorch_variant == "gpu"]
@@ -119,7 +121,7 @@ requirements:
     # Other requirements
     - cffi
     - future
-    - libprotobuf
+    - libprotobuf                     # [not win]
     # on osx, libuv supports torch.distributed support. See build.sh.
     - libuv                           # [win and osx]
     # Pinnings as per pytorch/.circleci/docker/common/install_conda.sh,
