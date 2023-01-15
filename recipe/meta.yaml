@@ -123,7 +123,7 @@ requirements:
     - future
     - libprotobuf                     # [not win]
     # on osx, libuv supports torch.distributed support. See build.sh.
-    - libuv                           # [win and osx]
+    - libuv                           # [win or osx]
     # Pinnings as per pytorch/.circleci/docker/common/install_conda.sh,
     # except for python 3.8 because we don't have the numpy version required
     - numpy >=1.21,<1.22 # [py>=310]
