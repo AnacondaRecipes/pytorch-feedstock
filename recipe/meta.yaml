@@ -197,6 +197,8 @@ test:
     # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/24
     - pip check
     - python -c "import torch; print(torch.__version__)"
+    # distributed support is enabled by default on linux; for mac, we enable it manually in build.sh
+    - python -c "import torch; assert torch.distributed.is_available()"        # [linux or osx]
     - python -c "import torch; assert torch.backends.mkldnn.m.is_available()"  # [x86 and cuda_compiler_version == "None"]
     - python -c "import torch; assert torch.backends.cuda.is_built()"          # [pytorch_variant == "gpu"]
     - python -c "import torch; assert torch.backends.cudnn.is_available()"     # [pytorch_variant == "gpu"]
