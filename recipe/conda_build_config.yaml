@@ -24,13 +24,13 @@ pytorch_variant:
 ## So, only linux-64 for now.
 ## Additionally, we need to pin the compiler if we're building with CUDA support (but not otherwise), see here:
 ## https://docs.nvidia.com/cuda/archive/11.3.0/cuda-installation-guide-linux/index.html
-# pytorch_variant:
-#  - gpu                 # [linux64]
-# c_compiler_version:
-#   - 9                  # [linux64]
-# cxx_compiler_version:
-#   - 9                  # [linux64]
-# cudatoolkit:
-#   - 11.3
-# cudnn:
-#   - 8
+#pytorch_variant:       # [linux64]
+#  - gpu                # [linux64]
+#c_compiler_version:    # [linux64]
+#  - 9                  # [linux64]
+#cxx_compiler_version:  # [linux64]
+#  - 9                  # [linux64]
+#cudatoolkit:           # [linux64]
+#  - 11.3               # [linux64]
+#cudnn:                 # [linux64]
+#  - 8                  # [linux64]
