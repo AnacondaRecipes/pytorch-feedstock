@@ -11,10 +11,8 @@ is the entry point to the Pytorch build system.
 
 # GPU building
 
-To build with GPU support, uncomment the line `#  - gpu                # [linux64 or win]`
-in conda_build_config.yaml. Currently, these builds need to be done manually
-on a machine with cudatoolkit installed, as the CI system does not support
-them.
+To build with GPU support, uncomment/comment the lines in conda_build_config.yaml as documented there. Currently, these
+builds need to be done manually on a machine with cudatoolkit installed, as the CI system does not support them.
 
 
 # Further work
