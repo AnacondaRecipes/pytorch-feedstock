@@ -3,10 +3,10 @@ blas_impl:
   - mkl                # [x86]
   - openblas           # [not x86]
 # We get "relocation truncated to fit" with an associated linker error on PPC if we don't pin the compiler version
-c_compiler_version:    # [linux and ppc64le]
-  - 8                  # [linux and ppc64le]
-cxx_compiler_version:  # [linux and ppc64le]
-  - 8                  # [linux and ppc64le]
+c_compiler_version:    # [(linux and ppc64le)]
+  - 8                  # [(linux and ppc64le)]
+cxx_compiler_version:  # [(linux and ppc64le)]
+  - 8                  # [(linux and ppc64le)]
 # If we don't pin the compiler on windows, we get compiler syntax errors. This could be because conda-build pulls in a
 # different runtime version from the compiler version, for some reason. Upstream uses 2019 on their CI, and it's our
 # most recent, so let's use that.
@@ -24,13 +24,13 @@ pytorch_variant:
 ## So, only linux-64 for now.
 ## Additionally, we need to pin the compiler if we're building with CUDA support (but not otherwise), see here:
 ## https://docs.nvidia.com/cuda/archive/11.3.0/cuda-installation-guide-linux/index.html
-#pytorch_variant:       # [linux64]
-#  - gpu                # [linux64]
-#c_compiler_version:    # [linux64]
-#  - 9                  # [linux64]
-#cxx_compiler_version:  # [linux64]
-#  - 9                  # [linux64]
-#cudatoolkit:           # [linux64]
-#  - 11.3               # [linux64]
-#cudnn:                 # [linux64]
-#  - 8                  # [linux64]
+#pytorch_variant:       # [(linux and x86_64)]
+#  - gpu                # [(linux and x86_64)]
+#c_compiler_version:    # [(linux and x86_64)]
+#  - 9                  # [(linux and x86_64)]
+#cxx_compiler_version:  # [(linux and x86_64)]
+#  - 9                  # [(linux and x86_64)]
+#cudatoolkit:           # [(linux and x86_64)]
+#  - 11.3               # [(linux and x86_64)]
+#cudnn:                 # [(linux and x86_64)]
+#  - 8                  # [(linux and x86_64)]
