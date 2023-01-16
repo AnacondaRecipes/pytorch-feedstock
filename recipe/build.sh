@@ -12,7 +12,6 @@ rm -fr build/
 export CMAKE_VERBOSE_MAKEFILE=1
 
 
-
 ################ CONFIGURE CMAKE FOR CONDA ENVIRONMENT ###################
 if [[ "$OSTYPE" != "darwin"* ]]; then
     export CMAKE_SYSROOT=$CONDA_BUILD_SYSROOT
@@ -54,10 +53,6 @@ export LDFLAGS_LD="$(echo $LDFLAGS_LD | sed 's/-dead_strip_dylibs//g')"
 # Dynamic libraries need to be lazily loaded so that torch can be imported on
 # systems without a GPU.
 export LDFLAGS="${LDFLAGS//-Wl,-z,now/-Wl,-z,lazy}"
-
-# Re-export modified env vars so sub-processes see them
-# export CFLAGS CPPFLAGS CXXFLAGS LDFLAGS LDFLAGS_LD
-
 
 
 ##################### CONFIGURE PYTORCH BUILD OPTIONS ########################
