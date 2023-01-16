@@ -57,6 +57,7 @@ build:
   detect_binary_files_with_prefix: False
   missing_dso_whitelist:
     # It is not clear why conda-build cannot figure these out.
+    # It tries to find them in the site-packages for a different Python version from the one for which it's building.
     # It would be nice to figure out why at some point.
     - "**/ld64.so.*"              # [linux]
     - "**/libc10.so"              # [linux]
@@ -79,6 +80,8 @@ build:
     - "**/torch_cpu.dll"          # [win]
     - "**/torch_python.dll"       # [win]
     - "**/libcuda.so*"            # [pytorch_variant == "gpu"]
+    - "**/libtorch_cuda.so"       # [pytorch_variant == "gpu"]
+    - "**/libc10_cuda.so"         # [pytorch_variant == "gpu"]
 
 requirements:
   # WARNING:
