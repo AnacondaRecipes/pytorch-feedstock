@@ -1,3 +1,6 @@
+# This suppresses erroneous overdepending errors;
+# there are packages needed to be loaded during runtime
+# which conda thinks aren't required
 build_parameters:
   - "--suppress-variables"
   - "--skip-existing"

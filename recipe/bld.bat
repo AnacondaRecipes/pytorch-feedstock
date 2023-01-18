@@ -2,7 +2,6 @@
 
 rmdir /s/q build
 
-set TH_BINARY_BUILD=1
 set PYTORCH_BUILD_VERSION=%PKG_VERSION%
 set PYTORCH_BUILD_NUMBER=%PKG_BUILDNUM%
 
@@ -45,17 +44,21 @@ set CUDNN_INCLUDE_DIR=%LIBRARY_PREFIX%\include
 
 
 set DISTUTILS_USE_SDK=1
-set INSTALL_TEST=0
+set BUILD_TEST=0
 set CPU_COUNT=2
 set MAX_JOBS=%CPU_COUNT%
+:: Use our Pybind11, Eigen
+set USE_SYSTEM_PYBIND11=1
+set USE_SYSTEM_EIGEN_INSTALL=1
 
 set CMAKE_GENERATOR=Ninja
-set CMAKE_GENERATOR_PLATFORM=
 set CMAKE_INCLUDE_PATH=%LIBRARY_PREFIX%\include
 set LIB=%LIBRARY_PREFIX%\lib;%LIB%
 set CMAKE_PREFIX_PATH=%LIBRARY_PREFIX%
 set CMAKE_BUILD_TYPE=Release
+:: This is so that CMake finds the environment's Python, not another one
 set Python_EXECUTABLE=%PYTHON%
+set Python3_EXECUTABLE=%PYTHON%
 
 :: This is the default, but just in case it changes, one day.
 set BUILD_DOCS=OFF

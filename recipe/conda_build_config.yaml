@@ -1,16 +1,36 @@
+# MKL is only available on intel platforms, and it's faster on those platforms than openBLAS so we use it there.
 blas_impl:
   - mkl                # [x86]
   - openblas           # [not x86]
-c_compiler_version:    # [linux and not aarch64]
-  - 9                  # [linux and not (aarch64 or ppc64le)]
-  - 8                  # [linux and ppc64le]
-cxx_compiler_version:  # [linux and not aarch64]
-  - 9                  # [linux and not (aarch64 or ppc64le)]
-  - 8                  # [linux and ppc64le]
+# We get "relocation truncated to fit" with an associated linker error on PPC if we don't pin the compiler version
+c_compiler_version:    # [(linux and ppc64le)]
+  - 8                  # [(linux and ppc64le)]
+cxx_compiler_version:  # [(linux and ppc64le)]
+  - 8                  # [(linux and ppc64le)]
+# If we don't pin the compiler on windows, we get compiler syntax errors. This could be because conda-build pulls in a
+# different runtime version from the compiler version, for some reason. Upstream uses 2019 on their CI, and it's our
+# most recent, so let's use that.
 c_compiler:            # [win]
   - vs2019             # [win]
 cxx_compiler:          # [win]
   - vs2019             # [win]
 pytorch_variant:
   - cpu
-# - gpu
+################# For GPU building, uncomment everything below and comment out the two lines above this #############
+## We currently haven't implemented and tested GPU acceleration on OSX (although it's possible for osx-arm64).
+## This is also the case for linux powerPC and ARM cores.
+## We also don't support it on Windows, because we need magma as a dependency and on windows, CMake isn’t playing ball
+## with building it with CUDA support.
+## So, only linux-64 for now.
+## Additionally, we need to pin the compiler if we're building with CUDA support (but not otherwise), see here:
+## https://docs.nvidia.com/cuda/archive/11.3.0/cuda-installation-guide-linux/index.html
+#pytorch_variant:       # [(linux and x86_64)]
+#  - gpu                # [(linux and x86_64)]
+#c_compiler_version:    # [(linux and x86_64)]
+#  - 9                  # [(linux and x86_64)]
+#cxx_compiler_version:  # [(linux and x86_64)]
+#  - 9                  # [(linux and x86_64)]
+#cudatoolkit:           # [(linux and x86_64)]
+#  - 11.3               # [(linux and x86_64)]
+#cudnn:                 # [(linux and x86_64)]
+#  - 8                  # [(linux and x86_64)]
