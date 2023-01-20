@@ -100,7 +100,7 @@ requirements:
     - m2-patch                        # [win]
     - python ={{PY_VER}}
     - ninja
-    - llvm-openmp                     # [osx]
+    - llvm-openmp                     # [osx and arm64]
     # Keep libprotobuf here so that a compatibile version
     # of protobuf is installed between build and host
     # Unvendoring protobuf doesn't work properly for windows
