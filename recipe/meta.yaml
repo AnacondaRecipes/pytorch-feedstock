@@ -53,7 +53,7 @@ build:
   skip: True  # [py<37]
   # TODO: note that at the moment we only use CUDA backend, e.g. would be different for mac
   string: gpu_cuda{{ cudatoolkit | replace('.', '') }}py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}  # [pytorch_variant == "gpu"]
-  string: cpu_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                      # [pytorch_variant == "cpu"]
+  string: cpu_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                          # [pytorch_variant == "cpu"]
   detect_binary_files_with_prefix: False
   missing_dso_whitelist:
     # It is not clear why conda-build cannot figure these out.
@@ -100,7 +100,7 @@ requirements:
     - m2-patch                        # [win]
     - python ={{PY_VER}}
     - ninja
-    - llvm-openmp                     # [osx and arm64]
+    - llvm-openmp                     # [osx]
     # Keep libprotobuf here so that a compatibile version
     # of protobuf is installed between build and host
     # Unvendoring protobuf doesn't work properly for windows
@@ -119,8 +119,11 @@ requirements:
     - mkl {{ mkl }}.*                 # [blas_impl == "mkl"]
     - openblas                        # [blas_impl == "openblas"]
     # OpenMP
-    - intel-openmp                    # [(osx or win) and x86]
-    - llvm-openmp                     # [osx and arm64]
+    # So we pull in the same versions of mkl and intel-openmp: intel aligns the versions
+    # We use llvm-openmp always on osx; for other platforms, we use intel-openmp to support mkl, which is also intel.
+    # For openblas on win and linux, we don't specify any openmp implementation; it comes from the compiler.
+    - intel-openmp   {{ mkl }}        # [(blas_impl == "mkl") and not osx]
+    - llvm-openmp                     # [osx]
     # Other requirements
     - cffi
     - future
@@ -148,8 +151,8 @@ requirements:
     - mkl {{ mkl }}.*                 # [blas_impl == "mkl"]
     - libopenblas                     # [blas_impl == "openblas"]
     # OpenMP
-    - intel-openmp                    # [(osx or win) and x86]
-    - llvm-openmp                     # [osx and arm64]
+    - {{ pin_compatible('intel-openmp') }}   # [(blas_impl == "mkl") and not osx]
+    - llvm-openmp                            # [osx]
     # GPU requirements
     - {{ pin_compatible('cudatoolkit', max_pin='x.x') }}  # [pytorch_variant == "gpu"]
     - {{ pin_compatible('cudnn') }}                       # [pytorch_variant == "gpu"]
@@ -165,6 +168,7 @@ requirements:
     - numpy >=1.19,<2  # [py<=39]
     - python
     - typing-extensions
+    # To stop the compiler pulling in an openmp implementation itself
     - _openmp_mutex                   # [linux]
     - pyyaml
     - magma                           # [pytorch_variant == "gpu"]

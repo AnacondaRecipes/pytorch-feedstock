@@ -1,7 +1,4 @@
-# MKL is only available on intel platforms, and it's faster on those platforms than openBLAS so we use it there.
-blas_impl:
-  - mkl                # [x86]
-  - openblas           # [not x86]
+# The blas_impl is specified in the aggregate conda_build_config.yaml
 # We get "relocation truncated to fit" with an associated linker error on PPC if we don't pin the compiler version
 c_compiler_version:    # [(linux and ppc64le)]
   - 8                  # [(linux and ppc64le)]
