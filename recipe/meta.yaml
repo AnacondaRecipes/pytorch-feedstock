@@ -201,6 +201,9 @@ test:
     # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/24
     - pip check
     - python -c "import torch; print(torch.__version__)"
+    # We have had issues with openmp .dylibs being doubly loaded in certain cases. These two tests catch those issues
+    - python -c "import torch; import numpy"
+    - python -c "import numpy; import torch"
     # distributed support is enabled by default on linux; for mac, we enable it manually in build.sh
     - python -c "import torch; assert torch.distributed.is_available()"        # [linux or osx]
     - python -c "import torch; assert torch.backends.mkldnn.m.is_available()"  # [x86 and cuda_compiler_version == "None"]
