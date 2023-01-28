@@ -4,3 +4,7 @@
 build_parameters:
   - "--suppress-variables"
   - "--skip-existing"
+aggregate_check: false
+
+channels:
+  - dp_test
