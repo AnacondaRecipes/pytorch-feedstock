@@ -144,11 +144,6 @@ else
             export BLAS="MKL"
             export USE_MKL=1
             export USE_MKLDNN=1
-            # Pytorch wants libomp.dylib, but intel-openmp, pulled in for the mkl variant, only provides libiomp5.dylib.
-            # So we create a symlink to it.
-            pushd "${PREFIX}/lib"
-            [[ -f libomp.dylib ]] || ln -s libiomp5.dylib libomp.dylib
-            popd
             ;;
         openblas)
             export BLAS="OpenBLAS"
