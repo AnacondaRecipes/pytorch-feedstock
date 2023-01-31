@@ -53,7 +53,7 @@ build:
   skip: True  # [py<37]
   # TODO: note that at the moment we only use CUDA backend, e.g. would be different for mac
   string: gpu_cuda{{ cudatoolkit | replace('.', '') }}py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}  # [pytorch_variant == "gpu"]
-  string: cpu_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                      # [pytorch_variant == "cpu"]
+  string: cpu_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                          # [pytorch_variant == "cpu"]
   detect_binary_files_with_prefix: False
   missing_dso_whitelist:
     # It is not clear why conda-build cannot figure these out.
@@ -100,7 +100,9 @@ requirements:
     - m2-patch                        # [win]
     - python ={{PY_VER}}
     - ninja
-    - llvm-openmp                     # [osx]
+    # This has a strong run_export so we don't need to put it in `host` or `run`
+    # We use llvm-openmp for openblas variants on osx.
+    - llvm-openmp                     # [osx and not (blas_impl == "mkl")]
     # Keep libprotobuf here so that a compatibile version
     # of protobuf is installed between build and host
     # Unvendoring protobuf doesn't work properly for windows
@@ -119,8 +121,10 @@ requirements:
     - mkl {{ mkl }}.*                 # [blas_impl == "mkl"]
     - openblas                        # [blas_impl == "openblas"]
     # OpenMP
-    - intel-openmp                    # [(osx or win) and x86]
-    - llvm-openmp                     # [osx and arm64]
+    # We pull in the same versions of mkl and intel-openmp: intel aligns the versions
+    # We use intel-openmp for all mkl variants.
+    # For openblas on win and linux, we don't specify any openmp implementation; it comes from the compiler.
+    - intel-openmp   {{ mkl }}        # [blas_impl == "mkl"]
     # Other requirements
     - cffi
     - future
@@ -148,8 +152,7 @@ requirements:
     - mkl {{ mkl }}.*                 # [blas_impl == "mkl"]
     - libopenblas                     # [blas_impl == "openblas"]
     # OpenMP
-    - intel-openmp                    # [(osx or win) and x86]
-    - llvm-openmp                     # [osx and arm64]
+    - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
     # GPU requirements
     - {{ pin_compatible('cudatoolkit', max_pin='x.x') }}  # [pytorch_variant == "gpu"]
     - {{ pin_compatible('cudnn') }}                       # [pytorch_variant == "gpu"]
@@ -165,6 +168,7 @@ requirements:
     - numpy >=1.19,<2  # [py<=39]
     - python
     - typing-extensions
+    # To stop the compiler pulling in an openmp implementation itself
     - _openmp_mutex                   # [linux]
     - pyyaml
     - magma                           # [pytorch_variant == "gpu"]
@@ -197,6 +201,9 @@ test:
     # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/24
     - pip check
     - python -c "import torch; print(torch.__version__)"
+    # We have had issues with openmp .dylibs being doubly loaded in certain cases. These two tests catch those issues
+    - python -c "import torch; import numpy"
+    - python -c "import numpy; import torch"
     # distributed support is enabled by default on linux; for mac, we enable it manually in build.sh
     - python -c "import torch; assert torch.distributed.is_available()"        # [linux or osx]
     - python -c "import torch; assert torch.backends.mkldnn.m.is_available()"  # [x86 and cuda_compiler_version == "None"]

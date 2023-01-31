@@ -1,7 +1,9 @@
-# MKL is only available on intel platforms, and it's faster on those platforms than openBLAS so we use it there.
+# We don't build using mkl on osx-64 for now. The openmp libraries are conflicting between different packages, leading
+# to .dylib loading errors. It needs a proper clean up before we can support it.
+# This is the same as the aggregate cbc.yaml otherwise
 blas_impl:
-  - mkl                # [x86]
-  - openblas           # [not x86]
+  - mkl                        # [(x86 or x86_64) and not osx]
+  - openblas                   # [not win]
 # We get "relocation truncated to fit" with an associated linker error on PPC if we don't pin the compiler version
 c_compiler_version:    # [(linux and ppc64le)]
   - 8                  # [(linux and ppc64le)]
