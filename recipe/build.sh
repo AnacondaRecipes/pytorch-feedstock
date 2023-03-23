@@ -6,7 +6,11 @@ echo "####################################################################"
 echo "Building PyTorch using BLAS implementation: $blas_impl              "
 echo "####################################################################"
 echo "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}, ${CXXFLAGS}"
-rm -fr build/
+
+# clean up an existing cmake build directory
+rm -rf build
+# remove pyproject.toml to avoid installing deps from pip
+rm -rf pyproject.toml
 
 # uncomment to debug cmake build
 export CMAKE_VERBOSE_MAKEFILE=1
