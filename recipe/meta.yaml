@@ -1,12 +1,13 @@
-{% set version = "1.12.1" %}
-{% set sha256 = "031c71073db73da732b5d01710220564ce6dd88d812ba053f0cc94296401eccb" %}
+{% set version = "1.13.1" %}
+{% set sha256 = "dbc229ee9750b02b514937d017744443a269ea0241ed3f32b9af0703589d25d4" %}
 
 package:
   name: pytorch
   version: {{ version }}
 
 source:
-  # for local testing use a tarball including submodules
+  # for local testing use a tarball including submodules. The "pytorch-v" tarballs contain submodules; the "pytorch-"
+  # ones don't.
   url: https://github.com/pytorch/pytorch/releases/download/v{{ version }}/pytorch-v{{ version }}.tar.gz
   sha256: {{ sha256 }}
   patches:
