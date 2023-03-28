@@ -1,8 +1,8 @@
-# We get "relocation truncated to fit" with an associated linker error on PPC if we don't pin the compiler version
-c_compiler_version:    # [(linux and ppc64le)]
-  - 8                  # [(linux and ppc64le)]
-cxx_compiler_version:  # [(linux and ppc64le)]
-  - 8                  # [(linux and ppc64le)]
+# # We get "relocation truncated to fit" with an associated linker error on PPC if we don't pin the compiler version
+# c_compiler_version:    # [(linux and ppc64le)]
+#   - 8                  # [(linux and ppc64le)]
+# cxx_compiler_version:  # [(linux and ppc64le)]
+#   - 8                  # [(linux and ppc64le)]
 # If we don't pin the compiler on windows, we get compiler syntax errors. This could be because conda-build pulls in a
 # different runtime version from the compiler version, for some reason. Upstream uses 2019 on their CI, and it's our
 # most recent, so let's use that.

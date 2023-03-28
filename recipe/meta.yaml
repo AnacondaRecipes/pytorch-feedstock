@@ -38,10 +38,9 @@ source:
 
 build:
   number: 0
-  # Automated s390x builds fail. The exact reason is unknown but probably due
-  # to resource constraints (the build is very memory intensive). Manual builds
-  # may or may not go through, your mileage may vary.
   skip: True  # [py<37]
+  # Remove the below - these are the platforms that haven't succeeded so far
+  skip: True  # [not (win or ppc64le)]
   # TODO: note that at the moment we only use CUDA backend, e.g. would be different for mac
   string: gpu_cuda{{ cudatoolkit | replace('.', '') }}py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}  # [pytorch_variant == "gpu"]
   string: cpu_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                          # [pytorch_variant == "cpu"]
