@@ -52,6 +52,9 @@ export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,--as-needed//g')"
 # error on osx-64.
 export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,-dead_strip_dylibs//g')"
 export LDFLAGS_LD="$(echo $LDFLAGS_LD | sed 's/-dead_strip_dylibs//g')"
+if [[ "${build_platform}" = "linux-ppc64le" ]]; then
+    export CFLAGS="${CFLAGS} -mcmodel=medium"
+fi
 
 # Dynamic libraries need to be lazily loaded so that torch can be imported on
 # systems without a GPU.
