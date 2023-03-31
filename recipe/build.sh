@@ -59,6 +59,7 @@ if [[ "${build_platform}" = "linux-ppc64le" ]]; then
     export CXXFLAGS="${CXXFLAGS} -O0"
     export CFLAGS="${CFLAGS} -mcmodel=large"
     export CXXFLAGS="${CXXFLAGS} -mcmodel=large"
+    export DEBUG=1
 fi
 
 # Dynamic libraries need to be lazily loaded so that torch can be imported on
