@@ -11,6 +11,7 @@ source:
   url: https://github.com/pytorch/pytorch/releases/download/v{{ version }}/pytorch-v{{ version }}.tar.gz
   sha256: {{ sha256 }}
   patches:
+    - patches/remove-compiler-optimizations.patch
     # It is unclear that upstream will allow us to integrate the shared linker
     # path below until their Intel compiler issues are resolved.
     - patches/remove_shared_linker_flag_override.patch
