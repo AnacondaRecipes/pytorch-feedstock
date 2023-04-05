@@ -52,16 +52,6 @@ export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,--as-needed//g')"
 # error on osx-64.
 export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,-dead_strip_dylibs//g')"
 export LDFLAGS_LD="$(echo $LDFLAGS_LD | sed 's/-dead_strip_dylibs//g')"
-if [[ "${build_platform}" = "linux-ppc64le" ]]; then
-    export CFLAGS="$(echo $CFLAGS | sed 's/-O[0-9]//g')"
-    export CXXFLAGS="$(echo $CXXFLAGS | sed 's/-O[0-9]//g')"
-    export CFLAGS="${CFLAGS} -O0"
-    export CXXFLAGS="${CXXFLAGS} -O0"
-    export CFLAGS="${CFLAGS} -mcmodel=large"
-    export CXXFLAGS="${CXXFLAGS} -mcmodel=large"
-    export DEBUG=1
-    export CMAKE_BUILD_TYPE=Debug
-fi
 
 # Dynamic libraries need to be lazily loaded so that torch can be imported on
 # systems without a GPU.
