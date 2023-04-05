@@ -8,8 +8,6 @@ echo "####################################################################"
 
 # clean up an existing cmake build directory
 rm -rf build
-# remove pyproject.toml to avoid installing deps from pip
-rm -rf pyproject.toml
 
 # uncomment to debug cmake build
 export CMAKE_VERBOSE_MAKEFILE=1
@@ -170,4 +168,5 @@ export MAX_JOBS=$((${CPU_COUNT} > 4 ? 4 : ${CPU_COUNT}))
     --no-deps \
     --no-binary :all: \
     --no-clean \
+    --no-build-isolation \
     -vvv
