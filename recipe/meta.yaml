@@ -104,41 +104,41 @@ requirements:
     # GPU requirements
     - cudatoolkit {{ cudatoolkit }}*  # [pytorch_variant == "gpu"]
     - cudnn {{ cudnn }}*              # [pytorch_variant == "gpu"]
-    - magma                           # [pytorch_variant == "gpu"]
+    - magma 2.7.0                     # [pytorch_variant == "gpu"]
     # Required for GPU profiler
-    - cupti                           # [pytorch_variant == "gpu"]
+    - cupti 11.3.1                    # [pytorch_variant == "gpu"]
     # OpenBLAS or MKL
     - mkl-devel {{ mkl }}.*           # [blas_impl == "mkl"]
     - mkl {{ mkl }}.*                 # [blas_impl == "mkl"]
-    - openblas                        # [blas_impl == "openblas"]
+    - openblas 0.3.13                 # [blas_impl == "openblas"]
     # OpenMP
     # We pull in the same versions of mkl and intel-openmp: intel aligns the versions
     # We use intel-openmp for all mkl variants.
     # For openblas on win and linux, we don't specify any openmp implementation; it comes from the compiler.
     - intel-openmp   {{ mkl }}        # [blas_impl == "mkl"]
     # Other requirements
-    - cffi
-    - future
-    - libprotobuf                     # [not win]
+    - cffi 1.15.0
+    - future 0.18.2
+    - libprotobuf 3.20.1              # [not win]
     # on osx, libuv supports torch.distributed support. See build.sh.
-    - libuv                           # [win or osx]
+    - libuv 1.44.2                    # [win or osx]
     # Pinnings as per pytorch/.circleci/docker/common/install_conda.sh,
     # except for python 3.8 because we don't have the numpy version required
     - numpy 1.23          # [py==311]
     - numpy >=1.21,<1.22  # [py==310]
     - numpy >=1.19,<1.20  # [py<=39]
-    - pip           # Required for in tree builds
-    - pkg-config                      # [unix]
+    - pip                               # Required for in tree builds
+    - pkg-config 0.29.2                 # [unix]
     - python
-    - pyyaml
-    - requests
+    - pyyaml 6.0
+    - requests 2.28.1
     # CF: PyTorch relies on features that were removed in later versions.
     - setuptools
-    - sleef                           # [osx and arm64]
-    - typing-extensions
+    - sleef 3.5.1                       # [osx and arm64]
+    - typing-extensions 4.3.0
     - wheel
-    - pybind11
-    - eigen
+    - pybind11 2.10.1
+    - eigen 3.3.7
   run:
     # OpenBLAS or MKL
     - mkl {{ mkl }}.*                 # [blas_impl == "mkl"]
