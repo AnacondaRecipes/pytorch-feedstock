@@ -110,7 +110,7 @@ requirements:
     # OpenBLAS or MKL
     - mkl-devel {{ mkl }}.*           # [blas_impl == "mkl"]
     - mkl {{ mkl }}.*                 # [blas_impl == "mkl"]
-    - openblas 0.3.13                 # [blas_impl == "openblas"]
+    - openblas {{ openblas }}                 # [blas_impl == "openblas"]
     # OpenMP
     # We pull in the same versions of mkl and intel-openmp: intel aligns the versions
     # We use intel-openmp for all mkl variants.
@@ -119,7 +119,7 @@ requirements:
     # Other requirements
     - cffi 1.15.0
     - future 0.18.2
-    - libprotobuf 3.20.1              # [not win]
+    - libprotobuf {{ libprotobuf }}       # [not win]
     # on osx, libuv supports torch.distributed support. See build.sh.
     - libuv 1.44.2                    # [win or osx]
     # Pinnings as per pytorch/.circleci/docker/common/install_conda.sh,
