@@ -67,5 +67,6 @@ set BUILD_DOCS=OFF
     --no-deps ^
     --no-binary :all: ^
     --no-clean ^
+    --no-build-isolation ^
     -vvv
 if errorlevel 1 exit /b 1
