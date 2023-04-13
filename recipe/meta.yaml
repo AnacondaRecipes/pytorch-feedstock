@@ -117,7 +117,7 @@ requirements:
     # For openblas on win and linux, we don't specify any openmp implementation; it comes from the compiler.
     - intel-openmp   {{ mkl }}        # [blas_impl == "mkl"]
     # Other requirements
-    - cffi 1.15.0
+    - cffi 1.15.1
     - future 0.18.2
     - libprotobuf {{ libprotobuf }}       # [not win]
     # on osx, libuv supports torch.distributed support. See build.sh.
@@ -135,7 +135,7 @@ requirements:
     # CF: PyTorch relies on features that were removed in later versions.
     - setuptools
     - sleef 3.5.1                       # [osx and arm64]
-    - typing-extensions 4.3.0
+    - typing-extensions 4.4.0
     - wheel
     - pybind11 2.10.1
     - eigen 3.3.7
