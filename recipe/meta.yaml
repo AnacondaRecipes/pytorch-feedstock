@@ -46,6 +46,10 @@ build:
   string: gpu_cuda{{ cudatoolkit | replace('.', '') }}py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}  # [pytorch_variant == "gpu"]
   string: cpu_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                          # [pytorch_variant == "cpu"]
   detect_binary_files_with_prefix: False
+  entry_points:
+    - convert-caffe2-to-onnx = caffe2.python.onnx.bin.conversion:caffe2_to_onnx
+    - convert-onnx-to-caffe2 = caffe2.python.onnx.bin.conversion:onnx_to_caffe2
+    - torchrun = torch.distributed.run:main
   missing_dso_whitelist:
     # It is not clear why conda-build cannot figure these out.
     # It tries to find them in the site-packages for a different Python version from the one for which it's building.
