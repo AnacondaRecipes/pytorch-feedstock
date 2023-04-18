@@ -2,7 +2,7 @@ Index: pytorch/CMakeLists.txt
 ===================================================================
 --- pytorch.orig/CMakeLists.txt
 +++ pytorch/CMakeLists.txt
-@@ -458,13 +458,6 @@ option(
+@@ -466,13 +466,6 @@ option(
    "Master flag to build Lite Interpreter with tracing build option"
    OFF)
  

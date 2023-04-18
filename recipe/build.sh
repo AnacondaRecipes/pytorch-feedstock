@@ -5,8 +5,9 @@ set -ex
 echo "####################################################################"
 echo "Building PyTorch using BLAS implementation: $blas_impl              "
 echo "####################################################################"
-echo "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}, ${CXXFLAGS}"
-rm -fr build/
+
+# clean up an existing cmake build directory
+rm -rf build
 
 # uncomment to debug cmake build
 export CMAKE_VERBOSE_MAKEFILE=1
@@ -53,7 +54,6 @@ export LDFLAGS_LD="$(echo $LDFLAGS_LD | sed 's/-dead_strip_dylibs//g')"
 # Dynamic libraries need to be lazily loaded so that torch can be imported on
 # systems without a GPU.
 export LDFLAGS="${LDFLAGS//-Wl,-z,now/-Wl,-z,lazy}"
-
 
 ##################### CONFIGURE PYTORCH BUILD OPTIONS ########################
 # See header of Pytorch's setup.py for a description of the most important
@@ -161,7 +161,6 @@ fi
 
 # The build needs a lot of memory. Limit to 4 CPUs to take it easy on builders.
 export MAX_JOBS=$((${CPU_COUNT} > 4 ? 4 : ${CPU_COUNT}))
-echo "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}, ${CXXFLAGS}"
 
 # The Pytorch build system is invoked
 # via their setup.py
@@ -169,4 +168,5 @@ echo "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}, ${CXXFLAGS}"
     --no-deps \
     --no-binary :all: \
     --no-clean \
+    --no-build-isolation \
     -vvv
