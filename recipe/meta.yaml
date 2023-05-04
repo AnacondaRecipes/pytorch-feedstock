@@ -51,6 +51,7 @@ build:
   # to resource constraints (the build is very memory intensive). Manual builds
   # may or may not go through, your mileage may vary.
   skip: True  # [py<37]
+  skip: True  # [not win]
   # TODO: note that at the moment we only use CUDA backend, e.g. would be different for mac
   string: gpu_cuda{{ cudatoolkit | replace('.', '') }}py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}  # [pytorch_variant == "gpu"]
   string: cpu_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                          # [pytorch_variant == "cpu"]
