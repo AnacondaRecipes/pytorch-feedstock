@@ -38,9 +38,9 @@ source:
 
 build:
   number: 0
-  skip: True  # [py<37]
+  skip: True  # [py!=310]
   # Remove the below - these are the platforms that haven't succeeded so far
-  skip: True  # [not (win or ppc64le)]
+  skip: True  # [not win]
   # TODO: note that at the moment we only use CUDA backend, e.g. would be different for mac
   string: gpu_cuda{{ cudatoolkit | replace('.', '') }}py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}  # [pytorch_variant == "gpu"]
   string: cpu_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                          # [pytorch_variant == "cpu"]
