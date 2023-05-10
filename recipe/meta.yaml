@@ -40,6 +40,7 @@ source:
 build:
   number: 0
   skip: True  # [py<37]
+  skip: True  # [not (osx and arm64)]
   # ppc requires gcc v8 (see cbc.yaml). Python 3.11 is incompatible with anything built with gcc<11 because of runtime conflicts.
   skip: True  # [(linux and ppc64le) and py==311]
   # TODO: note that at the moment we only use CUDA backend, e.g. would be different for mac
@@ -208,6 +209,7 @@ test:
     - python -c "import torch; assert torch.backends.cudnn.is_available()"     # [pytorch_variant == "gpu"]
     - python -c "import torch; assert torch.cuda.is_available()"               # [pytorch_variant == "gpu"]
     - python -c "import torch; assert torch.backends.cudnn.enabled"            # [pytorch_variant == "gpu"]
+    - python -c "import torch; assert torch.backends.mps.is_available()"
 
 about:
   home: https://pytorch.org/
