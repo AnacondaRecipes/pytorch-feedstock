@@ -12,6 +12,11 @@ cxx_compiler:          # [win]
   - vs2019             # [win]
 pytorch_variant:
   - cpu
+MACOSX_SDK_VERSION:          # [osx]
+  - 12.3                    # [osx]
+CONDA_BUILD_SYSROOT:         # [osx]
+  - /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk  # [osx and arm64]
+
 ################# For GPU building, uncomment everything below and comment out the two lines above this #############
 ## We currently haven't implemented and tested GPU acceleration on OSX (although it's possible for osx-arm64).
 ## This is also the case for linux powerPC and ARM cores.
