@@ -51,6 +51,13 @@ export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,--as-needed//g')"
 export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,-dead_strip_dylibs//g')"
 export LDFLAGS_LD="$(echo $LDFLAGS_LD | sed 's/-dead_strip_dylibs//g')"
 
+if [[ "${build_platform}" = "linux-ppc64le" ]]; then
+    export CFLAGS="${CFLAGS} -fno-lto"
+    export CXXFLAGS="${CXXFLAGS} -fno-lto"
+    export LDFLAGS="${LDFLAGS} -fno-lto"
+    export LDFLAGS_LD="${LDFLAGS_LD} -fno-lto"
+fi
+
 # Dynamic libraries need to be lazily loaded so that torch can be imported on
 # systems without a GPU.
 export LDFLAGS="${LDFLAGS//-Wl,-z,now/-Wl,-z,lazy}"
