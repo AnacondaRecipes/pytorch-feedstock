@@ -39,8 +39,6 @@ source:
 
 build:
   number: 1
-  # temporary skip to build only linux64 mkl variant
-  skip: True  # [not (linux and x86 and (blas_impl == "mkl"))]
   skip: True  # [py<37]
   # ppc requires gcc v8 (see cbc.yaml). Python 3.11 is incompatible with anything built with gcc<11 because of runtime conflicts.
   skip: True  # [(linux and ppc64le) and py==311]
