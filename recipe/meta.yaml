@@ -12,6 +12,8 @@ source:
   patches:
     # fixes compilation error on osx-64 due to DISPATCH_APPLY_AUTO #define being not found
     - patches/fix_dispatch_apply_auto.patch
+    # fixes linker error on linux platforms, see https://github.com/pytorch/pytorch/issues/90448
+    - patches/fix_kDefaultTimeout.patch
 
 build:
   number: 0

@@ -1,0 +1,22 @@
+To solve multiple definition of `gloo::rendezvous::Store::kDefaultTimeout'
+linker error.
+
+See https://github.com/pytorch/pytorch/issues/90448.
+
+A PR is open to solve this, as of v2.0.1 being released.
+https://github.com/pytorch/pytorch/pull/99738. It's likely to be merged in
+upcoming versions, so the patch may be able to be removed.
+
+Index: pytorch/torch/csrc/distributed/c10d/ProcessGroupGloo.hpp
+===================================================================
+--- pytorch.orig/torch/csrc/distributed/c10d/ProcessGroupGloo.hpp
++++ pytorch/torch/csrc/distributed/c10d/ProcessGroupGloo.hpp
+@@ -125,7 +125,7 @@ class TORCH_API ProcessGroupGloo : publi
+     }
+ 
+     void wait(const std::vector<std::string>& keys) override {
+-      store_->wait(keys, Store::kDefaultTimeout);
++      store_->wait(keys, ::c10d::Store::kDefaultTimeout);
+     }
+ 
+     void wait(
