@@ -159,6 +159,7 @@ else
 fi
 
 export USE_MPS=1
+export DEVELOPER_DIR=/Library/Developer/CommandLineTools
 
 # The build needs a lot of memory. Limit to 4 CPUs to take it easy on builders.
 export MAX_JOBS=$((${CPU_COUNT} > 4 ? 4 : ${CPU_COUNT}))
