@@ -18,8 +18,8 @@ source:
 build:
   number: 0
   skip: True  # [py<37]
-  # ppc requires gcc v8 (see cbc.yaml). Python 3.11 is incompatible with anything built with gcc<11 because of runtime conflicts.
-  skip: True  # [(linux and ppc64le) and py==311]
+  # We have had challenges building for ppc64le, and are dropping support for now.
+  skip: True  # [(linux and ppc64le)]
   # TODO: note that at the moment we only use CUDA backend, e.g. would be different for mac
   string: gpu_cuda{{ cudatoolkit | replace('.', '') }}py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}  # [pytorch_variant == "gpu"]
   string: cpu_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                          # [pytorch_variant == "cpu"]
