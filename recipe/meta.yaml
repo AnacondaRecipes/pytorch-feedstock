@@ -9,6 +9,9 @@ source:
   # The "pytorch-v" tarballs contain submodules; the "pytorch-" ones don't.
   url: https://github.com/pytorch/pytorch/releases/download/v{{ version }}/pytorch-v{{ version }}.tar.gz
   sha256: {{ sha256 }}
+  patches:
+    # fixes compilation error on osx-64 due to DISPATCH_APPLY_AUTO #define being not found
+    - patches/fix_dispatch_apply_auto.patch
 
 build:
   number: 0
