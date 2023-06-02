@@ -1,14 +1,14 @@
-Index: pytorch/third_party/XNNPACK/src/jit/memory.c
+Index: pytorch/third_party/XNNPACK/src/memory.c
 ===================================================================
---- pytorch.orig/third_party/XNNPACK/src/jit/memory.c
-+++ pytorch/third_party/XNNPACK/src/jit/memory.c
-@@ -32,6 +32,9 @@ enum xnn_status xnn_allocate_code_memory
-     return xnn_status_out_of_memory;
-   }
- #else
-+#ifndef MAP_ANONYMOUS
-+#define MAP_ANONYMOUS MAP_ANON
-+#endif
-   void* p = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+--- pytorch.orig/third_party/XNNPACK/src/memory.c
++++ pytorch/third_party/XNNPACK/src/memory.c
+@@ -70,6 +70,9 @@ static void* allocate_buffer(size_t size
+   #if XNN_PLATFORM_QURT
+     void* p = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+   #else
++  #ifndef MAP_ANONYMOUS
++  #define MAP_ANONYMOUS MAP_ANON
++  #endif
+     void* p = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+   #endif
    if (p == MAP_FAILED) {
-     xnn_log_error("failed to allocate %zu bytes for JIT code buffer, error code: %d", size, errno);

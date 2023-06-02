@@ -14,6 +14,8 @@ source:
     - patches/fix_dispatch_apply_auto.patch
     # fixes linker error on linux platforms, see https://github.com/pytorch/pytorch/issues/90448
     - patches/fix_kDefaultTimeout.patch
+    # MAP_ANONYMOUS not defined
+    - patches/fix_map_anonymous.patch
 
 build:
   number: 0
