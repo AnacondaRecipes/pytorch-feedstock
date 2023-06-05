@@ -40,6 +40,7 @@ source:
 build:
   number: 0
   skip: True  # [py<37]
+  # This is because this PR is only for GPU on osx-arm64. Will remove after merging
   skip: True  # [not (osx and arm64)]
   # Dropping ppc because of various build issues
   skip: True  # [(linux and ppc64le)]
@@ -191,7 +192,7 @@ test:
     - test/
   commands:
     # We seem to have individual platform-specific test failures or flaky
-    # tests, but the majority of tests passes.
+    # tests, but the majority of tests pass.
     - set CONTINUE_THROUGH_ERROR=1     # [win]
     - export CONTINUE_THROUGH_ERROR=1  # [not win]
     - python ./test/run_test.py --core || true
@@ -205,11 +206,11 @@ test:
     # distributed support is enabled by default on linux; for mac, we enable it manually in build.sh
     - python -c "import torch; assert torch.distributed.is_available()"        # [linux or osx]
     - python -c "import torch; assert torch.backends.mkldnn.m.is_available()"  # [x86 and cuda_compiler_version == "None"]
-    - python -c "import torch; assert torch.backends.cuda.is_built()"          # [pytorch_variant == "gpu"]
-    - python -c "import torch; assert torch.backends.cudnn.is_available()"     # [pytorch_variant == "gpu"]
-    - python -c "import torch; assert torch.cuda.is_available()"               # [pytorch_variant == "gpu"]
-    - python -c "import torch; assert torch.backends.cudnn.enabled"            # [pytorch_variant == "gpu"]
-    - python -c "import torch; assert torch.backends.mps.is_built()"
+    - python -c "import torch; assert torch.backends.cuda.is_built()"          # [(pytorch_variant == "gpu") and (linux and x86_64)]
+    - python -c "import torch; assert torch.backends.cudnn.is_available()"     # [(pytorch_variant == "gpu") and (linux and x86_64)]
+    - python -c "import torch; assert torch.cuda.is_available()"               # [(pytorch_variant == "gpu") and (linux and x86_64)]
+    - python -c "import torch; assert torch.backends.cudnn.enabled"            # [(pytorch_variant == "gpu") and (linux and x86_64)]
+    - python -c "import torch; assert torch.backends.mps.is_built()"           # [(pytorch_variant == "gpu") and (osx and arm64)]
 
 about:
   home: https://pytorch.org/
