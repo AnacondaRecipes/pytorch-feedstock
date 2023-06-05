@@ -10,16 +10,18 @@ source:
   url: https://github.com/pytorch/pytorch/releases/download/v{{ version }}/pytorch-v{{ version }}.tar.gz
   sha256: {{ sha256 }}
   patches:
-    # fixes compilation error on osx-64 due to DISPATCH_APPLY_AUTO #define being not found
+    # fixes compilation error on osx-64 due to DISPATCH_APPLY_AUTO #define not being found
     - patches/fix_dispatch_apply_auto.patch
     # fixes linker error on linux platforms, see https://github.com/pytorch/pytorch/issues/90448
     - patches/fix_kDefaultTimeout.patch
-    # MAP_ANONYMOUS not defined
+    # fixes compilation error on osx-64 due to MAP_ANONYMOUS #define not being found
     - patches/fix_map_anonymous.patch
 
 build:
   number: 0
   skip: True  # [py<37]
+  # This is the only platform that failed building so far - remove before PR merge
+  skip: True  # [not (osx and x86_64)]
   # We have had challenges building for ppc64le, and are dropping support for now.
   skip: True  # [(linux and ppc64le)]
   # TODO: note that at the moment we only use CUDA backend, e.g. would be different for mac
