@@ -14,9 +14,9 @@ source:
     - patches/fix_kDefaultTimeout.patch
 
 build:
-  number: 1
+  number: 0
   skip: True  # [py<37]
-   # Dropping ppc because of various build issues
+  # Dropping ppc because of various build issues
   skip: True  # [(linux and ppc64le)]
   string: gpu_cuda{{ cudatoolkit | replace('.', '') }}py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}  # [(pytorch_variant == "gpu") and (linux and x86_64)]
   string: gpu_mps_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                      # [(pytorch_variant == "gpu") and (osx and arm64)]
