@@ -100,40 +100,52 @@ export PYTORCH_BUILD_NUMBER=$PKG_BUILDNUM
 # the backend for CPU builds.
 if [[ ${pytorch_variant} = "gpu" ]]; then
 
-    export USE_CUDA=1
+    if [[ "$OSTYPE" == "darwin"* ]]; then
 
-    # Warning from pytorch v1.12.1: In the future we will require one to 
-    # explicitly pass TORCH_CUDA_ARCH_LIST to cmake instead of implicitly
-    # setting it as an env variable.
-    #
-    # Use PTX with the latest CUDA architecture
-    if [[ ${cudatoolkit} == 9.0* ]]; then
-        export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;7.0+PTX"
-    elif [[ ${cudatoolkit} == 9.2* ]]; then
-        export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0+PTX"
-    elif [[ ${cudatoolkit} == 10.* ]]; then
-        export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5+PTX"
-    elif [[ ${cudatoolkit} == 11.0* ]]; then
-        export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0+PTX"
-    elif [[ ${cudatoolkit} == 11.1 ]]; then
-        export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX"
-    elif [[ ${cudatoolkit} == 11.2 ]]; then
-        export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX"
-    elif [[ ${cudatoolkit} == 11.3 ]]; then
-        export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX"
+        ###### Mac - MPS backend ######
+        export USE_MPS=1
+
+        # Required to make the right SDK found on Anaconda's CI system. Ideally should be fixed in the CI or conda-build
+        export DEVELOPER_DIR=/Library/Developer/CommandLineTools
     else
-        echo "No CUDA architecture list exists for cuda_compiler_version==${cudatoolkit}"
-        echo "in build.sh. Use https://en.wikipedia.org/wiki/CUDA#GPUs_supported to make one."
-        exit 1
-    fi
 
-    export TORCH_NVCC_FLAGS="-Xfatbin -compress-all"
-    export NCCL_ROOT_DIR=/usr/local/cuda
-    export USE_STATIC_NCCL=1
-    export CUDACXX=/usr/local/cuda/bin/nvcc
-    export CUDAHOSTCXX="${CXX}"                # If this isn't included, CUDA will use the system compiler to compile host
-                                               # files, rather than the one in the conda environment, resulting in compiler errors
-    export MAGMA_HOME="${PREFIX}"
+        ###### Linux - CUDA backend ######
+        export USE_CUDA=1
+
+        # Warning from pytorch v1.12.1: In the future we will require one to 
+        # explicitly pass TORCH_CUDA_ARCH_LIST to cmake instead of implicitly
+        # setting it as an env variable.
+        #
+        # Use PTX with the latest CUDA architecture
+        if [[ ${cudatoolkit} == 9.0* ]]; then
+            export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;7.0+PTX"
+        elif [[ ${cudatoolkit} == 9.2* ]]; then
+            export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0+PTX"
+        elif [[ ${cudatoolkit} == 10.* ]]; then
+            export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5+PTX"
+        elif [[ ${cudatoolkit} == 11.0* ]]; then
+            export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0+PTX"
+        elif [[ ${cudatoolkit} == 11.1 ]]; then
+            export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX"
+        elif [[ ${cudatoolkit} == 11.2 ]]; then
+            export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX"
+        elif [[ ${cudatoolkit} == 11.3 ]]; then
+            export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX"
+        else
+            echo "No CUDA architecture list exists for cuda_compiler_version==${cudatoolkit}"
+            echo "in build.sh. Use https://en.wikipedia.org/wiki/CUDA#GPUs_supported to make one."
+            exit 1
+        fi
+
+        export TORCH_NVCC_FLAGS="-Xfatbin -compress-all"
+        export NCCL_ROOT_DIR=/usr/local/cuda
+        export USE_STATIC_NCCL=1
+        export CUDACXX=/usr/local/cuda/bin/nvcc
+        export CUDAHOSTCXX="${CXX}"                # If this isn't included, CUDA will use the system compiler to compile host
+                                                # files, rather than the one in the conda environment, resulting in compiler errors
+        export MAGMA_HOME="${PREFIX}"
+
+    fi
 
 else
 
@@ -157,6 +169,7 @@ else
     esac
 
 fi
+
 
 
 # The build needs a lot of memory. Limit to 4 CPUs to take it easy on builders.
