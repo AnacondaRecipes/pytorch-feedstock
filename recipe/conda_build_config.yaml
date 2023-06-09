@@ -12,6 +12,11 @@ cxx_compiler:          # [win]
   - vs2019             # [win]
 pytorch_variant:
   - cpu
+# This version of macOS SDK is required for certain macros used in the source code
+MACOSX_SDK_VERSION:          # [osx and x86_64]
+  - 10.15                    # [osx and x86_64]
+CONDA_BUILD_SYSROOT:         # [osx and x86_64]
+  - /opt/MacOSX10.15.sdk     # [osx and x86_64]
 ################# For GPU building, uncomment everything below and comment out the two lines above this #############
 ## We currently haven't implemented and tested GPU acceleration on OSX (although it's possible for osx-arm64).
 ## This is also the case for linux powerPC and ARM cores.
