@@ -79,7 +79,7 @@ requirements:
     - wheel
     - pybind11 2.10.1
     - eigen 3.3.7
-    - astunparse
+    - astunparse 1.6.3
   run:
     # OpenBLAS or MKL
     - mkl {{ mkl }}.*                 # [blas_impl == "mkl"]
