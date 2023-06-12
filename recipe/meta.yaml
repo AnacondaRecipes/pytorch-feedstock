@@ -15,13 +15,15 @@ source:
 
 build:
   number: 0
-  skip: True  # [py<37]
+  skip: True  # [py<38]
   # Dropping ppc because of various build issues
   skip: True  # [(linux and ppc64le)]
   string: gpu_cuda{{ cudatoolkit | replace('.', '') }}py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}  # [(pytorch_variant == "gpu") and (linux and x86_64)]
   string: gpu_mps_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                      # [(pytorch_variant == "gpu") and (osx and arm64)]
   string: cpu_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                          # [pytorch_variant == "cpu"]
   detect_binary_files_with_prefix: False
+  entry_points:
+    - torchrun = torch.distributed.run:main
 
 requirements:
   build:
@@ -29,11 +31,11 @@ requirements:
     - {{ compiler('cxx') }}
     - cmake
     - make                            # [unix]
-    - git
+    - git                             # [unix]
     - patch                           # [not win]
     - m2-patch                        # [win]
     - python ={{PY_VER}}
-    - ninja
+    - ninja-base
     # This has a strong run_export so we don't need to put it in `host` or `run`
     # We use llvm-openmp for openblas variants on osx.
     - llvm-openmp                     # [osx and not (blas_impl == "mkl")]
@@ -61,15 +63,10 @@ requirements:
     - intel-openmp   {{ mkl }}        # [blas_impl == "mkl"]
     # Other requirements
     - cffi 1.15.1
-    - future 0.18.2
     - libprotobuf {{ libprotobuf }}   # [not win]
     # on osx, libuv supports torch.distributed support. See build.sh.
     - libuv 1.44.2                    # [win or osx]
-    # Pinnings as per pytorch/.circleci/docker/common/install_conda.sh,
-    # except for python 3.8 because we don't have the numpy version required
-    - numpy 1.23          # [py==311]
-    - numpy >=1.21,<1.22  # [py==310]
-    - numpy >=1.19,<1.20  # [py<=39]
+    - numpy {{ numpy }}
     - pip                             # Required for in tree builds
     - pkg-config 0.29.2               # [unix]
     - python
@@ -82,6 +79,7 @@ requirements:
     - wheel
     - pybind11 2.10.1
     - eigen 3.3.7
+    - astunparse
   run:
     # OpenBLAS or MKL
     - mkl {{ mkl }}.*                 # [blas_impl == "mkl"]
@@ -95,18 +93,13 @@ requirements:
     - cupti                           # [(pytorch_variant == "gpu") and (linux and x86_64)]
     # other requirements
     - cffi
-    # CF: pip check may fail if future is not installed
-    - future
     # CF: needed to load C++ extensions
     - ninja
-    - numpy >=1.23,<2  # [py==311]
-    - numpy >=1.21,<2  # [py==310]
-    - numpy >=1.19,<2  # [py<=39]
+    - {{ pin_compatible('numpy') }}
     - python
     - typing-extensions
     # To stop the compiler pulling in an openmp implementation itself
     - _openmp_mutex                   # [linux]
-    - pyyaml
     - magma                           # [(pytorch_variant == "gpu") and (linux and x86_64)]
     - filelock
     - jinja2
