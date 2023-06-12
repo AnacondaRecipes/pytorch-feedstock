@@ -1,7 +1,19 @@
 To solve multiple definition of `gloo::rendezvous::Store::kDefaultTimeout'
 linker error.
 
-See https://github.com/pytorch/pytorch/issues/90448.
+See https://github.com/pytorch/pytorch/issues/91328.
+
+The cause is that third_party/gloo is being compiled with the C++11 standard,
+as defined in its local CMakeLists.txt. However, the main body of PyTorch is
+being compiled without a C++ standard flag, defaulting to C++17 when compiling
+with gcc 11, as we do.
+
+Constexprs are implied to be inlined by default in C++17 but not in C++11. This
+results in multiple definitions at link time.
+
+Using an older version of gcc would solve this issue, but we prefer to use our
+default where possible. So the patch below specifies an extra namespace for the
+definition instead.
 
 A PR is open to solve this, as of v2.0.1 being released.
 https://github.com/pytorch/pytorch/pull/99738. It's likely to be merged in
