@@ -17,6 +17,10 @@ CONDA_BUILD_SYSROOT:         # [(osx and x86_64)]
   - /opt/MacOSX10.15.sdk     # [(osx and x86_64)]
 pytorch_variant:
   - cpu
+mkl:
+  - 2021.*
+openblas:
+  - 0.3.20
 # ################ For GPU building, uncomment everything below and comment out the two lines above this #############
 # # We currently support GPUs on linux-64 (with a CUDA backend) and osx-arm64 (with an MPS backend)
 # # We don't support it on Windows, because we need magma as a dependency and there have been significant issues getting
