@@ -41,7 +41,8 @@ build:
   number: 1
   skip: True  # [py<37]
   # This is because this PR is only for GPU on osx-arm64. Will remove after merging
-  skip: True  # [not (osx and arm64)]
+  skip: True  # [not (osx and x86_64)]
+  skip: True  # [py!=310]
   # Dropping ppc because of various build issues
   skip: True  # [(linux and ppc64le)]
   string: gpu_cuda{{ cudatoolkit | replace('.', '') }}py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}  # [(pytorch_variant == "gpu") and (linux and x86_64)]
