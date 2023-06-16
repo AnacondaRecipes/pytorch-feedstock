@@ -20,25 +20,25 @@ CONDA_BUILD_SYSROOT:         # [(osx and x86_64)]
 blas_impl:
   - mkl                        # [x86 or x86_64]
   - openblas                   # [not win and not (osx and x86_64)]
-pytorch_variant:
-  - cpu
-# ################ For GPU building, uncomment everything below and comment out the two lines above this #############
-# # We currently support GPUs on linux-64 (with a CUDA backend) and osx-arm64 (with an MPS backend)
-# # We don't support it on Windows, because we need magma as a dependency and there have been significant issues getting
-# # CMake to build magma with CUDA support.
-# # For linux-64, we need to pin the compiler if we're building with CUDA support (but not otherwise), see here:
-# # https://docs.nvidia.com/cuda/archive/11.3.0/cuda-installation-guide-linux/index.html
-# pytorch_variant:       # [(linux and x86_64) or (osx and arm64)]
-#  - gpu                # [(linux and x86_64) or (osx and arm64)]
-# c_compiler_version:    # [(linux and x86_64)]
-#  - 9                  # [(linux and x86_64)]
-# cxx_compiler_version:  # [(linux and x86_64)]
-#  - 9                  # [(linux and x86_64)]
-# cudatoolkit:           # [(linux and x86_64)]
-#  - 11.3               # [(linux and x86_64)]
-# cudnn:                 # [(linux and x86_64)]
-#  - 8                  # [(linux and x86_64)]
-# MACOSX_SDK_VERSION:    # [(osx and arm64)]
-#  - 12.3               # [(osx and arm64)]
-# CONDA_BUILD_SYSROOT:   # [(osx and arm64)]
-#  - /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk  # [(osx and arm64)]
+# pytorch_variant:
+#   - cpu
+################ For GPU building, uncomment everything below and comment out the two lines above this #############
+# We currently support GPUs on linux-64 (with a CUDA backend) and osx-arm64 (with an MPS backend)
+# We don't support it on Windows, because we need magma as a dependency and there have been significant issues getting
+# CMake to build magma with CUDA support.
+# For linux-64, we need to pin the compiler if we're building with CUDA support (but not otherwise), see here:
+# https://docs.nvidia.com/cuda/archive/11.3.0/cuda-installation-guide-linux/index.html
+pytorch_variant:       # [(linux and x86_64) or (osx and arm64)]
+ - gpu                # [(linux and x86_64) or (osx and arm64)]
+c_compiler_version:    # [(linux and x86_64)]
+ - 9                  # [(linux and x86_64)]
+cxx_compiler_version:  # [(linux and x86_64)]
+ - 9                  # [(linux and x86_64)]
+cudatoolkit:           # [(linux and x86_64)]
+ - 11.3               # [(linux and x86_64)]
+cudnn:                 # [(linux and x86_64)]
+ - 8                  # [(linux and x86_64)]
+MACOSX_SDK_VERSION:    # [(osx and arm64)]
+ - 12.3               # [(osx and arm64)]
+CONDA_BUILD_SYSROOT:   # [(osx and arm64)]
+ - /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk  # [(osx and arm64)]
