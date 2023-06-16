@@ -1,47 +1,21 @@
-{% set version = "1.13.1" %}
-{% set sha256 = "dbc229ee9750b02b514937d017744443a269ea0241ed3f32b9af0703589d25d4" %}
+{% set version = "2.0.1" %}
+{% set sha256 = "9c564ca440265c69400ef5fdd48bf15e28af5aa4bed84c95efaad960a6699998" %}
 
 package:
   name: pytorch
   version: {{ version }}
 
 source:
-  # for local testing use a tarball including submodules. The "pytorch-v" tarballs contain submodules; the "pytorch-"
-  # ones don't.
+  # The "pytorch-v" tarballs contain submodules; the "pytorch-" ones don't.
   url: https://github.com/pytorch/pytorch/releases/download/v{{ version }}/pytorch-v{{ version }}.tar.gz
   sha256: {{ sha256 }}
   patches:
-    - patches/remove-compiler-optimizations.patch
-    # It is unclear that upstream will allow us to integrate the shared linker
-    # path below until their Intel compiler issues are resolved.
-    - patches/remove_shared_linker_flag_override.patch
-    # https://github.com/pytorch/pytorch/pull/49281
-    - patches/fix_std_stdint.patch
-    - patches/fix_dispatch_apply_auto.patch
-    - patches/cpp_extension.patch
-    # Some third-party modules seem to expect TARGET_OS_OSX to be set, whereas
-    # the actual define in use nowadays seems to be TARGET_OS_MAC.
-    - patches/fix-target-os-osx-macro.patch  # [osx]
-    # PyTorch (and most submodules) search for Python differently than gtest,
-    # which ends up using (and wanting to link to) the system Python in some
-    # constellations, which messes up the build.
-    - patches/gtest-find-pyinterp.patch
-    # gtest turns on -Werror breaking the build.
-    - patches/gtest-no-werror.patch
-    # Fix a compiler check to handle absolute paths.
-    - patches/handle-abs-compiler-path.patch
-    # Fix little problems with the test suite.
-    - patches/fix-flaky-tests.patch
-    # MAP_ANONYMOUS not defined
-    - patches/fix_map_anonymous.patch
-    - patches/cmake-find-ideep-mkldnn-in-sourcetree.patch # [x86] #required for mkl implementation
-    - patches/suppress_Wbitwise_instead_of_logical_clang.patch
+    # fixes linker error on linux platforms, see https://github.com/pytorch/pytorch/issues/90448
+    - patches/fix_kDefaultTimeout.patch
 
 build:
-  number: 1
-  skip: True  # [py<37]
-  # This is because this PR is only for GPU on osx-arm64. Will remove after merging
-  skip: True  # [not (osx and arm64)]
+  number: 0
+  skip: True  # [py<38]
   # Dropping ppc because of various build issues
   skip: True  # [(linux and ppc64le)]
   string: gpu_cuda{{ cudatoolkit | replace('.', '') }}py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}  # [(pytorch_variant == "gpu") and (linux and x86_64)]
@@ -49,54 +23,19 @@ build:
   string: cpu_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                          # [pytorch_variant == "cpu"]
   detect_binary_files_with_prefix: False
   entry_points:
-    - convert-caffe2-to-onnx = caffe2.python.onnx.bin.conversion:caffe2_to_onnx
-    - convert-onnx-to-caffe2 = caffe2.python.onnx.bin.conversion:onnx_to_caffe2
     - torchrun = torch.distributed.run:main
-  missing_dso_whitelist:
-    # It is not clear why conda-build cannot figure these out.
-    # It tries to find them in the site-packages for a different Python version from the one for which it's building.
-    # It would be nice to figure out why at some point.
-    - "**/ld64.so.*"              # [linux]
-    - "**/libc10.so"              # [linux]
-    - "**/libshm.so"              # [linux]
-    - "**/libtorch.so"            # [linux]
-    - "**/libtorch_cpu.so"        # [linux]
-    - "**/libtorch_python.so"     # [linux]
-    - "**/libiomp5.so"            # [linux]
-    - "**/libc10.dylib"           # [osx]
-    - "**/libshm.dylib"           # [osx]
-    - "**/libtorch.dylib"         # [osx]
-    - "**/libtorch_cpu.dylib"     # [osx]
-    - "**/libtorch_python.dylib"  # [osx]
-    - "**/libiomp5.dylib"         # [osx]
-    - "**/libc++.1.dylib"         # [osx]
-    - "**/asmjit.dll"             # [win]
-    - "**/c10.dll"                # [win]
-    - "**/fbgemm.dll"             # [win]
-    - "**/shm.dll"                # [win]
-    - "**/torch_cpu.dll"          # [win]
-    - "**/torch_python.dll"       # [win]
-    - "**/libcuda.so*"            # [(pytorch_variant == "gpu") and (linux and x86_64)]
-    - "**/libtorch_cuda.so"       # [(pytorch_variant == "gpu") and (linux and x86_64)]
-    - "**/libc10_cuda.so"         # [(pytorch_variant == "gpu") and (linux and x86_64)]
 
 requirements:
-  # WARNING:
-  #
-  # Make sure host and build Python are the same version. Unfortunately,
-  # PyTorch's build system (or some of the submodules) seems to mix up the
-  # Python interpreters.
-  #
   build:
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
     - cmake
     - make                            # [unix]
-    - git
+    - git                             # [unix]
     - patch                           # [not win]
     - m2-patch                        # [win]
     - python ={{PY_VER}}
-    - ninja
+    - ninja-base
     # This has a strong run_export so we don't need to put it in `host` or `run`
     # We use llvm-openmp for openblas variants on osx.
     - llvm-openmp                     # [osx and not (blas_impl == "mkl")]
@@ -124,15 +63,10 @@ requirements:
     - intel-openmp   {{ mkl }}        # [blas_impl == "mkl"]
     # Other requirements
     - cffi 1.15.1
-    - future 0.18.2
     - libprotobuf {{ libprotobuf }}   # [not win]
     # on osx, libuv supports torch.distributed support. See build.sh.
     - libuv 1.44.2                    # [win or osx]
-    # Pinnings as per pytorch/.circleci/docker/common/install_conda.sh,
-    # except for python 3.8 because we don't have the numpy version required
-    - numpy 1.23          # [py==311]
-    - numpy >=1.21,<1.22  # [py==310]
-    - numpy >=1.19,<1.20  # [py<=39]
+    - numpy {{ numpy }}
     - pip                             # Required for in tree builds
     - pkg-config 0.29.2               # [unix]
     - python
@@ -145,6 +79,7 @@ requirements:
     - wheel
     - pybind11 2.10.1
     - eigen 3.3.7
+    - astunparse 1.6.3
   run:
     # OpenBLAS or MKL
     - mkl {{ mkl }}.*                 # [blas_impl == "mkl"]
@@ -158,19 +93,18 @@ requirements:
     - cupti                           # [(pytorch_variant == "gpu") and (linux and x86_64)]
     # other requirements
     - cffi
-    # CF: pip check may fail if future is not installed
-    - future
     # CF: needed to load C++ extensions
     - ninja
-    - numpy >=1.23,<2  # [py==311]
-    - numpy >=1.21,<2  # [py==310]
-    - numpy >=1.19,<2  # [py<=39]
+    - {{ pin_compatible('numpy') }}
     - python
     - typing-extensions
     # To stop the compiler pulling in an openmp implementation itself
     - _openmp_mutex                   # [linux]
-    - pyyaml
     - magma                           # [(pytorch_variant == "gpu") and (linux and x86_64)]
+    - filelock
+    - jinja2
+    - networkx
+    - sympy
 
 test:
   requires:
