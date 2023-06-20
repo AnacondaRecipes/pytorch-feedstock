@@ -26,6 +26,11 @@ build:
   detect_binary_files_with_prefix: False
   entry_points:
     - torchrun = torch.distributed.run:main
+  missing_dso_whitelist:
+    # CUDA shared libraries are provided by cudatoolkit, i.e. outside the conda build environment
+    - "**/libcuda.so*"            # [(pytorch_variant == "gpu") and (linux and x86_64)]
+    - "**/libtorch_cuda.so"       # [(pytorch_variant == "gpu") and (linux and x86_64)]
+    - "**/libc10_cuda.so"         # [(pytorch_variant == "gpu") and (linux and x86_64)]
 
 requirements:
   build:
