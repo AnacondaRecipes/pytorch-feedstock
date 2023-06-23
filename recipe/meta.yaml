@@ -27,6 +27,12 @@ build:
   entry_points:
     - torchrun = torch.distributed.run:main
   missing_dso_whitelist:
+    # For some reason, the .sos built for python 3.11 look for .sos for linking in /python3.9/ directories. This
+    # circumvents this...
+    - "**/libtorch_cpu.so"        # [(pytorch_variant == "gpu") and (linux and x86_64)]
+    - "**/libc10.so"              # [(pytorch_variant == "gpu") and (linux and x86_64)]
+    - "**/libtorch.so"            # [(pytorch_variant == "gpu") and (linux and x86_64)]
+    - "**/libshm.so"              # [(pytorch_variant == "gpu") and (linux and x86_64)]
     # CUDA shared libraries are provided by cudatoolkit, i.e. outside the conda build environment
     - "**/libcuda.so*"            # [(pytorch_variant == "gpu") and (linux and x86_64)]
     - "**/libtorch_cuda.so"       # [(pytorch_variant == "gpu") and (linux and x86_64)]
