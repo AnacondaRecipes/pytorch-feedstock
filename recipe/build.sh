@@ -131,6 +131,8 @@ if [[ ${pytorch_variant} = "gpu" ]]; then
             export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX"
         elif [[ ${cudatoolkit} == 11.3 ]]; then
             export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX"
+        elif [[ ${cudatoolkit} == 11.8 ]]; then
+            export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6;8.7;8.9;9.0+PTX"
         else
             echo "No CUDA architecture list exists for cuda_compiler_version==${cudatoolkit}"
             echo "in build.sh. Use https://en.wikipedia.org/wiki/CUDA#GPUs_supported to make one."
