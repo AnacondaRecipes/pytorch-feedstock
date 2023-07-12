@@ -35,6 +35,9 @@ build:
     - "**/libcuda.so*"            # [(pytorch_variant == "gpu") and (linux and x86_64)]
     - "**/libtorch_cuda.so"       # [(pytorch_variant == "gpu") and (linux and x86_64)]
     - "**/libc10_cuda.so"         # [(pytorch_variant == "gpu") and (linux and x86_64)]
+  # We want the GPU variant to be default where it's usable (which is where __cuda and __osx run requirements are satisfied)
+  track_features:
+    - pytorch-cpu                 # [pytorch_variant == "cpu"]
 
 requirements:
   build:
@@ -116,6 +119,10 @@ requirements:
     - jinja2
     - networkx
     - sympy
+    - __cuda >={{ cudatoolkit }}      # [(pytorch_variant == "gpu") and (linux and x86_64)]
+    # On macOS, the GPU accelerated backend, MPS, can be used from macOS v12.3. This isn't tightly dependent on the
+    # SDK version used.
+    - __osx >=12.3                    # [(pytorch_variant == "gpu") and (osx and arm64)]
 
 test:
   requires:
