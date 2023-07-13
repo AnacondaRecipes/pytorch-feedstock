@@ -158,12 +158,10 @@ fi
 case "${blas_impl}" in
     mkl)
         export BLAS="MKL"
-        export USE_MKL=1
         export USE_MKLDNN=1
         ;;
     openblas)
         export BLAS="OpenBLAS"
-        export USE_MKL=0
         export USE_MKLDNN=0
         ;;
     *)
