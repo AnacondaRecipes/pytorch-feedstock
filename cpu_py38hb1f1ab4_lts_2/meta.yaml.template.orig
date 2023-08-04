@@ -1,0 +1,231 @@
+{% set version = "1.12.1" %}
+{% set sha256 = "031c71073db73da732b5d01710220564ce6dd88d812ba053f0cc94296401eccb" %}
+
+package:
+  name: pytorch
+  version: {{ version }}
+
+source:
+  # for local testing use a tarball including submodules
+  url: https://github.com/pytorch/pytorch/releases/download/v{{ version }}/pytorch-v{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+  patches:
+    # It is unclear that upstream will allow us to integrate the shared linker
+    # path below until their Intel compiler issues are resolved.
+    - patches/remove_shared_linker_flag_override.patch
+    # https://github.com/pytorch/pytorch/pull/49281
+    - patches/fix_std_stdint.patch
+    - patches/fix_dispatch_apply_auto.patch
+    - patches/cpp_extension.patch
+    # Some third-party modules seem to expect TARGET_OS_OSX to be set, whereas
+    # the actual define in use nowadays seems to be TARGET_OS_MAC.
+    - patches/fix-target-os-osx-macro.patch  # [osx]
+    # PyTorch (and most submodules) search for Python differently than gtest,
+    # which ends up using (and wanting to link to) the system Python in some
+    # constellations, which messes up the build.
+    - patches/gtest-find-pyinterp.patch
+    # gtest turns on -Werror breaking the build.
+    - patches/gtest-no-werror.patch
+    # Fix a compiler check to handle absolute paths.
+    - patches/handle-abs-compiler-path.patch
+    # Fix little problems with the test suite.
+    - patches/fix-flaky-tests.patch
+    # MAP_ANONYMOUS not defined
+    - patches/fix_map_anonymous.patch
+    - patches/cmake-find-ideep-mkldnn-in-sourcetree.patch # [x86] #required for mkl implementation
+    - patches/suppress_Wbitwise_instead_of_logical_clang.patch
+    # This is required in order to use our Pybind instead of the one
+    # submoduled into the Pytorch repo
+    - patches/cmake-fix-pybind-option.patch
+    # This patch was taken from conda-forge. There was a variable
+    # which directed the build system to use mkldnn for caffe2
+    # specifically, but since it was just turned on by the global
+    # mkldnn variable anyway, it was superfluous.
+    # Some of the changes in the original patch had been upstreamed.
+    - patches/cmake-unify-USE_MKLDNN-and-CAFFE2_USE_MKLDNN.patch
+
+build:
+  # Trigger 1
+  number: 1
+  # Automated s390x builds fail. The exact reason is unknown but probably due
+  # to resource constraints (the build is very memory intensive). Manual builds
+  # may or may not go through, your mileage may vary.
+  skip: True  # [py<37]
+  # TODO: note that at the moment we only use CUDA backend, e.g. would be different for mac
+  string: gpu_cuda{{ cudatoolkit | replace('.', '') }}py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}  # [pytorch_variant == "gpu"]
+  string: cpu_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                          # [pytorch_variant == "cpu"]
+  detect_binary_files_with_prefix: False
+  missing_dso_whitelist:
+    # It is not clear why conda-build cannot figure these out.
+    # It tries to find them in the site-packages for a different Python version from the one for which it's building.
+    # It would be nice to figure out why at some point.
+    - "**/ld64.so.*"              # [linux]
+    - "**/libc10.so"              # [linux]
+    - "**/libshm.so"              # [linux]
+    - "**/libtorch.so"            # [linux]
+    - "**/libtorch_cpu.so"        # [linux]
+    - "**/libtorch_python.so"     # [linux]
+    - "**/libiomp5.so"            # [linux]
+    - "**/libc10.dylib"           # [osx]
+    - "**/libshm.dylib"           # [osx]
+    - "**/libtorch.dylib"         # [osx]
+    - "**/libtorch_cpu.dylib"     # [osx]
+    - "**/libtorch_python.dylib"  # [osx]
+    - "**/libiomp5.dylib"         # [osx]
+    - "**/libc++.1.dylib"         # [osx]
+    - "**/asmjit.dll"             # [win]
+    - "**/c10.dll"                # [win]
+    - "**/fbgemm.dll"             # [win]
+    - "**/shm.dll"                # [win]
+    - "**/torch_cpu.dll"          # [win]
+    - "**/torch_python.dll"       # [win]
+    - "**/libcuda.so*"            # [pytorch_variant == "gpu"]
+    - "**/libtorch_cuda.so"       # [pytorch_variant == "gpu"]
+    - "**/libc10_cuda.so"         # [pytorch_variant == "gpu"]
+
+requirements:
+  # WARNING:
+  #
+  # Make sure host and build Python are the same version. Unfortunately,
+  # PyTorch's build system (or some of the submodules) seems to mix up the
+  # Python interpreters.
+  #
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - make                            # [unix]
+    - git
+    - patch                           # [not win]
+    - m2-patch                        # [win]
+    - python ={{PY_VER}}
+    - ninja
+    # This has a strong run_export so we don't need to put it in `host` or `run`
+    # We use llvm-openmp for openblas variants on osx.
+    - llvm-openmp                     # [osx and not (blas_impl == "mkl")]
+    # Keep libprotobuf here so that a compatibile version
+    # of protobuf is installed between build and host
+    # Unvendoring protobuf doesn't work properly for windows
+    # (due to errors in the Pytorch build system)
+    - libprotobuf                     # [not win]
+    - protobuf                        # [not win]
+  host:
+    # GPU requirements
+    - cudatoolkit {{ cudatoolkit }}*  # [pytorch_variant == "gpu"]
+    - cudnn {{ cudnn }}*              # [pytorch_variant == "gpu"]
+    - magma                           # [pytorch_variant == "gpu"]
+    # Required for GPU profiler
+    - cupti                           # [pytorch_variant == "gpu"]
+    # OpenBLAS or MKL
+    - mkl-devel {{ mkl }}.*           # [blas_impl == "mkl"]
+    - mkl {{ mkl }}.*                 # [blas_impl == "mkl"]
+    - openblas                        # [blas_impl == "openblas"]
+    # OpenMP
+    # We pull in the same versions of mkl and intel-openmp: intel aligns the versions
+    # We use intel-openmp for all mkl variants.
+    # For openblas on win and linux, we don't specify any openmp implementation; it comes from the compiler.
+    - intel-openmp   {{ mkl }}        # [blas_impl == "mkl"]
+    # Other requirements
+    - cffi
+    - future
+    - libprotobuf                     # [not win]
+    # on osx, libuv supports torch.distributed support. See build.sh.
+    - libuv                           # [win or osx]
+    # Pinnings as per pytorch/.circleci/docker/common/install_conda.sh,
+    # except for python 3.8 because we don't have the numpy version required
+    - numpy >=1.21,<1.22  # [py>=310]
+    - numpy >=1.19,<1.20  # [py<=39]
+    - pip           # Required for in tree builds
+    - pkg-config                      # [unix]
+    - python
+    - pyyaml
+    - requests
+    # CF: PyTorch relies on features that were removed in later versions.
+    - setuptools
+    - sleef                           # [osx and arm64]
+    - typing-extensions
+    - wheel
+    - pybind11
+    - eigen
+  run:
+    # OpenBLAS or MKL
+    - mkl {{ mkl }}.*                 # [blas_impl == "mkl"]
+    - libopenblas                     # [blas_impl == "openblas"]
+    # OpenMP
+    - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
+    # GPU requirements
+    - {{ pin_compatible('cudatoolkit', max_pin='x.x') }}  # [pytorch_variant == "gpu"]
+    - {{ pin_compatible('cudnn') }}                       # [pytorch_variant == "gpu"]
+    # Required for GPU profiler
+    - cupti                           # [pytorch_variant == "gpu"]
+    # other requirements
+    - cffi
+    # CF: pip check may fail if future is not installed
+    - future
+    # CF: needed to load C++ extensions
+    - ninja
+    - numpy >=1.21,<2  # [py>=310]
+    - numpy >=1.19,<2  # [py<=39]
+    - python
+    - typing-extensions
+    # To stop the compiler pulling in an openmp implementation itself
+    - _openmp_mutex                   # [linux]
+    - pyyaml
+    - magma                           # [pytorch_variant == "gpu"]
+
+test:
+  requires:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - expecttest
+    - hypothesis
+    - mock  # [linux]
+    - pip
+    - psutil
+    - pytest
+    - scipy
+    - setuptools
+    - six
+    - tabulate
+  imports:
+    - torch
+  source_files:
+    - test/
+  commands:
+    # We seem to have individual platform-specific test failures or flaky
+    # tests, but the majority of tests passes.
+    - set CONTINUE_THROUGH_ERROR=1     # [win]
+    - export CONTINUE_THROUGH_ERROR=1  # [not win]
+    - python ./test/run_test.py --core || true
+    # Run pip check so as to ensure that all pytorch packages are installed
+    # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/24
+    - pip check
+    - python -c "import torch; print(torch.__version__)"
+    # We have had issues with openmp .dylibs being doubly loaded in certain cases. These two tests catch those issues
+    - python -c "import torch; import numpy"
+    - python -c "import numpy; import torch"
+    # distributed support is enabled by default on linux; for mac, we enable it manually in build.sh
+    - python -c "import torch; assert torch.distributed.is_available()"        # [linux or osx]
+    - python -c "import torch; assert torch.backends.mkldnn.m.is_available()"  # [x86 and cuda_compiler_version == "None"]
+    - python -c "import torch; assert torch.backends.cuda.is_built()"          # [pytorch_variant == "gpu"]
+    - python -c "import torch; assert torch.backends.cudnn.is_available()"     # [pytorch_variant == "gpu"]
+    - python -c "import torch; assert torch.cuda.is_available()"               # [pytorch_variant == "gpu"]
+    - python -c "import torch; assert torch.backends.cudnn.enabled"            # [pytorch_variant == "gpu"]
+
+about:
+  home: https://pytorch.org/
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+  summary: PyTorch is an optimized tensor library for deep learning using GPUs and CPUs.
+  description: |
+    PyTorch is a Python package that provides two high-level features:
+      - Tensor computation (like NumPy) with strong GPU acceleration
+      - Deep neural networks built on a tape-based autograd system
+    You can reuse your favorite Python packages such as NumPy, SciPy, and Cython to extend PyTorch when needed.
+  dev_url: https://github.com/pytorch/pytorch
+  doc_url: https://pytorch.org/docs/1.10/index.html
+
+extra:
+  recipe-maintainers:
+    - tobijk
