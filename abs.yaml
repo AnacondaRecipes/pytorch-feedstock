@@ -10,3 +10,4 @@ upload_channels:
 channels:
   - _lts-preview
 upload_without_merge: false
+aggregate_check: false
