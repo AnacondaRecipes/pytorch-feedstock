@@ -36,7 +36,7 @@ build:
     - '**/libtorch_python.so'
   number: 2
   string: cpu_py39hb1f1ab4_lts_2
-  skip: true  # [not (linux and x86_64)]
+  skip: true  # [build_platform != target_platform]
 requirements:
   build:
     - _libgcc_mutex 0.1 main
