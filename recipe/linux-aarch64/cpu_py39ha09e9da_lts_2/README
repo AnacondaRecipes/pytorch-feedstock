@@ -1,0 +1,26 @@
+# Package overview
+
+Pytorch is configurable via a variety of environment variables, many of
+which are documented in the header of their setup.py. For example, the
+acceleration backend can be provided by CUDA, MKL, or OpenBLAS.
+
+Build.sh and bld.bat in this package mostly deal with setting the
+environment variables that we want to set, before calling setup.py, which
+is the entry point to the Pytorch build system.
+
+
+# GPU building
+
+To build with GPU support, uncomment/comment the lines in conda_build_config.yaml as documented there. Currently, these
+builds need to be done manually on a machine with cudatoolkit installed, as the CI system does not support them.
+
+
+# Further work
+
+## Unvendoring
+
+Caffe2 could be conda-packaged, and this could then be unvendored.
+Fmt and zstd are dependencies of caffe2, and although these are conda
+packages, they haven't been separated from caffe2 in pytorch's build
+system, because the halfway-solution seemed error-prone and not worth
+the effort (the ideal way being to package and unvendor caffe2).

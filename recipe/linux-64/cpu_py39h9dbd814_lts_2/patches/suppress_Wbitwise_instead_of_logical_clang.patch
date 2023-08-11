@@ -1,0 +1,12 @@
+Index: pytorch/third_party/fbgemm/third_party/asmjit/src/asmjit/core/api-config.h
+===================================================================
+--- pytorch.orig/third_party/fbgemm/third_party/asmjit/src/asmjit/core/api-config.h
++++ pytorch/third_party/fbgemm/third_party/asmjit/src/asmjit/core/api-config.h
+@@ -479,6 +479,7 @@ namespace asmjit {
+   #define ASMJIT_BEGIN_NAMESPACE                                              \
+     namespace asmjit {                                                        \
+       _Pragma("clang diagnostic push")                                        \
++      _Pragma("clang diagnostic ignored \"-Wbitwise-instead-of-logical\"")    \
+       _Pragma("clang diagnostic ignored \"-Wconstant-logical-operand\"")      \
+       _Pragma("clang diagnostic ignored \"-Wunnamed-type-template-args\"")
+   #define ASMJIT_END_NAMESPACE                                                \

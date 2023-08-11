@@ -1,0 +1,12 @@
+Index: pytorch/torch/csrc/DataLoader.cpp
+===================================================================
+--- pytorch.orig/torch/csrc/DataLoader.cpp
++++ pytorch/torch/csrc/DataLoader.cpp
+@@ -12,6 +12,7 @@
+ 
+ #ifndef _WIN32
+ 
++#include <cinttypes>
+ #include <torch/csrc/Exceptions.h>
+ #include <torch/csrc/utils/python_numbers.h>
+ 

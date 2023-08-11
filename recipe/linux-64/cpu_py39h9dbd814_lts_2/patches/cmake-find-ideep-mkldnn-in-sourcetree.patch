@@ -1,0 +1,21 @@
+Index: pytorch/cmake/Modules/FindMKLDNN.cmake
+===================================================================
+--- pytorch.orig/cmake/Modules/FindMKLDNN.cmake
++++ pytorch/cmake/Modules/FindMKLDNN.cmake
+@@ -25,6 +25,8 @@ IF(NOT MKLDNN_FOUND)
+   ENDIF(NOT APPLE AND NOT WIN32 AND NOT BUILD_LITE_INTERPRETER)
+ 
+   FIND_PACKAGE(BLAS)
++  SET(CMAKE_FIND_ROOT_PATH_OLD "${CMAKE_FIND_ROOT_PATH}")
++  SET(CMAKE_FIND_ROOT_PATH "/")
+   FIND_PATH(IDEEP_INCLUDE_DIR ideep.hpp PATHS ${IDEEP_ROOT} PATH_SUFFIXES include)
+   FIND_PATH(MKLDNN_INCLUDE_DIR dnnl.hpp dnnl.h PATHS ${MKLDNN_ROOT} PATH_SUFFIXES include)
+   IF(NOT MKLDNN_INCLUDE_DIR)
+@@ -34,6 +36,7 @@ IF(NOT MKLDNN_FOUND)
+   IF(BUILD_ONEDNN_GRAPH)
+     FIND_PATH(LLGA_INCLUDE_DIR oneapi/dnnl/dnnl_graph.hpp PATHS ${LLGA_ROOT} PATH_SUFFIXES include)
+   ENDIF(BUILD_ONEDNN_GRAPH)
++  SET(CMAKE_FIND_ROOT_PATH "${CMAKE_FIND_ROOT_PATH_OLD}")
+ 
+   IF(NOT IDEEP_INCLUDE_DIR OR NOT MKLDNN_INCLUDE_DIR)
+     MESSAGE(STATUS "MKLDNN source files not found!")

@@ -1,0 +1,193 @@
+# This file created by conda-build 3.22.0
+# meta.yaml template originally from:
+# /feedstock/recipe, last modified Tue Jan 31 18:37:08 2023
+# ------------------------------------------------
+
+package:
+  name: pytorch
+  version: 1.12.1
+source:
+  patches:
+    - patches/cmake-fix-pybind-option.patch
+    - patches/cmake-unify-USE_MKLDNN-and-CAFFE2_USE_MKLDNN.patch
+    - patches/cpp_extension.patch
+    - patches/fix-flaky-tests.patch
+    - patches/fix_dispatch_apply_auto.patch
+    - patches/fix_map_anonymous.patch
+    - patches/fix_std_stdint.patch
+    - patches/gtest-find-pyinterp.patch
+    - patches/gtest-no-werror.patch
+    - patches/handle-abs-compiler-path.patch
+    - patches/remove_shared_linker_flag_override.patch
+    - patches/suppress_Wbitwise_instead_of_logical_clang.patch
+    - patches/CVE-2022-45907_pytorch_pull_89189.patch
+  sha256: 031c71073db73da732b5d01710220564ce6dd88d812ba053f0cc94296401eccb
+  url: https://github.com/pytorch/pytorch/releases/download/v1.12.1/pytorch-v1.12.1.tar.gz
+build:
+  detect_binary_files_with_prefix: false
+  missing_dso_whitelist:
+    - '**/ld64.so.*'
+    - '**/libc10.so'
+    - '**/libiomp5.so'
+    - '**/libshm.so'
+    - '**/libtorch.so'
+    - '**/libtorch_cpu.so'
+    - '**/libtorch_python.so'
+  number: 2
+  string: cpu_py38ha09e9da_lts_2
+  skip: true  # [build_platform != target_platform]
+requirements:
+  build:
+    - _libgcc_mutex 0.1 main
+    - _openmp_mutex 5.1 51_gnu
+    - binutils_impl_linux-aarch64 2.38 h0c9fd12_1
+    - binutils_linux-aarch64 2.38.0 h0c7b1b4_0
+    - bzip2 1.0.8 hfd63f10_2
+    - c-ares 1.18.1 h2f4d8fa_0
+    - ca-certificates 2023.01.10 hd43f75c_0
+    - cmake 3.22.1 h984d34b_0
+    - curl 7.87.0 h998d150_0
+    - expat 2.4.9 h419075a_0
+    - gcc_impl_linux-aarch64 11.2.0 h1234567_1
+    - gcc_linux-aarch64 11.2.0 h3fc98b3_0
+    - gdbm 1.18 hf59d7a7_4
+    - gettext 0.21.0 h8e1abe2_0
+    - git 2.34.1 pl5262h0ad1dfb_0
+    - gxx_impl_linux-aarch64 11.2.0 h1234567_1
+    - gxx_linux-aarch64 11.2.0 h0c7b1b4_0
+    - icu 68.1 h22f4aa5_0
+    - kernel-headers_linux-aarch64 4.14.214 h1cb168f_14
+    - krb5 1.19.4 ha2725d6_0
+    - ld_impl_linux-aarch64 2.38 h8131f2d_1
+    - libcurl 7.87.0 h79326fa_0
+    - libedit 3.1.20221030 h998d150_0
+    - libev 4.33 hfd63f10_1
+    - libffi 3.4.2 h419075a_6
+    - libgcc-devel_linux-aarch64 11.2.0 h1234567_1
+    - libgcc-ng 11.2.0 h1234567_1
+    - libgomp 11.2.0 h1234567_1
+    - libnghttp2 1.46.0 hb87466c_0
+    - libprotobuf 3.20.1 h549d06d_0
+    - libssh2 1.10.0 ha9ffb65_0
+    - libstdcxx-devel_linux-aarch64 11.2.0 h1234567_1
+    - libstdcxx-ng 11.2.0 h1234567_1
+    - libuv 1.40.0 hfd63f10_0
+    - libxml2 2.9.14 he30c317_0
+    - lz4-c 1.9.4 h419075a_0
+    - make 4.2.1 hfd63f10_1
+    - ncurses 6.4 h419075a_0
+    - ninja 1.10.2 hd43f75c_5
+    - ninja-base 1.10.2 h59a28a9_5
+    - openssl 1.1.1s h2f4d8fa_0
+    - patch 2.7.6 hfd63f10_1001
+    - pcre2 10.37 ha6b7f17_1
+    - perl 5.34.0 h998d150_2
+    - protobuf 3.20.1 py38h22f4aa5_0
+    - python 3.8.16 h89984f6_2
+    - readline 8.2 h998d150_0
+    - rhash 1.4.1 hcd09bdd_1
+    - sqlite 3.40.1 hf533066_0
+    - sysroot_linux-aarch64 2.26 h4744778_14
+    - tk 8.6.12 h241ca14_0
+    - xz 5.2.10 h998d150_1
+    - zlib 1.2.13 h998d150_0
+    - zstd 1.5.2 hfcb3217_0
+  host:
+    - _libgcc_mutex 0.1 main
+    - _openmp_mutex 5.1 51_gnu
+    - blas 1.0 openblas
+    - brotlipy 0.7.0 py38hfd63f10_1002
+    - ca-certificates 2023.01.10 hd43f75c_0
+    - certifi 2022.12.7 py38hd43f75c_0
+    - cffi 1.15.1 py38h998d150_3
+    - charset-normalizer 2.0.4 pyhd3eb1b0_0
+    - cryptography 38.0.4 py38h3d58568_0
+    - eigen 3.3.7 h59a28a9_1
+    - flit-core 3.6.0 pyhd3eb1b0_0
+    - future 0.18.2 py38hd43f75c_1
+    - idna 3.4 py38hd43f75c_0
+    - ld_impl_linux-aarch64 2.38 h8131f2d_1
+    - libffi 3.4.2 h419075a_6
+    - libgcc-ng 11.2.0 h1234567_1
+    - libgfortran-ng 11.2.0 h6e398d7_1
+    - libgfortran5 11.2.0 h1234567_1
+    - libgomp 11.2.0 h1234567_1
+    - libopenblas 0.3.20 hc2e42e2_1
+    - libprotobuf 3.20.1 h549d06d_0
+    - libstdcxx-ng 11.2.0 h1234567_1
+    - ncurses 6.4 h419075a_0
+    - nomkl 3.0 0
+    - numpy 1.19.2 py38hc390b3c_1
+    - numpy-base 1.19.2 py38hb31b9b9_1
+    - openblas 0.3.20 hd43f75c_1
+    - openblas-devel 0.3.20 hd43f75c_1
+    - openssl 1.1.1s h2f4d8fa_0
+    - pip 22.3.1 py38hd43f75c_0
+    - pkg-config 0.29.2 h2f4d8fa_0
+    - pybind11 2.10.1 py38hb8fdbf2_0
+    - pybind11-global 2.10.1 py38hb8fdbf2_0
+    - pycparser 2.21 pyhd3eb1b0_0
+    - pyopenssl 22.0.0 pyhd3eb1b0_0
+    - pysocks 1.7.1 py38hd43f75c_0
+    - python 3.8.16 h89984f6_2
+    - pyyaml 6.0 py38h998d150_1
+    - readline 8.2 h998d150_0
+    - requests 2.28.1 py38hd43f75c_0
+    - setuptools 65.6.3 py38hd43f75c_0
+    - sqlite 3.40.1 hf533066_0
+    - tk 8.6.12 h241ca14_0
+    - typing-extensions 4.4.0 py38hd43f75c_0
+    - typing_extensions 4.4.0 py38hd43f75c_0
+    - urllib3 1.26.14 py38hd43f75c_0
+    - wheel 0.37.1 pyhd3eb1b0_0
+    - xz 5.2.10 h998d150_1
+    - yaml 0.2.5 hfd63f10_0
+    - zlib 1.2.13 h998d150_0
+  run:
+    - _openmp_mutex
+    - cffi
+    - future
+    - libgcc-ng >=11.2.0
+    - libopenblas
+    - libprotobuf >=3.20.1,<3.21.0a0
+    - libstdcxx-ng >=11.2.0
+    - ninja
+    - numpy >=1.19,<2
+    - python >=3.8,<3.9.0a0
+    - pyyaml
+    - typing-extensions
+test:
+  commands:
+    - export CONTINUE_THROUGH_ERROR=1
+    - python ./test/run_test.py --core || true
+    - pip check
+    - python -c "import torch; print(torch.__version__)"
+    - python -c "import torch; import numpy"
+    - python -c "import numpy; import torch"
+    - python -c "import torch; assert torch.distributed.is_available()"
+  imports:
+    - torch
+  requires:
+    - expecttest
+    - gcc_linux-aarch64 11.2.0.*
+    - gxx_linux-aarch64 11.2.0.*
+    - hypothesis
+    - mock
+    - pip
+    - psutil
+    - pytest
+    - scipy
+    - setuptools
+    - six
+    - tabulate
+  source_files:
+    - test/
+about:
+  description: "PyTorch is a Python package that provides two high-level features:\n  - Tensor computation (like NumPy) with strong GPU acceleration\n  - Deep neural networks built on a tape-based autograd system\nYou can reuse your favorite Python packages such as NumPy, SciPy, and Cython to extend PyTorch when needed.\n"
+  dev_url: https://github.com/pytorch/pytorch
+  doc_url: https://pytorch.org/docs/1.10/index.html
+  home: https://pytorch.org/
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+  summary: PyTorch is an optimized tensor library for deep learning using GPUs and CPUs.

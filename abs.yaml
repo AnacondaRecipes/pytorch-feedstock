@@ -5,3 +5,9 @@ build_parameters:
   - "--suppress-variables"
   - "--skip-existing"
 
+upload_channels:
+  - _lts-preview
+channels:
+  - _lts-preview
+upload_without_merge: false
+aggregate_check: false
