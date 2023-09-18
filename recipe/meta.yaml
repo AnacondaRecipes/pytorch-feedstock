@@ -124,6 +124,7 @@ requirements:
     - jinja2
     - networkx
     - sympy
+    - fsspec 
     - __cuda >={{ cudatoolkit }}      # [(pytorch_variant == "gpu") and (linux and x86_64)]
     # On macOS, the GPU accelerated backend, MPS, can be used from macOS v12.3. This isn't tightly dependent on the
     # SDK version used.
