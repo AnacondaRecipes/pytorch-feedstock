@@ -1,13 +1,19 @@
-{% set version = "2.0.1" %}
-{% set sha256 = "9c564ca440265c69400ef5fdd48bf15e28af5aa4bed84c95efaad960a6699998" %}
+{% set version = "2.1.0-rc5" %}
+{% set rc = True }
+{% set sha256 = "f25f6619edd879a6bbc20d9148589eb1eab845acfa76278ee052aa4e74b58e13" %}
 
 package:
   name: pytorch
   version: {{ version }}
 
 source:
+{% if rc %}
+  url: https://github.com/pytorch/pytorch/archive/refs/tags/v{{ version }}.tar.gz
+{% else %}
   # The "pytorch-v" tarballs contain submodules; the "pytorch-" ones don't.
   url: https://github.com/pytorch/pytorch/releases/download/v{{ version }}/pytorch-v{{ version }}.tar.gz
+{% endif %}
+
   sha256: {{ sha256 }}
   patches:
     # fixes linker error on linux platforms, see https://github.com/pytorch/pytorch/issues/90448
