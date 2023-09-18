@@ -1,5 +1,5 @@
 {% set version = "2.1.0-rc5" %}
-{% set rc = True }
+{% set rc = True %}
 {% set sha256 = "f25f6619edd879a6bbc20d9148589eb1eab845acfa76278ee052aa4e74b58e13" %}
 
 package:
