@@ -29,9 +29,20 @@ build:
   entry_points:
     - torchrun = torch.distributed.run:main
   missing_dso_whitelist:
-    - "**/libcuda.so*"                # [(pytorch_variant == "gpu") and (linux and x86_64)]
+    # For some reason, the .sos built for python 3.11 look for .sos for linking in /python3.9/ directories. This
+    # circumvents this...
+    - "**/libtorch_cpu.so"        # [linux and x86_64]
+    - "**/libc10.so"              # [linux and x86_64]
+    - "**/libtorch.so"            # [linux and x86_64]
+    - "**/libshm.so"              # [linux and x86_64]
+    - "**/libtorch_python.so"     # [linux and x86_64]
+    # CUDA shared libraries are provided by cudatoolkit, i.e. outside the conda build environment
+    - "**/libcuda.so*"            # [(pytorch_variant == "gpu") and (linux and x86_64)]
+    - "**/libtorch_cuda.so"       # [(pytorch_variant == "gpu") and (linux and x86_64)]
+    - "**/libc10_cuda.so"         # [(pytorch_variant == "gpu") and (linux and x86_64)]
+  # We want the GPU variant to be default where it's usable (which is where __cuda and __osx run requirements are satisfied)
   track_features:
-    - pytorch-cpu                     # [pytorch_variant == "cpu"]
+    - pytorch-cpu                 # [pytorch_variant == "cpu"]
 
 requirements:
   build:
@@ -114,6 +125,9 @@ requirements:
     - networkx
     - sympy
     - __cuda >={{ cudatoolkit }}      # [(pytorch_variant == "gpu") and (linux and x86_64)]
+    # On macOS, the GPU accelerated backend, MPS, can be used from macOS v12.3. This isn't tightly dependent on the
+    # SDK version used.
+    - __osx >=12.3                    # [(pytorch_variant == "gpu") and (osx and arm64)]
 
 test:
   requires:
@@ -172,3 +186,4 @@ about:
 extra:
   recipe-maintainers:
     - tobijk
+    - danpetry

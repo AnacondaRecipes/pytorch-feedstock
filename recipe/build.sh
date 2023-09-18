@@ -126,21 +126,21 @@ if [[ ${pytorch_variant} = "gpu" ]]; then
         # https://pytorch.org/docs/stable/cpp_extension.html (Compute capabilities)
         # https://github.com/pytorch/builder/blob/c85da84005b44041b75e1eb3221ea7dcbd1b28aa/conda/pytorch-nightly/build.sh#L53-L89
         if [[ ${cudatoolkit} == 9.0* ]]; then
-            export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;7.0+PTX"
+            export TORCH_CUDA_ARCH_LIST="3.0;3.2;3.5;3.7;5.0;5.2;5.3;6.0;6.1;6.2;7.0+PTX"
         elif [[ ${cudatoolkit} == 9.2* ]]; then
-            export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0+PTX"
+            export TORCH_CUDA_ARCH_LIST="3.0;3.2;3.5;3.7;5.0;5.2;5.3;6.0;6.1;6.2;7.0+PTX"
         elif [[ ${cudatoolkit} == 10.* ]]; then
-            export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5+PTX"
+            export TORCH_CUDA_ARCH_LIST="3.0;3.2;3.5;3.7;5.0;5.2;5.3;6.0;6.1;6.2;7.0;7.2;7.5+PTX"
         elif [[ ${cudatoolkit} == 11.0* ]]; then
-            export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0+PTX"
+            export TORCH_CUDA_ARCH_LIST="3.5;3.7;5.0;5.2;5.3;6.0;6.1;6.2;7.0;7.2;7.5;8.0+PTX"
         elif [[ ${cudatoolkit} == 11.1 ]]; then
-            export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX"
+            export TORCH_CUDA_ARCH_LIST="3.5;3.7;5.0;5.2;5.3;6.0;6.1;6.2;7.0;7.2;7.5;8.0;8.6+PTX"
         elif [[ ${cudatoolkit} == 11.2 ]]; then
-            export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX"
+            export TORCH_CUDA_ARCH_LIST="3.5;3.7;5.0;5.2;5.3;6.0;6.1;6.2;7.0;7.2;7.5;8.0;8.6+PTX"
         elif [[ ${cudatoolkit} == 11.3 ]]; then
-            export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX"
+            export TORCH_CUDA_ARCH_LIST="3.5+PTX;3.7;5.0;5.2;5.3;6.0;6.1;6.2;7.0;7.2;7.5;8.0;8.6"
         elif [[ ${cudatoolkit} == 11.8 ]]; then
-            export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5;8.0;8.6;9.0"
+            export TORCH_CUDA_ARCH_LIST="3.5+PTX;3.7;5.0;5.2;5.3;6.0;6.1;6.2;7.0;7.2;7.5;8.0;8.6;8.7;8.9;9.0+PTX"
         else
             echo "No CUDA architecture list exists for cuda_compiler_version==${cudatoolkit}"
             echo "in build.sh. Use https://en.wikipedia.org/wiki/CUDA#GPUs_supported to make one."
@@ -161,24 +161,22 @@ else
 
     export USE_CUDA=0
 
-    case "${blas_impl}" in
-        mkl)
-            export BLAS="MKL"
-            export USE_MKL=1
-            export USE_MKLDNN=1
-            ;;
-        openblas)
-            export BLAS="OpenBLAS"
-            export USE_MKL=0
-            export USE_MKLDNN=0
-            ;;
-        *)
-            echo "[ERROR] Unsupported BLAS implementation '${blas_impl}'" >&2
-            exit 1
-            ;;
-    esac
-
 fi
+
+case "${blas_impl}" in
+    mkl)
+        export BLAS="MKL"
+        export USE_MKLDNN=1
+        ;;
+    openblas)
+        export BLAS="OpenBLAS"
+        export USE_MKLDNN=0
+        ;;
+    *)
+        echo "[ERROR] Unsupported BLAS implementation '${blas_impl}'" >&2
+        exit 1
+        ;;
+esac
 
 
 
