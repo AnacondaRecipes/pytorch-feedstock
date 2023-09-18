@@ -147,6 +147,7 @@ test:
     - torch
   source_files:
     - test/
+    - tools/
   commands:
     # We seem to have individual platform-specific test failures or flaky
     # tests, but the majority of tests pass.
