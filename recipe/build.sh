@@ -19,6 +19,10 @@ if [[ "$OSTYPE" != "darwin"* ]]; then
 else
     export CMAKE_OSX_SYSROOT=$CONDA_BUILD_SYSROOT
 fi
+# Required to make the right SDK found on Anaconda's CI system. Ideally should be fixed in the CI or conda-build
+if [[ "${build_platform}" = "osx-arm64" ]]; then
+    export DEVELOPER_DIR=/Library/Developer/CommandLineTools
+fi
 export CMAKE_LIBRARY_PATH=$PREFIX/lib:$PREFIX/include:$CMAKE_LIBRARY_PATH
 export CMAKE_PREFIX_PATH=$PREFIX
 export CMAKE_BUILD_TYPE=Release
@@ -107,8 +111,6 @@ if [[ ${pytorch_variant} = "gpu" ]]; then
         ###### Mac - MPS backend ######
         export USE_MPS=1
 
-        # Required to make the right SDK found on Anaconda's CI system. Ideally should be fixed in the CI or conda-build
-        export DEVELOPER_DIR=/Library/Developer/CommandLineTools
     else
 
         ###### Linux - CUDA backend ######
