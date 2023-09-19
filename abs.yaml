@@ -5,3 +5,5 @@ build_parameters:
   - "--suppress-variables"
   - "--skip-existing"
 
+extra_labels_for_os:
+   osx-64: [ventura]
