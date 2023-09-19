@@ -8,6 +8,8 @@ cxx_compiler:          # [win]
 # This version of macOS SDK is required for certain macros used in the source code
 MACOSX_SDK_VERSION:          # [(osx and x86_64)]
   - 10.15                    # [(osx and x86_64)]
+MACOSX_DEPLOYMENT_TARGET:    # [(osx and x86_64)]
+  - 10.15                    # [(osx and x86_64)]
 CONDA_BUILD_SYSROOT:         # [(osx and x86_64)]
   - /opt/MacOSX10.15.sdk     # [(osx and x86_64)]
 # openblas/osx-64 isn't currently building, but is under investigation and to be fixed in a later build.
