@@ -163,7 +163,11 @@ if [[ ${pytorch_variant} = "gpu" ]]; then
 
 else
 
-    export USE_CUDA=0
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        export USE_MPS=0
+    else
+        export USE_CUDA=0
+    fi
 
 fi
 
