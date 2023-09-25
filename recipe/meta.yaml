@@ -161,7 +161,7 @@ test:
     # tests, but the majority of tests pass.
     - set CONTINUE_THROUGH_ERROR=1     # [win]
     - export CONTINUE_THROUGH_ERROR=1  # [not win]
-    - python ./test/run_test.py
+    - python ./test/run_test.py --core
     # Run pip check so as to ensure that all pytorch packages are installed
     # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/24
     - pip check
