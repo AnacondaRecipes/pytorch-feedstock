@@ -14,6 +14,12 @@ is the entry point to the Pytorch build system.
 To build with GPU support, uncomment/comment the lines in conda_build_config.yaml as documented there. Currently, these
 builds need to be done manually on a machine with cudatoolkit installed, as the CI system does not support them.
 
+# Tests
+
+Note that the PyTorch test suite is run, but there is no indication of test results, or even if the test suite has
+fallen over completely, without looking at the logs. It is very important to validate the package by looking at the test
+results before release. A statistically small number of test failures is generally ok, for example because of floating
+point hardware implementation differences on different architectures.
 
 # Further work
 
