@@ -3,5 +3,4 @@
 # which conda thinks aren't required
 build_parameters:
   - "--suppress-variables"
-  - "--skip-existing"
 
