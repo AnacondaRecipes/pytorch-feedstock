@@ -6,4 +6,4 @@ build_parameters:
   - "--skip-existing"
 
 extra_labels_for_os:
-   osx-64: [ventura]
+   osx-64: [big-sur]
