@@ -33,7 +33,7 @@ outputs:
 
   - name: pytorch-gpu
     build:
-      skip: True  # [not win]
+      skip: True  # [not ((linux and x86_64) or (osx and arm64))]
     requirements:
       run:
         - pytorch={{ version }}=gpu*
