@@ -27,12 +27,15 @@ build:
 
 outputs:
   - name: pytorch-cpu
+    build:
+      script: echo "Building pytorch-cpu metapackage"
     requirements:
       run:
         - pytorch={{ version }}=cpu*
 
   - name: pytorch-gpu
     build:
+      script: echo "Building pytorch-gpu metapackage"
       skip: True  # [not ((linux and x86_64) or (osx and arm64))]
     requirements:
       run:
@@ -40,8 +43,8 @@ outputs:
 
   - name: pytorch
     build:
-      script: build.sh # [not win]
-      script: bld.bat  # [win]
+      script: build_pytorch.sh # [not win]
+      script: bld_pytorch.bat  # [win]
       string: gpu_cuda{{ cudatoolkit | replace('.', '') }}py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}  # [(pytorch_variant == "gpu") and (linux and x86_64)]
       string: gpu_mps_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                      # [(pytorch_variant == "gpu") and (osx and arm64)]
       string: cpu_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                          # [pytorch_variant == "cpu"]
