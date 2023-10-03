@@ -15,8 +15,8 @@ CONDA_BUILD_SYSROOT:         # [(osx and x86_64)]
 # openblas/osx-64 isn't currently building, but is under investigation and to be fixed in a later build.
 # blas_impl is the same as in aggregate cbc.yaml otherwise.
 blas_impl:
-  # - mkl                        # [x86 or x86_64]
-  - openblas
+  - mkl                        # [x86 or x86_64]
+  - openblas                   # [not win and not (osx and x86_64)]
 pytorch_variant:
   - cpu
 # ################ For GPU building, uncomment everything below and comment out the two lines above this #############
