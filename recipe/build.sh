@@ -159,6 +159,10 @@ if [[ ${pytorch_variant} = "gpu" ]]; then
                                                 # files, rather than the one in the conda environment, resulting in compiler errors
         export MAGMA_HOME="${PREFIX}"
 
+        # To address relocation overflow linker errors
+        export LDFLAGS="${LDFLAGS} -Wl,--no-relax"
+        export BUILD_SPLIT_CUDA="ON"
+
     fi
 
 else
