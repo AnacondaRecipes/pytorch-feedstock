@@ -34,8 +34,7 @@ outputs:
   # The pytorch-cpu and pytorch-gpu metapackages are packages which the user can use to get the
   # corresponding pytorch variant. If they install the pytorch package, it will give them the
   # GPU variant if their platform supports it and the CPU variant otherwise.
-  - name: pytorch-cpu # [pytorch_variant == "cpu"]
-  - name: pytorch-gpu # [pytorch_variant == "gpu"]
+  - name: pytorch-{{ pytorch_variant }}
     build:
       noarch: generic
       skip: True  # [py<38]
