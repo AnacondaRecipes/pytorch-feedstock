@@ -24,83 +24,24 @@ build:
   # to restrict to arches I want to debug
   # skip: True  # [not (osx and x86_64)]
 
+{% if rc %}
 requirements:
   build:
-    - {{ compiler('c') }}
-    - {{ compiler('cxx') }}
-    - cmake
-    - make                            # [unix]
-    - git                             # [unix]
-    - patch                           # [not win]
-    - m2-patch                        # [win]
-    - python ={{PY_VER}}
-    - ninja-base
-    # This has a strong run_export so we don't need to put it in `host` or `run`
-    # We use llvm-openmp for openblas variants on osx.
-    - llvm-openmp                     # [osx and not (blas_impl == "mkl")]
-    # Keep libprotobuf here so that a compatibile version
-    # of protobuf is installed between build and host
-    # Unvendoring protobuf doesn't work properly for windows
-    # (due to errors in the Pytorch build system)
-    - libprotobuf                     # [not win]
-    - protobuf                        # [not win]
-  host:
-    # GPU requirements
-    - cudatoolkit {{ cudatoolkit }}*  # [(pytorch_variant == "gpu") and (linux and x86_64)]
-    - cudnn {{ cudnn }}*              # [(pytorch_variant == "gpu") and (linux and x86_64)]
-    - magma 2.7.1                     # [(pytorch_variant == "gpu") and (linux and x86_64)]
-    # Required for GPU profiler
-    - cupti 11.8.0                    # [(pytorch_variant == "gpu") and (linux and x86_64)]
-    # OpenBLAS or MKL
-    - mkl-devel {{ mkl }}.*           # [blas_impl == "mkl"]
-    - mkl {{ mkl }}.*                 # [blas_impl == "mkl"]
-    - openblas {{ openblas }}         # [blas_impl == "openblas"]
-    # OpenMP
-    # We pull in the same versions of mkl and intel-openmp: intel aligns the versions
-    # We use intel-openmp for all mkl variants.
-    # For openblas on win and linux, we don't specify any openmp implementation; it comes from the compiler.
-    - intel-openmp   {{ mkl }}        # [blas_impl == "mkl"]
-    # Other requirements
-    - cffi 1.15.1
-    - libprotobuf {{ libprotobuf }}   # [not win]
-    # on osx, libuv supports torch.distributed support. See build.sh.
-    - libuv 1.44.2                    # [win or osx]
-    - numpy {{ numpy }}
-    - pip                             # Required for in tree builds
-    - pkg-config 0.29.2               # [unix]
-    - python
-    - pyyaml 6.0
-    - requests 2.28.1
-    # CF: PyTorch relies on features that were removed in later versions.
-    - setuptools
-    - sleef 3.5.1                     # [osx and arm64]
-    - typing-extensions 4.4.0
-    - wheel
-    - pybind11 2.10.1
-    - eigen 3.3.7
-    - astunparse 1.6.3
-
+    - git                             # [unix] 
+{% endif %}
 
 outputs:
   # The pytorch-cpu and pytorch-gpu metapackages are packages which the user can use to get the
   # corresponding pytorch variant. If they install the pytorch package, it will give them the
   # GPU variant if their platform supports it and the CPU variant otherwise.
-  - name: pytorch-cpu
+  - name: pytorch-cpu # [pytorch_variant == "cpu"]
+  - name: pytorch-gpu # [pytorch_variant == "gpu"]
     build:
-      script: echo "Building pytorch-cpu metapackage"
+      noarch: generic
       skip: True  # [py<38]
     requirements:
       run:
-        - pytorch={{ version }}=cpu*
-
-  - name: pytorch-gpu
-    build:
-      script: echo "Building pytorch-gpu metapackage"
-      skip: True  # [py<38]
-      skip: True  # [not ((linux and x86_64) or (osx and arm64))]
-    requirements:
-      run:
-        - pytorch={{ version }}=gpu*
+        - {{ pin_subpackage('pytorch', exact=True) }}
 
   - name: pytorch
     script: build_pytorch.sh # [not win]
