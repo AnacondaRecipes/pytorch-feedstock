@@ -22,7 +22,7 @@ build:
   # Dropping ppc because of various build issues
   skip: True  # [(linux and ppc64le)]
   # to restrict to arches I want to debug
-  # skip: True  # [not (osx and x86_64)]
+  skip: True  # [not (osx and arm64)]
 
 {% if rc %}
 requirements:
