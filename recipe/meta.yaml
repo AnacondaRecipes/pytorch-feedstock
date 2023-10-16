@@ -1,6 +1,6 @@
 {% set version = "2.1.0" %}
-# Uncomment and set the RC number to build release candidates
-# {% set rc = "5" %}
+# Set the RC number to build release candidates. Set to None otherwise
+{% set rc = None %}
 {% set sha256 = "631c71f7f7d6174952f35b5ed4a45ec115720a4ef3eb619678de5893af54f403" %}
 {% set build_number = 0 %}
 
@@ -9,7 +9,7 @@ package:
   version: {{ version }}
 
 source:
-{% if rc is defined %}
+{% if rc != None %}
   git_url: https://github.com/pytorch/pytorch.git
   git_rev: v{{ version }}-rc{{ rc }}
 {% else %}
