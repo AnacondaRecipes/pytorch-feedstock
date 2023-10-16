@@ -1,6 +1,7 @@
 {% set version = "2.1.0" %}
 {% set rc = "5" %}
 {% set sha256 = "f25f6619edd879a6bbc20d9148589eb1eab845acfa76278ee052aa4e74b58e13" %}
+{% set build_number = 0 %}
 
 package:
   name: pytorch-select
@@ -17,7 +18,11 @@ source:
   sha256: {{ sha256 }}
 
 build:
-  number: 0
+  # Use a build number difference to ensure that the GPU
+  # variant is slightly preferred by conda's solver, so that it's preferentially
+  # installed where the platform supports it.
+  number: {{ build_number + 100 }}  # [pytorch_variant == "gpu"]
+  number: {{ build_number }}        # [pytorch_variant == "cpu"]
   skip: True  # [py<38]
   # Dropping ppc because of various build issues
   skip: True  # [(linux and ppc64le)]
@@ -73,9 +78,6 @@ outputs:
         - "**/libcuda.so*"            # [(pytorch_variant == "gpu") and (linux and x86_64)]
         - "**/libtorch_cuda.so"       # [(pytorch_variant == "gpu") and (linux and x86_64)]
         - "**/libc10_cuda.so"         # [(pytorch_variant == "gpu") and (linux and x86_64)]
-      # We want the GPU variant to be default where it's usable (which is where __cuda and __osx run requirements are satisfied)
-      track_features:
-        - pytorch-cpu                 # [pytorch_variant == "cpu"]
 
     requirements:
       build:
