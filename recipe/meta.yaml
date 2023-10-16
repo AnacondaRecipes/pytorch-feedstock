@@ -1,6 +1,7 @@
 {% set version = "2.1.0" %}
-{% set rc = "5" %}
-{% set sha256 = "f25f6619edd879a6bbc20d9148589eb1eab845acfa76278ee052aa4e74b58e13" %}
+# Uncomment and set the RC number to build release candidates
+# {% set rc = "5" %}
+{% set sha256 = "631c71f7f7d6174952f35b5ed4a45ec115720a4ef3eb619678de5893af54f403" %}
 {% set build_number = 0 %}
 
 package:
