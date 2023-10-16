@@ -61,6 +61,14 @@ outputs:
         - "**/libtorch.so"            # [linux and x86_64]
         - "**/libshm.so"              # [linux and x86_64]
         - "**/libtorch_python.so"     # [linux and x86_64]
+        # conda-build also can't find these on Windows sometimes, for example Python 3.8, in Powershell with cygwin added to
+        # the PATH. Error message is "$RPATH/<libname>.dll not found". Maybe RPATH isn't being defined correctly?
+        - "**/asmjit.dll"             # [win]
+        - "**/c10.dll"                # [win]
+        - "**/fbgemm.dll"             # [win]
+        - "**/shm.dll"                # [win]
+        - "**/torch_cpu.dll"          # [win]
+        - "**/torch_python.dll"       # [win]
         # CUDA shared libraries are provided by cudatoolkit, i.e. outside the conda build environment
         - "**/libcuda.so*"            # [(pytorch_variant == "gpu") and (linux and x86_64)]
         - "**/libtorch_cuda.so"       # [(pytorch_variant == "gpu") and (linux and x86_64)]
