@@ -159,6 +159,8 @@ if [[ ${pytorch_variant} = "gpu" ]]; then
                                                 # files, rather than the one in the conda environment, resulting in compiler errors
         export MAGMA_HOME="${PREFIX}"
 
+        export USE_STATIC_CUDNN=0   # Use our cudnn package
+
     fi
 
 else
