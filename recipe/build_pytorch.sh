@@ -78,6 +78,7 @@ fi
 export BUILD_CUSTOM_PROTOBUF=OFF
 export USE_SYSTEM_PYBIND11=1
 export USE_SYSTEM_EIGEN_INSTALL=1
+export USE_SYSTEM_ONNX=1
 
 # Breakpad is missing a ppc64 and s390x port
 case "$build_platform" in
