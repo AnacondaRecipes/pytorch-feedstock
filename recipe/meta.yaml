@@ -46,7 +46,7 @@ outputs:
       skip: True  # [py<38]
     requirements:
       run:
-        - {{ pin_subpackage('pytorch', exact=True) }}
+        - pytorch ={{ version }}={{ pytorch_variant }}* # NB pinning exact=True will also pin to the python version
 
   - name: pytorch
     script: build_pytorch.sh # [not win]
