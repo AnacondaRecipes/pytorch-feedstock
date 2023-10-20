@@ -219,7 +219,7 @@ outputs:
         - set MATRIX_PACKAGE_TYPE="conda"                                             # [win]
         - set TARGET_OS="windows"                                                     # [win]
         - export MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cudatoolkit.split('.')[:2]) }}" # [(pytorch_variant == "gpu") and (linux and x86_64)]
-        - export MATRIX_GPU_ARCH_VERSION="${MACOSX_SDK_VERSION}"                      # [(pytorch_variant == "gpu") and (osx and arm64)]
+        - export MATRIX_GPU_ARCH_VERSION="{{ MACOSX_SDK_VERSION }}"                   # [(pytorch_variant == "gpu") and (osx and arm64)]
         - export MATRIX_GPU_ARCH_TYPE="cuda"                                          # [(pytorch_variant == "gpu") and (linux and x86_64)]
         - export MATRIX_GPU_ARCH_TYPE="mps"                                           # [(pytorch_variant == "gpu") and (osx and arm64)]
         - export MATRIX_GPU_ARCH_VERSION="none"                                       # [(pytorch_variant == "cpu") and (not win)]
