@@ -145,7 +145,6 @@ outputs:
         - pybind11 2.10.1
         - eigen 3.3.7
         - astunparse 1.6.3
-        - onnx 1.13.0
       run:
         # OpenBLAS or MKL
         - mkl {{ mkl }}.*                 # [blas_impl == "mkl"]
@@ -171,8 +170,7 @@ outputs:
         - jinja2
         - networkx
         - sympy
-        - fsspec
-        - {{ pin_compatible('onnx') }}
+        - fsspec 
         - __cuda >={{ cudatoolkit }}      # [(pytorch_variant == "gpu") and (linux and x86_64)]
         # On macOS, the GPU accelerated backend, MPS, can be used from macOS v12.3. This isn't tightly dependent on the
         # SDK version used.
