@@ -11,7 +11,7 @@ build_parameters:
 extra_labels_for_os:
   osx-arm64: [ventura]
 
-channels:
-  dp_test: pytorch_210
+# channels:
+#   dp_test: pytorch_210
 
-upload_without_merge: true
+# upload_without_merge: true
