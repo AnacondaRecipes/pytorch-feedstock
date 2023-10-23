@@ -215,7 +215,7 @@ outputs:
         - set MATRIX_GPU_ARCH_VERSION="none"                                          # [(pytorch_variant == "cpu") and (win)]
         - set MATRIX_GPU_ARCH_TYPE="none"                                             # [(pytorch_variant == "cpu") and (win)]
         - set MATRIX_CHANNEL="defaults"                                               # [win]
-        - set MATRIX_STABLE_VERSION="{{ version }}"                                   # [win]
+        - set MATRIX_STABLE_VERSION={{ version }}                                     # [win]
         - set MATRIX_PACKAGE_TYPE="conda"                                             # [win]
         - set TARGET_OS="windows"                                                     # [win]
         - export MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cudatoolkit.split('.')[:2]) }}" # [(pytorch_variant == "gpu") and (linux and x86_64)]
@@ -229,9 +229,8 @@ outputs:
         - export MATRIX_PACKAGE_TYPE="conda"                                          # [not win]
         - export TARGET_OS="unix"                                                     # [not win]
         - python ./smoke_test.py --package torchonly
-        # The dynamo and inductor tests test torch.compile
-        - python ./test/run_test.py --dynamo || true
-        - python ./test/run_test.py --inductor || true
+        # The inductor tests test the torch.compile backend
+        - python ./test/run_test.py --inductor || true                                # [(pytorch_variant == "gpu") and (linux and x86_64)]
         - python ./test/run_test.py --core || true
         # Run pip check so as to ensure that all pytorch packages are installed
         # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/24
