@@ -27,7 +27,6 @@ build:
   skip: True  # [py<38]
   # Dropping ppc because of various build issues
   skip: True  # [(linux and ppc64le)]
-  skip: True  # [py!=310]
 
 {% if rc %}
 requirements:
@@ -52,6 +51,7 @@ outputs:
     script: bld_pytorch.bat  # [win]
     build:
       skip: True  # [py<38]
+      skip: True  # [py!=310]
       string: gpu_cuda{{ cudatoolkit | replace('.', '') }}py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}  # [(pytorch_variant == "gpu") and (linux and x86_64)]
       string: gpu_mps_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                      # [(pytorch_variant == "gpu") and (osx and arm64)]
       string: cpu_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                          # [pytorch_variant == "cpu"]
