@@ -27,6 +27,7 @@ build:
   skip: True  # [py<38]
   # Dropping ppc because of various build issues
   skip: True  # [(linux and ppc64le)]
+  skip: True  # [not win]
 
 {% if rc %}
 requirements:
