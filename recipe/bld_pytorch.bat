@@ -51,7 +51,7 @@ set CUDNN_INCLUDE_DIR=%LIBRARY_PREFIX%\include
 :: =============================== CUDA< ======================================
 
 :: Unless we explicitly set this, mkl will silently not be built in if it's not found
-set BLAS="MKL"
+set BLAS=MKL
 set USE_MKLDNN=1
 set CMAKE_FIND_DEBUG_MODE=1
 
