@@ -63,6 +63,12 @@ set Python3_EXECUTABLE=%PYTHON%
 :: This is the default, but just in case it changes, one day.
 set BUILD_DOCS=OFF
 
+:: Force usage of MKL. If MKL can't be found, cmake will raise an error.
+set BLAS=MKL
+
+:: Tell Pytorch's embedded FindMKL where to find MKL.
+set INTEL_MKL_DIR=%LIBRARY_PREFIX%
+
 %PYTHON% -m pip install . ^
     --no-deps ^
     --no-binary :all: ^

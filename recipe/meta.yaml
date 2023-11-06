@@ -12,6 +12,7 @@ source:
   patches:
     # fixes linker error on linux platforms, see https://github.com/pytorch/pytorch/issues/90448
     - patches/fix_kDefaultTimeout.patch
+    - patches/0001-windows-FindMKL-add-library-suffix.patch  # [win]
 
 build:
   number: 0
