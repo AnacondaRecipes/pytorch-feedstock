@@ -137,6 +137,16 @@ test:
     # tests, but the majority of tests pass.
     - set CONTINUE_THROUGH_ERROR=1     # [win]
     - export CONTINUE_THROUGH_ERROR=1  # [not win]
+    # the smoke test script takes a bunch of env variables, defined below
+    - set MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cudatoolkit.split('.')[:2]) }}"    # [(pytorch_variant == "gpu") and (win)]
+    - set MATRIX_GPU_ARCH_TYPE="cuda"                                             # [(pytorch_variant == "gpu") and (win)]
+    - set MATRIX_GPU_ARCH_VERSION="none"                                          # [(pytorch_variant == "cpu") and (win)]
+    - set MATRIX_GPU_ARCH_TYPE="none"                                             # [(pytorch_variant == "cpu") and (win)]
+    - set MATRIX_CHANNEL="defaults"                                               # [win]
+    - set MATRIX_STABLE_VERSION={{ version }}                                     # [win]
+    - set MATRIX_PACKAGE_TYPE="conda"                                             # [win]
+    - set TARGET_OS="windows"                                                     # [win]
+    - python ./smoke_test.py --package torchonly
     - python ./test/run_test.py --core || true
     # Run pip check so as to ensure that all pytorch packages are installed
     # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/24
