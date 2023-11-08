@@ -15,7 +15,7 @@ source:
     - patches/0001-windows-FindMKL-add-library-suffix.patch  # [win]
 
 build:
-  number: 0
+  number: 1
   skip: True  # [py<38]
   # Dropping ppc because of various build issues
   # skip: True  # [(linux and ppc64le)]
