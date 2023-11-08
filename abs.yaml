@@ -5,3 +5,5 @@ build_parameters:
   - "--suppress-variables"
   - "--skip-existing"
 
+channels:
+- https://staging.continuum.io/prefect/fs/intel_repack-feedstock/pr25/58cc108
