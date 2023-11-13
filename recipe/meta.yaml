@@ -12,14 +12,15 @@ source:
   patches:
     # fixes linker error on linux platforms, see https://github.com/pytorch/pytorch/issues/90448
     - patches/fix_kDefaultTimeout.patch
+    - patches/0001-windows-FindMKL-add-library-suffix.patch  # [win]
 
 build:
-  number: 0
+  number: 1
   skip: True  # [py<38]
   # Dropping ppc because of various build issues
   skip: True  # [(linux and ppc64le)]
-  # Only building for linux-amd64 GPU in this PR
-  skip: True  # [not (linux and x86_64)]
+  # Only building for win-64 CPU in this PR
+  skip: True  # [not win]
   string: gpu_cuda{{ cudatoolkit | replace('.', '') }}py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}  # [(pytorch_variant == "gpu") and (linux and x86_64)]
   string: gpu_mps_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                      # [(pytorch_variant == "gpu") and (osx and arm64)]
   string: cpu_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                          # [pytorch_variant == "cpu"]
@@ -129,6 +130,8 @@ test:
     - tabulate
   imports:
     - torch
+  files:
+    - smoke_test.py
   source_files:
     - test/
   commands:
@@ -136,6 +139,16 @@ test:
     # tests, but the majority of tests pass.
     - set CONTINUE_THROUGH_ERROR=1     # [win]
     - export CONTINUE_THROUGH_ERROR=1  # [not win]
+    # the smoke test script takes a bunch of env variables, defined below
+    - set MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cudatoolkit.split('.')[:2]) }}"    # [(pytorch_variant == "gpu") and (win)]
+    - set MATRIX_GPU_ARCH_TYPE="cuda"                                             # [(pytorch_variant == "gpu") and (win)]
+    - set MATRIX_GPU_ARCH_VERSION="none"                                          # [(pytorch_variant == "cpu") and (win)]
+    - set MATRIX_GPU_ARCH_TYPE="none"                                             # [(pytorch_variant == "cpu") and (win)]
+    - set MATRIX_CHANNEL="defaults"                                               # [win]
+    - set MATRIX_STABLE_VERSION={{ version }}                                     # [win]
+    - set MATRIX_PACKAGE_TYPE="conda"                                             # [win]
+    - set TARGET_OS="windows"                                                     # [win]
+    - python ./smoke_test.py --package torchonly
     - python ./test/run_test.py --core || true
     # Run pip check so as to ensure that all pytorch packages are installed
     # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/24
