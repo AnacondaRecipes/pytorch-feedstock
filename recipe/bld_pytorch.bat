@@ -50,7 +50,6 @@ set CUDNN_INCLUDE_DIR=%LIBRARY_PREFIX%\include
 :cuda_flags_end
 :: =============================== CUDA< ======================================
 
-set BLAS=MKL
 set USE_MKLDNN=1
 
 :: Tensorpipe cannot be used on windows
