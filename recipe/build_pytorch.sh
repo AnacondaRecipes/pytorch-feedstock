@@ -134,7 +134,7 @@ if [[ ${pytorch_variant} = "gpu" ]]; then
         elif [[ ${cudatoolkit} == 9.2* ]]; then
             export TORCH_CUDA_ARCH_LIST="3.0;3.2;3.5;3.7;5.0;5.2;5.3;6.0;6.1;6.2;7.0+PTX"
         elif [[ ${cudatoolkit} == 10.* ]]; then
-            export TORCH_CUDA_ARCH_LIST="3.0;3.2;3.5;3.7;5.0;5.2;5.3;6.0;6.1;6.2;7.0;7.2;7.5+PTX"
+            export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5"
         elif [[ ${cudatoolkit} == 11.0* ]]; then
             export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5;8.0"
         elif [[ ${cudatoolkit} == 11.1 ]]; then
