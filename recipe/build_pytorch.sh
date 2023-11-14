@@ -130,7 +130,7 @@ if [[ ${pytorch_variant} = "gpu" ]]; then
         # https://pytorch.org/docs/stable/cpp_extension.html (Compute capabilities)
         # https://github.com/pytorch/builder/blob/c85da84005b44041b75e1eb3221ea7dcbd1b28aa/conda/pytorch-nightly/build.sh#L53-L89
         if [[ ${cudatoolkit} == 9.0* ]]; then
-            export TORCH_CUDA_ARCH_LIST="3.0;3.2;3.5;3.7;5.0;5.2;5.3;6.0;6.1;6.2;7.0+PTX"
+            export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;7.0"
         elif [[ ${cudatoolkit} == 9.2* ]]; then
             export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0"
         elif [[ ${cudatoolkit} == 10.* ]]; then
