@@ -6,15 +6,11 @@ Subject: [PATCH] Fix FindMKL to make it use _dll suffix for libraries
 This is required because our mdl-devel package contains libraries named like
 "mkl_intel_lp64_dll.lib" instead of "mkl_intel_lp64.lib".
 
----
- cmake/Modules/FindMKL.cmake | 12 ++++++------
- 1 file changed, 6 insertions(+), 6 deletions(-)
-
-diff --git a/cmake/Modules/FindMKL.cmake b/cmake/Modules/FindMKL.cmake
-index 83df105..f8a17d5 100644
---- a/cmake/Modules/FindMKL.cmake
-+++ b/cmake/Modules/FindMKL.cmake
-@@ -255,7 +255,7 @@ MACRO(CHECK_ALL_LIBRARIES LIBRARIES OPENMP_TYPE OPENMP_LIBRARY _name _list _flag
+Index: pytorch/cmake/Modules/FindMKL.cmake
+===================================================================
+--- pytorch.orig/cmake/Modules/FindMKL.cmake	2023-11-14 14:57:21.419923293 -0600
++++ pytorch/cmake/Modules/FindMKL.cmake	2023-11-14 14:59:15.129813164 -0600
+@@ -255,7 +255,7 @@
            ENDIF(OPENMP_FOUND)
          ELSEIF(${_library} MATCHES "iomp")
            SET(_openmp_type "Intel")
@@ -23,7 +19,7 @@ index 83df105..f8a17d5 100644
            SET(_openmp_library "${${_prefix}_${_library}_LIBRARY}")
          ELSE()
            MESSAGE(FATAL_ERROR "Unknown OpenMP flavor: ${_library}")
-@@ -264,7 +264,7 @@ MACRO(CHECK_ALL_LIBRARIES LIBRARIES OPENMP_TYPE OPENMP_LIBRARY _name _list _flag
+@@ -264,7 +264,7 @@
          # Separately handling compiled TBB
          SET(_found_tbb TRUE)
        ELSE()
@@ -32,7 +28,7 @@ index 83df105..f8a17d5 100644
          FIND_LIBRARY(${_prefix}_${_library}_LIBRARY NAMES ${lib_names})
        ENDIF()
        MARK_AS_ADVANCED(${_prefix}_${_library}_LIBRARY)
-@@ -388,19 +388,19 @@ IF (MKL_LIBRARIES)
+@@ -397,19 +397,19 @@
    FOREACH(mkl64 ${mkl64s} "_core" "")
      FOREACH(mkls ${mklseq} "")
        IF (NOT MKL_LAPACK_LIBRARIES)
@@ -56,6 +52,3 @@ index 83df105..f8a17d5 100644
          MARK_AS_ADVANCED(MKL_CDFT_LIBRARIES)
        ENDIF (NOT MKL_CDFT_LIBRARIES)
      ENDFOREACH(mkls)
--- 
-2.42.1
-
