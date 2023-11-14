@@ -17,6 +17,8 @@ source:
   url: https://github.com/pytorch/pytorch/releases/download/v{{ version }}/pytorch-v{{ version }}.tar.gz
 {% endif %}
   sha256: {{ sha256 }}
+  patches:
+    - patches/0001-windows-FindMKL-add-library-suffix.patch  # [win]
 
 build:
   # Use a build number difference to ensure that the GPU
@@ -27,7 +29,6 @@ build:
   skip: True  # [py<38]
   # Dropping ppc because of various build issues
   skip: True  # [(linux and ppc64le)]
-  skip: True  # [not win]
 
 {% if rc %}
 requirements:
