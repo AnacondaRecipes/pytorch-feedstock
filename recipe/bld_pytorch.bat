@@ -56,6 +56,7 @@ set USE_MKLDNN=1
 set USE_TENSORPIPE=0
 set DISTUTILS_USE_SDK=1
 set BUILD_TEST=0
+:: Don't increase MAX_JOBS to NUMBER_OF_PROCESSORS, as it will run out of heap
 set CPU_COUNT=2
 set MAX_JOBS=%CPU_COUNT%
 :: Use our Pybind11, Eigen
