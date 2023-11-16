@@ -1,170 +1,253 @@
-{% set version = "2.0.1" %}
-{% set sha256 = "9c564ca440265c69400ef5fdd48bf15e28af5aa4bed84c95efaad960a6699998" %}
+{% set version = "2.1.0" %}
+# Set the RC number to build release candidates. Set to None otherwise
+{% set rc = None %}
+{% set sha256 = "631c71f7f7d6174952f35b5ed4a45ec115720a4ef3eb619678de5893af54f403" %}
+{% set build_number = 0 %}
 
 package:
-  name: pytorch
+  name: pytorch-select
   version: {{ version }}
 
 source:
+{% if rc != None %}
+  git_url: https://github.com/pytorch/pytorch.git
+  git_rev: v{{ version }}-rc{{ rc }}
+{% else %}
   # The "pytorch-v" tarballs contain submodules; the "pytorch-" ones don't.
   url: https://github.com/pytorch/pytorch/releases/download/v{{ version }}/pytorch-v{{ version }}.tar.gz
+{% endif %}
   sha256: {{ sha256 }}
   patches:
-    # fixes linker error on linux platforms, see https://github.com/pytorch/pytorch/issues/90448
-    - patches/fix_kDefaultTimeout.patch
     - patches/0001-windows-FindMKL-add-library-suffix.patch  # [win]
 
 build:
-  number: 1
+  # Use a build number difference to ensure that the GPU
+  # variant is slightly preferred by conda's solver, so that it's preferentially
+  # installed where the platform supports it.
+  number: {{ build_number + 100 }}  # [pytorch_variant == "gpu"]
+  number: {{ build_number }}        # [pytorch_variant == "cpu"]
   skip: True  # [py<38]
   # Dropping ppc because of various build issues
   skip: True  # [(linux and ppc64le)]
-  # Only building for win-64 CPU in this PR
-  skip: True  # [not win]
-  string: gpu_cuda{{ cudatoolkit | replace('.', '') }}py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}  # [(pytorch_variant == "gpu") and (linux and x86_64)]
-  string: gpu_mps_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                      # [(pytorch_variant == "gpu") and (osx and arm64)]
-  string: cpu_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                          # [pytorch_variant == "cpu"]
-  detect_binary_files_with_prefix: False
-  entry_points:
-    - torchrun = torch.distributed.run:main
-  missing_dso_whitelist:
-    - "**/libcuda.so*"                # [(pytorch_variant == "gpu") and (linux and x86_64)]
-  track_features:
-    - pytorch-cpu                     # [pytorch_variant == "cpu"]
 
+{% if rc %}
 requirements:
   build:
-    - {{ compiler('c') }}
-    - {{ compiler('cxx') }}
-    - cmake
-    - make                            # [unix]
-    - git                             # [unix]
-    - patch                           # [not win]
-    - m2-patch                        # [win]
-    - python ={{PY_VER}}
-    - ninja-base
-    # This has a strong run_export so we don't need to put it in `host` or `run`
-    # We use llvm-openmp for openblas variants on osx.
-    - llvm-openmp                     # [osx and not (blas_impl == "mkl")]
-    # Keep libprotobuf here so that a compatibile version
-    # of protobuf is installed between build and host
-    # Unvendoring protobuf doesn't work properly for windows
-    # (due to errors in the Pytorch build system)
-    - libprotobuf                     # [not win]
-    - protobuf                        # [not win]
-  host:
-    # GPU requirements
-    - cudatoolkit {{ cudatoolkit }}*  # [(pytorch_variant == "gpu") and (linux and x86_64)]
-    - cudnn {{ cudnn }}*              # [(pytorch_variant == "gpu") and (linux and x86_64)]
-    - magma 2.7.1                     # [(pytorch_variant == "gpu") and (linux and x86_64)]
-    # Required for GPU profiler
-    - cupti 11.8.0                    # [(pytorch_variant == "gpu") and (linux and x86_64)]
-    # OpenBLAS or MKL
-    - mkl-devel {{ mkl }}.*           # [blas_impl == "mkl"]
-    - mkl {{ mkl }}.*                 # [blas_impl == "mkl"]
-    - openblas {{ openblas }}         # [blas_impl == "openblas"]
-    # OpenMP
-    # We pull in the same versions of mkl and intel-openmp: intel aligns the versions
-    # We use intel-openmp for all mkl variants.
-    # For openblas on win and linux, we don't specify any openmp implementation; it comes from the compiler.
-    - intel-openmp   {{ mkl }}        # [blas_impl == "mkl"]
-    # Other requirements
-    - cffi 1.15.1
-    - libprotobuf {{ libprotobuf }}   # [not win]
-    # on osx, libuv supports torch.distributed support. See build.sh.
-    - libuv 1.44.2                    # [win or osx]
-    - numpy {{ numpy }}
-    - pip                             # Required for in tree builds
-    - pkg-config 0.29.2               # [unix]
-    - python
-    - pyyaml 6.0
-    - requests 2.28.1
-    # CF: PyTorch relies on features that were removed in later versions.
-    - setuptools
-    - sleef 3.5.1                     # [osx and arm64]
-    - typing-extensions 4.4.0
-    - wheel
-    - pybind11 2.10.1
-    - eigen 3.3.7
-    - astunparse 1.6.3
-  run:
-    # OpenBLAS or MKL
-    - mkl {{ mkl }}.*                 # [blas_impl == "mkl"]
-    - libopenblas                     # [blas_impl == "openblas"]
-    # OpenMP
-    - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
-    # GPU requirements
-    - {{ pin_compatible('cudatoolkit', max_pin='x.x') }}  # [(pytorch_variant == "gpu") and (linux and x86_64)]
-    - {{ pin_compatible('cudnn') }}                       # [(pytorch_variant == "gpu") and (linux and x86_64)]
-    # Required for GPU profiler
-    - cupti                           # [(pytorch_variant == "gpu") and (linux and x86_64)]
-    # other requirements
-    - cffi
-    # CF: needed to load C++ extensions
-    - ninja
-    - {{ pin_compatible('numpy') }}
-    - python
-    - typing-extensions
-    # To stop the compiler pulling in an openmp implementation itself
-    - _openmp_mutex                   # [linux]
-    - magma                           # [(pytorch_variant == "gpu") and (linux and x86_64)]
-    - filelock
-    - jinja2
-    - networkx
-    - sympy
-    - __cuda >={{ cudatoolkit }}      # [(pytorch_variant == "gpu") and (linux and x86_64)]
+    - git                             # [unix] 
+{% endif %}
 
-test:
-  requires:
-    - {{ compiler('c') }}
-    - {{ compiler('cxx') }}
-    - expecttest
-    - hypothesis
-    - mock  # [linux]
-    - pip
-    - psutil
-    - pytest
-    - scipy
-    - setuptools
-    - six
-    - tabulate
-  imports:
-    - torch
-  files:
-    - smoke_test.py
-  source_files:
-    - test/
-  commands:
-    # We seem to have individual platform-specific test failures or flaky
-    # tests, but the majority of tests pass.
-    - set CONTINUE_THROUGH_ERROR=1     # [win]
-    - export CONTINUE_THROUGH_ERROR=1  # [not win]
-    # the smoke test script takes a bunch of env variables, defined below
-    - set MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cudatoolkit.split('.')[:2]) }}"    # [(pytorch_variant == "gpu") and (win)]
-    - set MATRIX_GPU_ARCH_TYPE="cuda"                                             # [(pytorch_variant == "gpu") and (win)]
-    - set MATRIX_GPU_ARCH_VERSION="none"                                          # [(pytorch_variant == "cpu") and (win)]
-    - set MATRIX_GPU_ARCH_TYPE="none"                                             # [(pytorch_variant == "cpu") and (win)]
-    - set MATRIX_CHANNEL="defaults"                                               # [win]
-    - set MATRIX_STABLE_VERSION={{ version }}                                     # [win]
-    - set MATRIX_PACKAGE_TYPE="conda"                                             # [win]
-    - set TARGET_OS="windows"                                                     # [win]
-    - python ./smoke_test.py --package torchonly
-    - python ./test/run_test.py --core || true
-    # Run pip check so as to ensure that all pytorch packages are installed
-    # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/24
-    - pip check
-    - python -c "import torch; print(torch.__version__)"
-    # We have had issues with openmp .dylibs being doubly loaded in certain cases. These two tests catch those issues
-    - python -c "import torch; import numpy"
-    - python -c "import numpy; import torch"
-    # distributed support is enabled by default on linux; for mac, we enable it manually in build.sh
-    - python -c "import torch; assert torch.distributed.is_available()"        # [linux or osx]
-    - python -c "import torch; assert torch.backends.mkldnn.m.is_available()"  # [x86 and cuda_compiler_version == "None"]
-    - python -c "import torch; assert torch.backends.cuda.is_built()"          # [(pytorch_variant == "gpu") and (linux and x86_64)]
-    - python -c "import torch; assert torch.backends.cudnn.is_available()"     # [(pytorch_variant == "gpu") and (linux and x86_64)]
-    - python -c "import torch; assert torch.cuda.is_available()"               # [(pytorch_variant == "gpu") and (linux and x86_64)]
-    - python -c "import torch; assert torch.backends.cudnn.enabled"            # [(pytorch_variant == "gpu") and (linux and x86_64)]
-    - python -c "import torch; assert torch.backends.mps.is_built()"           # [(pytorch_variant == "gpu") and (osx and arm64)]
+outputs:
+  # The pytorch-cpu and pytorch-gpu metapackages are packages which the user can use to get the
+  # corresponding pytorch variant. If they install the pytorch package, it will give them the
+  # GPU variant if their platform supports it and the CPU variant otherwise.
+  - name: pytorch-{{ pytorch_variant }}
+    build:
+      noarch: generic
+      skip: True  # [py<38]
+    requirements:
+      run:
+        - pytorch ={{ version }}={{ pytorch_variant }}* # NB pinning exact=True will also pin to the python version
+
+  - name: pytorch
+    script: build_pytorch.sh # [not win]
+    script: bld_pytorch.bat  # [win]
+    build:
+      skip: True  # [py<38]
+      string: gpu_cuda{{ cudatoolkit | replace('.', '') }}py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}  # [(pytorch_variant == "gpu") and (linux and x86_64)]
+      string: gpu_mps_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                      # [(pytorch_variant == "gpu") and (osx and arm64)]
+      string: cpu_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                          # [pytorch_variant == "cpu"]
+      detect_binary_files_with_prefix: False
+      entry_points:
+        - torchrun = torch.distributed.run:main
+      missing_dso_whitelist:
+        # For some reason, the .sos built for python 3.11 look for .sos for linking in directories of a different
+        # python. This patches over this, although it's not great and the problem should be fixed properly.
+        # Note that this issue is sporadic - you may remove this, and the build may work but then break at a later date.
+        - "**/ld64.so.*"              # [linux]
+        - "**/libc10.so"              # [linux]
+        - "**/libshm.so"              # [linux]
+        - "**/libtorch.so"            # [linux]
+        - "**/libtorch_cpu.so"        # [linux]
+        - "**/libtorch_python.so"     # [linux]
+        - "**/libiomp5.so"            # [linux]
+        - "**/libc10.dylib"           # [osx]
+        - "**/libshm.dylib"           # [osx]
+        - "**/libtorch.dylib"         # [osx]
+        - "**/libtorch_cpu.dylib"     # [osx]
+        - "**/libtorch_python.dylib"  # [osx]
+        - "**/libiomp5.dylib"         # [osx]
+        - "**/libc++.1.dylib"         # [osx]
+        # conda-build also can't find these on Windows sometimes, for example Python 3.8, in Powershell with cygwin added to
+        # the PATH. Error message is "$RPATH/<libname>.dll not found". Maybe RPATH isn't being defined correctly?
+        - "**/asmjit.dll"             # [win]
+        - "**/c10.dll"                # [win]
+        - "**/fbgemm.dll"             # [win]
+        - "**/shm.dll"                # [win]
+        - "**/torch_cpu.dll"          # [win]
+        - "**/torch_python.dll"       # [win]
+        # CUDA shared libraries are provided by cudatoolkit, i.e. outside the conda build environment
+        - "**/libcuda.so*"            # [(pytorch_variant == "gpu") and (linux and x86_64)]
+        - "**/libtorch_cuda.so"       # [(pytorch_variant == "gpu") and (linux and x86_64)]
+        - "**/libc10_cuda.so"         # [(pytorch_variant == "gpu") and (linux and x86_64)]
+
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - make                            # [unix]
+        - git                             # [unix]
+        - patch                           # [not win]
+        - m2-patch                        # [win]
+        - python ={{PY_VER}}
+        - ninja-base
+        # This has a strong run_export so we don't need to put it in `host` or `run`
+        # We use llvm-openmp for openblas variants on osx.
+        - llvm-openmp                     # [osx and not (blas_impl == "mkl")]
+        # Keep libprotobuf here so that a compatibile version
+        # of protobuf is installed between build and host
+        # Unvendoring protobuf doesn't work properly for windows
+        # (due to errors in the Pytorch build system)
+        - libprotobuf                     # [not win]
+        - protobuf                        # [not win]
+      host:
+        # GPU requirements
+        - cudatoolkit {{ cudatoolkit }}*  # [(pytorch_variant == "gpu") and (linux and x86_64)]
+        - cudnn {{ cudnn }}*              # [(pytorch_variant == "gpu") and (linux and x86_64)]
+        - magma 2.7.1                     # [(pytorch_variant == "gpu") and (linux and x86_64)]
+        # Required for GPU profiler
+        - cupti 11.8.0                    # [(pytorch_variant == "gpu") and (linux and x86_64)]
+        # OpenBLAS or MKL
+        - mkl-devel {{ mkl }}.*           # [blas_impl == "mkl"]
+        - mkl {{ mkl }}.*                 # [blas_impl == "mkl"]
+        - openblas {{ openblas }}         # [blas_impl == "openblas"]
+        # OpenMP
+        # We pull in the same versions of mkl and intel-openmp: intel aligns the versions
+        # We use intel-openmp for all mkl variants.
+        # For openblas on win and linux, we don't specify any openmp implementation; it comes from the compiler.
+        - intel-openmp   {{ mkl }}        # [blas_impl == "mkl"]
+        # Other requirements
+        - cffi 1.15.1
+        - libprotobuf {{ libprotobuf }}   # [not win]
+        # on osx, libuv supports torch.distributed support. See build.sh.
+        - libuv 1.44.2                    # [win or osx]
+        - numpy {{ numpy }}
+        - pip                             # Required for in tree builds
+        - pkg-config 0.29.2               # [unix]
+        - python
+        - pyyaml 6.0
+        - requests 2.28.1
+        # CF: PyTorch relies on features that were removed in later versions.
+        - setuptools
+        - sleef 3.5.1                     # [osx and arm64]
+        - typing-extensions 4.4.0
+        - wheel
+        - pybind11 2.10.1
+        - eigen 3.3.7
+        - astunparse 1.6.3
+      run:
+        # OpenBLAS or MKL
+        - mkl {{ mkl }}.*                 # [blas_impl == "mkl"]
+        - libopenblas                     # [blas_impl == "openblas"]
+        # OpenMP
+        - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
+        # GPU requirements
+        - {{ pin_compatible('cudatoolkit', max_pin='x.x') }}  # [(pytorch_variant == "gpu") and (linux and x86_64)]
+        - {{ pin_compatible('cudnn') }}                       # [(pytorch_variant == "gpu") and (linux and x86_64)]
+        # Required for GPU profiler
+        - cupti                           # [(pytorch_variant == "gpu") and (linux and x86_64)]
+        # other requirements
+        - cffi
+        # CF: needed to load C++ extensions
+        - ninja
+        - {{ pin_compatible('numpy') }}
+        - python
+        - typing-extensions
+        # To stop the compiler pulling in an openmp implementation itself
+        - _openmp_mutex                   # [linux]
+        - magma                           # [(pytorch_variant == "gpu") and (linux and x86_64)]
+        - filelock
+        - jinja2
+        - networkx
+        - sympy
+        - fsspec 
+        - __cuda >={{ cudatoolkit }}      # [(pytorch_variant == "gpu") and (linux and x86_64)]
+        # On macOS, the GPU accelerated backend, MPS, can be used from macOS v12.3. This isn't tightly dependent on the
+        # SDK version used.
+        - __osx >=12.3                    # [(pytorch_variant == "gpu") and (osx and arm64)]
+
+    test:
+      requires:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - expecttest
+        - hypothesis
+        - mock  # [linux]
+        - pip
+        - psutil
+        - pytest
+        - scipy
+        - setuptools
+        - six
+        - tabulate
+        - boto3
+        - pytest-rerunfailures
+        - pytest-shard
+        - pytest-flakefinder
+        - pytest-xdist
+      imports:
+        - torch
+      files:
+        - smoke_test.py
+      source_files:
+        - test/
+        - tools/
+      commands:
+        # We seem to have individual platform-specific test failures or flaky
+        # tests, but the majority of tests pass.
+        # Note that the `|| true` expression will make the build continue even if the whole script falls over completely
+        # (for example, in the case of missing imports). There doesn't seem to be a way of making a script exception return
+        # non-zero but failing tests return zero.
+        - set CONTINUE_THROUGH_ERROR=1     # [win]
+        - export CONTINUE_THROUGH_ERROR=1  # [not win]
+        # the smoke test script takes a bunch of env variables, defined below
+        - set MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cudatoolkit.split('.')[:2]) }}"    # [(pytorch_variant == "gpu") and (win)]
+        - set MATRIX_GPU_ARCH_TYPE="cuda"                                             # [(pytorch_variant == "gpu") and (win)]
+        - set MATRIX_GPU_ARCH_VERSION="none"                                          # [(pytorch_variant == "cpu") and (win)]
+        - set MATRIX_GPU_ARCH_TYPE="none"                                             # [(pytorch_variant == "cpu") and (win)]
+        - set MATRIX_CHANNEL="defaults"                                               # [win]
+        - set MATRIX_STABLE_VERSION={{ version }}                                     # [win]
+        - set MATRIX_PACKAGE_TYPE="conda"                                             # [win]
+        - set TARGET_OS="windows"                                                     # [win]
+        - export MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cudatoolkit.split('.')[:2]) }}" # [(pytorch_variant == "gpu") and (linux and x86_64)]
+        - export MATRIX_GPU_ARCH_VERSION="{{ MACOSX_SDK_VERSION }}"                   # [(pytorch_variant == "gpu") and (osx and arm64)]
+        - export MATRIX_GPU_ARCH_TYPE="cuda"                                          # [(pytorch_variant == "gpu") and (linux and x86_64)]
+        - export MATRIX_GPU_ARCH_TYPE="mps"                                           # [(pytorch_variant == "gpu") and (osx and arm64)]
+        - export MATRIX_GPU_ARCH_VERSION="none"                                       # [(pytorch_variant == "cpu") and (not win)]
+        - export MATRIX_GPU_ARCH_TYPE="none"                                          # [(pytorch_variant == "cpu") and (not win)]
+        - export MATRIX_CHANNEL="defaults"                                            # [not win]
+        - export MATRIX_STABLE_VERSION="{{ version }}"                                # [not win]
+        - export MATRIX_PACKAGE_TYPE="conda"                                          # [not win]
+        - export TARGET_OS="unix"                                                     # [not win]
+        - python ./smoke_test.py --package torchonly
+        # The inductor tests test the torch.compile backend
+        - python ./test/run_test.py --inductor || true                                # [(pytorch_variant == "gpu") and (linux and x86_64)]
+        - python ./test/run_test.py --core || true
+        # Run pip check so as to ensure that all pytorch packages are installed
+        # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/24
+        - pip check
+        - python -c "import torch; print(torch.__version__)"
+        # We have had issues with openmp .dylibs being doubly loaded in certain cases. These two tests catch those issues
+        - python -c "import torch; import numpy"
+        - python -c "import numpy; import torch"
+        # distributed support is enabled by default on linux; for mac, we enable it manually in build.sh
+        - python -c "import torch; assert torch.distributed.is_available()"        # [linux or osx]
+        - python -c "import torch; assert torch.backends.mkldnn.m.is_available()"  # [x86 and cuda_compiler_version == "None"]
+        - python -c "import torch; assert torch.backends.cuda.is_built()"          # [(pytorch_variant == "gpu") and (linux and x86_64)]
+        - python -c "import torch; assert torch.backends.cudnn.is_available()"     # [(pytorch_variant == "gpu") and (linux and x86_64)]
+        - python -c "import torch; assert torch.cuda.is_available()"               # [(pytorch_variant == "gpu") and (linux and x86_64)]
+        - python -c "import torch; assert torch.backends.cudnn.enabled"            # [(pytorch_variant == "gpu") and (linux and x86_64)]
+        - python -c "import torch; assert torch.backends.mps.is_built()"           # [(pytorch_variant == "gpu") and (osx and arm64)]
 
 about:
   home: https://pytorch.org/
@@ -183,3 +266,4 @@ about:
 extra:
   recipe-maintainers:
     - tobijk
+    - danpetry

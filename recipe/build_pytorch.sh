@@ -16,6 +16,12 @@ export CMAKE_VERBOSE_MAKEFILE=1
 ################ CONFIGURE CMAKE FOR CONDA ENVIRONMENT ###################
 if [[ "$OSTYPE" != "darwin"* ]]; then
     export CMAKE_SYSROOT=$CONDA_BUILD_SYSROOT
+else
+    export CMAKE_OSX_SYSROOT=$CONDA_BUILD_SYSROOT
+fi
+# Required to make the right SDK found on Anaconda's CI system. Ideally should be fixed in the CI or conda-build
+if [[ "${build_platform}" = "osx-arm64" ]]; then
+    export DEVELOPER_DIR=/Library/Developer/CommandLineTools
 fi
 export CMAKE_LIBRARY_PATH=$PREFIX/lib:$PREFIX/include:$CMAKE_LIBRARY_PATH
 export CMAKE_PREFIX_PATH=$PREFIX
@@ -105,8 +111,6 @@ if [[ ${pytorch_variant} = "gpu" ]]; then
         ###### Mac - MPS backend ######
         export USE_MPS=1
 
-        # Required to make the right SDK found on Anaconda's CI system. Ideally should be fixed in the CI or conda-build
-        export DEVELOPER_DIR=/Library/Developer/CommandLineTools
     else
 
         ###### Linux - CUDA backend ######
@@ -126,19 +130,19 @@ if [[ ${pytorch_variant} = "gpu" ]]; then
         # https://pytorch.org/docs/stable/cpp_extension.html (Compute capabilities)
         # https://github.com/pytorch/builder/blob/c85da84005b44041b75e1eb3221ea7dcbd1b28aa/conda/pytorch-nightly/build.sh#L53-L89
         if [[ ${cudatoolkit} == 9.0* ]]; then
-            export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;7.0+PTX"
+            export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;7.0"
         elif [[ ${cudatoolkit} == 9.2* ]]; then
-            export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0+PTX"
+            export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0"
         elif [[ ${cudatoolkit} == 10.* ]]; then
-            export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5+PTX"
+            export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5"
         elif [[ ${cudatoolkit} == 11.0* ]]; then
-            export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0+PTX"
+            export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5;8.0"
         elif [[ ${cudatoolkit} == 11.1 ]]; then
-            export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX"
+            export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5;8.0;8.6"
         elif [[ ${cudatoolkit} == 11.2 ]]; then
-            export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX"
+            export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5;8.0;8.6"
         elif [[ ${cudatoolkit} == 11.3 ]]; then
-            export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX"
+            export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5;8.0;8.6"
         elif [[ ${cudatoolkit} == 11.8 ]]; then
             export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5;8.0;8.6;9.0"
         else
@@ -155,30 +159,34 @@ if [[ ${pytorch_variant} = "gpu" ]]; then
                                                 # files, rather than the one in the conda environment, resulting in compiler errors
         export MAGMA_HOME="${PREFIX}"
 
+        export USE_STATIC_CUDNN=0   # Use our cudnn package
+
     fi
 
 else
 
-    export USE_CUDA=0
-
-    case "${blas_impl}" in
-        mkl)
-            export BLAS="MKL"
-            export USE_MKL=1
-            export USE_MKLDNN=1
-            ;;
-        openblas)
-            export BLAS="OpenBLAS"
-            export USE_MKL=0
-            export USE_MKLDNN=0
-            ;;
-        *)
-            echo "[ERROR] Unsupported BLAS implementation '${blas_impl}'" >&2
-            exit 1
-            ;;
-    esac
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        export USE_MPS=0
+    else
+        export USE_CUDA=0
+    fi
 
 fi
+
+case "${blas_impl}" in
+    mkl)
+        export BLAS="MKL"
+        export USE_MKLDNN=1
+        ;;
+    openblas)
+        export BLAS="OpenBLAS"
+        export USE_MKLDNN=0
+        ;;
+    *)
+        echo "[ERROR] Unsupported BLAS implementation '${blas_impl}'" >&2
+        exit 1
+        ;;
+esac
 
 
 

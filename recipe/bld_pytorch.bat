@@ -2,6 +2,14 @@
 
 rmdir /s/q build
 
+:: The PyTorch test suite includes some symlinks, which aren't resolved on Windows,
+:: leading to packaging errors.
+:: ATTN! These change and have to be updated manually, often with each release.
+del "%SRC_DIR%\test\_nvfuser\test_python_frontend.py"
+del "%SRC_DIR%\test\_nvfuser\test_torchscript.py"
+copy /Y "%SRC_DIR%\third_party\nvfuser\python_tests\test_python_frontend.py" "%SRC_DIR%\test\_nvfuser\"
+copy /Y "%SRC_DIR%\third_party\nvfuser\python_tests\test_torchscript.py" "%SRC_DIR%\test\_nvfuser\"
+
 set PYTORCH_BUILD_VERSION=%PKG_VERSION%
 set PYTORCH_BUILD_NUMBER=%PKG_BUILDNUM%
 
@@ -42,9 +50,13 @@ set CUDNN_INCLUDE_DIR=%LIBRARY_PREFIX%\include
 :cuda_flags_end
 :: =============================== CUDA< ======================================
 
+set USE_MKLDNN=1
 
+:: Tensorpipe cannot be used on windows
+set USE_TENSORPIPE=0
 set DISTUTILS_USE_SDK=1
 set BUILD_TEST=0
+:: Don't increase MAX_JOBS to NUMBER_OF_PROCESSORS, as it will run out of heap
 set CPU_COUNT=2
 set MAX_JOBS=%CPU_COUNT%
 :: Use our Pybind11, Eigen
