@@ -29,6 +29,9 @@ build:
   skip: True  # [py<38]
   # Dropping ppc because of various build issues
   skip: True  # [(linux and ppc64le)]
+  # This is here because a rebuild of osx-64 was required after a prefect build error.
+  # If you're seeing this, please remove it.
+  skip: True  # [not (osx and x86_64)]
 
 {% if rc %}
 requirements:
