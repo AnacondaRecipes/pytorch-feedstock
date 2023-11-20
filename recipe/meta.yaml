@@ -29,6 +29,9 @@ build:
   skip: True  # [py<38]
   # Dropping ppc because of various build issues
   skip: True  # [(linux and ppc64le)]
+  # The last PR/upload was for GPU on osx-arm64 only.
+  # If you're still seeing this line, delete it.
+  skip: True  # [not (osx and arm64)]
 
 {% if rc %}
 requirements:
