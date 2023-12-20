@@ -1,6 +1,6 @@
-{% set version = "2.1.0" %}
+{% set version = "2.2.0" %}
 # Set the RC number to build release candidates. Set to None otherwise
-{% set rc = None %}
+{% set rc = 5 %}
 {% set sha256 = "631c71f7f7d6174952f35b5ed4a45ec115720a4ef3eb619678de5893af54f403" %}
 {% set build_number = 0 %}
 
@@ -29,9 +29,6 @@ build:
   skip: True  # [py<38]
   # Dropping ppc because of various build issues
   skip: True  # [(linux and ppc64le)]
-  # The last PR/upload was for GPU on osx-arm64 only.
-  # If you're still seeing this line, delete it.
-  skip: True  # [not (osx and arm64)]
 
 {% if rc %}
 requirements:
@@ -55,10 +52,6 @@ outputs:
     script: bld_pytorch.bat  # [win]
     build:
       skip: True  # [py<38]
-      # The last PR/upload was for the pytorch-gpu metapackage
-      # for osx-arm64 only.
-      # If you're seeing this line, delete it.
-      skip: True
       string: gpu_cuda{{ cudatoolkit | replace('.', '') }}py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}  # [(pytorch_variant == "gpu") and (linux and x86_64)]
       string: gpu_mps_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                      # [(pytorch_variant == "gpu") and (osx and arm64)]
       string: cpu_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                          # [pytorch_variant == "cpu"]
