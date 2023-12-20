@@ -25,8 +25,8 @@ blas_impl:
 # CMake to build magma with CUDA support.
 # For linux-64, we need to pin the compiler if we're building with CUDA support (but not otherwise), see here:
 # https://docs.nvidia.com/cuda/archive/11.3.0/cuda-installation-guide-linux/index.html
-pytorch_variant:       # [(linux and x86_64) or (osx and arm64)]
- - gpu                # [(linux and x86_64) or (osx and arm64)]
+pytorch_variant:       # [(osx and arm64)]
+ - gpu                # [(osx and arm64)]
 c_compiler_version:    # [(linux and x86_64)]
  - 11                 # [(linux and x86_64)]
 cxx_compiler_version:  # [(linux and x86_64)]
