@@ -139,7 +139,7 @@ outputs:
         # CF: PyTorch relies on features that were removed in later versions.
         - setuptools
         - sleef 3.5.1                     # [osx and arm64]
-        - typing-extensions 4.4.0
+        - typing_extensions 4.4.0
         - wheel
         - pybind11 2.10.1
         - eigen 3.3.7
@@ -161,7 +161,7 @@ outputs:
         - ninja
         - {{ pin_compatible('numpy') }}
         - python
-        - typing-extensions
+        - typing_extensions >=4.8.0
         # To stop the compiler pulling in an openmp implementation itself
         - _openmp_mutex                   # [linux]
         - magma                           # [(pytorch_variant == "gpu") and (linux and x86_64)]
