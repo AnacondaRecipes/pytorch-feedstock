@@ -2,13 +2,11 @@
 
 rmdir /s/q build
 
-:: The PyTorch test suite includes some symlinks, which aren't resolved on Windows,
-:: leading to packaging errors.
-:: ATTN! These change and have to be updated manually, often with each release.
-del "%SRC_DIR%\test\_nvfuser\test_python_frontend.py"
-del "%SRC_DIR%\test\_nvfuser\test_torchscript.py"
-copy /Y "%SRC_DIR%\third_party\nvfuser\python_tests\test_python_frontend.py" "%SRC_DIR%\test\_nvfuser\"
-copy /Y "%SRC_DIR%\third_party\nvfuser\python_tests\test_torchscript.py" "%SRC_DIR%\test\_nvfuser\"
+:: The PyTorch test suite includes some symlinks, which aren't resolved on Windows, leading to packaging errors.
+:: ATTN! These change and have to be updated manually, often with each release. 
+:: (no current symlinks being packaged. Leaving this information here as it took some months to find the issue. Look out
+:: for a failure with error message: "conda_package_handling.exceptions.ArchiveCreationError: <somefile> Cannot stat
+:: while writing file")
 
 set PYTORCH_BUILD_VERSION=%PKG_VERSION%
 set PYTORCH_BUILD_NUMBER=%PKG_BUILDNUM%
