@@ -1,0 +1,15 @@
+Index: pytorch/cmake/Modules/FindMKL.cmake
+===================================================================
+--- pytorch.orig/cmake/Modules/FindMKL.cmake	2024-01-26 16:14:24.320332379 -0600
++++ pytorch/cmake/Modules/FindMKL.cmake	2024-01-26 16:16:28.244114381 -0600
+@@ -93,8 +93,8 @@
+     SET(mklthreads "mkl_tbb_thread")
+     SET(mklrtls "tbb")
+   ELSE()
+-    SET(mklthreads "mkl_gnu_thread" "mkl_intel_thread")
+-    SET(mklrtls "gomp" "iomp5")
++    SET(mklthreads "mkl_intel_thread" "mkl_gnu_thread")
++    SET(mklrtls "iomp5" "gomp")
+   ENDIF()
+   SET(mklifaces  "intel" "gf")
+ ELSE(CMAKE_COMPILER_IS_GNUCC)
