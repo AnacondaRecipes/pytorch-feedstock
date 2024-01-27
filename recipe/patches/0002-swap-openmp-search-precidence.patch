@@ -1,7 +1,7 @@
 Index: pytorch/cmake/Modules/FindMKL.cmake
 ===================================================================
---- pytorch.orig/cmake/Modules/FindMKL.cmake	2024-01-26 17:27:39.873470000 -0600
-+++ pytorch/cmake/Modules/FindMKL.cmake	2024-01-26 17:28:07.121788213 -0600
+--- pytorch.orig/cmake/Modules/FindMKL.cmake	2024-01-26 16:14:24.320332379 -0600
++++ pytorch/cmake/Modules/FindMKL.cmake	2024-01-26 17:09:50.919554356 -0600
 @@ -56,6 +56,9 @@
    endif()
  ENDIF (WIN32)
@@ -90,12 +90,10 @@ Index: pytorch/cmake/Modules/FindMKL.cmake
                ENDIF()
              ENDFOREACH()
              IF(_found_gomp)
-@@ -255,11 +274,13 @@
-           ENDIF(OPENMP_FOUND)
+@@ -256,10 +275,12 @@
          ELSEIF(${_library} MATCHES "iomp")
            SET(_openmp_type "Intel")
--          FIND_LIBRARY(${_prefix}_${_library}_LIBRARY NAMES ${_library})
-+          FIND_LIBRARY(${_prefix}_${_library}_LIBRARY NAMES ${_library} REQUIRED)
+           FIND_LIBRARY(${_prefix}_${_library}_LIBRARY NAMES ${_library} REQUIRED)
 +          MESSAGE(STATUS "found iomp")
            SET(_openmp_library "${${_prefix}_${_library}_LIBRARY}")
          ELSE()
