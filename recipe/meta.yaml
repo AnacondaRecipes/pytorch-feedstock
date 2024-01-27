@@ -19,6 +19,7 @@ source:
   sha256: {{ sha256 }}
   patches:
     - patches/0001-windows-FindMKL-add-library-suffix.patch  # [win]
+    - patches/0002-swap-openmp-search-precedence.patch
 
 build:
   # Use a build number difference to ensure that the GPU
