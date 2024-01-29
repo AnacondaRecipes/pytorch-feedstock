@@ -203,13 +203,6 @@ outputs:
         - test/
         - tools/
       commands:
-        # We seem to have individual platform-specific test failures or flaky
-        # tests, but the majority of tests pass.
-        # Note that the `|| true` expression will make the build continue even if the whole script falls over completely
-        # (for example, in the case of missing imports). There doesn't seem to be a way of making a script exception return
-        # non-zero but failing tests return zero.
-        - set CONTINUE_THROUGH_ERROR=1     # [win]
-        - export CONTINUE_THROUGH_ERROR=1  # [not win]
         # the smoke test script takes a bunch of env variables, defined below
         - set MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cudatoolkit.split('.')[:2]) }}"    # [(pytorch_variant == "gpu") and (win)]
         - set MATRIX_GPU_ARCH_TYPE="cuda"                                             # [(pytorch_variant == "gpu") and (win)]
@@ -230,9 +223,14 @@ outputs:
         - export MATRIX_PACKAGE_TYPE="conda"                                          # [not win]
         - export TARGET_OS="unix"                                                     # [not win]
         - python ./smoke_test.py --package torchonly
+        # We seem to have individual platform-specific test failures or flaky
+        # tests, but the majority of tests pass.
+        # Note that the `|| true` expression will make the build continue even if the whole script falls over completely
+        # (for example, in the case of missing imports). There doesn't seem to be a way of making a script exception return
+        # non-zero but failing tests return zero.
         # The inductor tests test the torch.compile backend
-        - python ./test/run_test.py --inductor || true                                # [(pytorch_variant == "gpu") and (linux and x86_64)]
-        - python ./test/run_test.py --core || true
+        - python ./test/run_test.py --inductor --continue-through-error || true       # [(pytorch_variant == "gpu") and (linux and x86_64)]
+        - python ./test/run_test.py --core --continue-through-error || true
         # Run pip check so as to ensure that all pytorch packages are installed
         # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/24
         - pip check
