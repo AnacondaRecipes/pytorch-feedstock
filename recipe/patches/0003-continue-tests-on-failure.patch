@@ -1,0 +1,13 @@
+Index: pytorch/test/run_test.py
+===================================================================
+--- pytorch.orig/test/run_test.py	2024-01-23 14:39:11.833933440 -0600
++++ pytorch/test/run_test.py	2024-01-30 15:12:05.219026815 -0600
+@@ -1053,7 +1053,7 @@
+     else:
+         # When under the normal mode, retry a failed test 2 more times. -x means stop at the first
+         # failure
+-        rerun_options = ["-x", "--reruns=2"]
++        rerun_options = ["--reruns=2"]
+ 
+     pytest_args = [
+         "-vv",
