@@ -84,5 +84,5 @@ set INTEL_MKL_DIR=%LIBRARY_PREFIX%
     --no-binary :all: ^
     --no-clean ^
     --no-build-isolation ^
-    -vvv
+    -v
 if errorlevel 1 exit /b 1
