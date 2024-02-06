@@ -31,9 +31,6 @@ build:
   skip: True  # [py<38]
   # Dropping ppc because of various build issues
   skip: True  # [(linux and ppc64le)]
-  #These are for debugging and testing, delete if you see them
-  skip: True  # [not (osx and x86_64)]
-  skip: True  # [py!=312]
 
 {% if rc %}
 requirements:
