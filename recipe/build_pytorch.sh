@@ -200,4 +200,4 @@ export MAX_JOBS=$((${CPU_COUNT} > 4 ? 4 : ${CPU_COUNT}))
     --no-binary :all: \
     --no-clean \
     --no-build-isolation \
-    -vvv
+    -v

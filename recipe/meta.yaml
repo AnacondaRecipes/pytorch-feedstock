@@ -1,7 +1,7 @@
-{% set version = "2.1.0" %}
+{% set version = "2.2.0" %}
 # Set the RC number to build release candidates. Set to None otherwise
 {% set rc = None %}
-{% set sha256 = "631c71f7f7d6174952f35b5ed4a45ec115720a4ef3eb619678de5893af54f403" %}
+{% set sha256 = "e12d18c3dbb12d7ae2f61f5ab9a21023e3dd179d67ed87279ef96600b9ac08c5" %}
 {% set build_number = 0 %}
 
 package:
@@ -19,6 +19,8 @@ source:
   sha256: {{ sha256 }}
   patches:
     - patches/0001-windows-FindMKL-add-library-suffix.patch  # [win]
+    - patches/0002-swap-openmp-search-precedence.patch      # [blas_impl == "mkl"]
+    - patches/0003-continue-tests-on-failure.patch
 
 build:
   # Use a build number difference to ensure that the GPU
@@ -29,9 +31,6 @@ build:
   skip: True  # [py<38]
   # Dropping ppc because of various build issues
   skip: True  # [(linux and ppc64le)]
-  # The last PR/upload was for GPU on osx-arm64 only.
-  # If you're still seeing this line, delete it.
-  skip: True  # [not (osx and arm64)]
 
 {% if rc %}
 requirements:
@@ -55,10 +54,6 @@ outputs:
     script: bld_pytorch.bat  # [win]
     build:
       skip: True  # [py<38]
-      # The last PR/upload was for the pytorch-gpu metapackage
-      # for osx-arm64 only.
-      # If you're seeing this line, delete it.
-      skip: True
       string: gpu_cuda{{ cudatoolkit | replace('.', '') }}py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}  # [(pytorch_variant == "gpu") and (linux and x86_64)]
       string: gpu_mps_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                      # [(pytorch_variant == "gpu") and (osx and arm64)]
       string: cpu_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                          # [pytorch_variant == "cpu"]
@@ -141,14 +136,14 @@ outputs:
         - pip                             # Required for in tree builds
         - pkg-config 0.29.2               # [unix]
         - python
-        - pyyaml 6.0
-        - requests 2.28.1
+        - pyyaml 6.0.1
+        - requests 2.31.0
         # CF: PyTorch relies on features that were removed in later versions.
         - setuptools
         - sleef 3.5.1                     # [osx and arm64]
-        - typing-extensions 4.4.0
+        - typing_extensions
         - wheel
-        - pybind11 2.10.1
+        - pybind11 2.10.4
         - eigen 3.3.7
         - astunparse 1.6.3
       run:
@@ -168,7 +163,7 @@ outputs:
         - ninja
         - {{ pin_compatible('numpy') }}
         - python
-        - typing-extensions
+        - typing_extensions >=4.8.0
         # To stop the compiler pulling in an openmp implementation itself
         - _openmp_mutex                   # [linux]
         - magma                           # [(pytorch_variant == "gpu") and (linux and x86_64)]
@@ -209,13 +204,6 @@ outputs:
         - test/
         - tools/
       commands:
-        # We seem to have individual platform-specific test failures or flaky
-        # tests, but the majority of tests pass.
-        # Note that the `|| true` expression will make the build continue even if the whole script falls over completely
-        # (for example, in the case of missing imports). There doesn't seem to be a way of making a script exception return
-        # non-zero but failing tests return zero.
-        - set CONTINUE_THROUGH_ERROR=1     # [win]
-        - export CONTINUE_THROUGH_ERROR=1  # [not win]
         # the smoke test script takes a bunch of env variables, defined below
         - set MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cudatoolkit.split('.')[:2]) }}"    # [(pytorch_variant == "gpu") and (win)]
         - set MATRIX_GPU_ARCH_TYPE="cuda"                                             # [(pytorch_variant == "gpu") and (win)]
@@ -236,9 +224,14 @@ outputs:
         - export MATRIX_PACKAGE_TYPE="conda"                                          # [not win]
         - export TARGET_OS="unix"                                                     # [not win]
         - python ./smoke_test.py --package torchonly
+        # We seem to have individual platform-specific test failures or flaky
+        # tests, but the majority of tests pass.
+        # Note that the `|| true` expression will make the build continue even if the whole script falls over completely
+        # (for example, in the case of missing imports). There doesn't seem to be a way of making a script exception return
+        # non-zero but failing tests return zero.
         # The inductor tests test the torch.compile backend
-        - python ./test/run_test.py --inductor || true                                # [(pytorch_variant == "gpu") and (linux and x86_64)]
-        - python ./test/run_test.py --core || true
+        - python ./test/run_test.py --inductor --continue-through-error || true       # [(pytorch_variant == "gpu") and (linux and x86_64)]
+        - python ./test/run_test.py --core --continue-through-error || true
         # Run pip check so as to ensure that all pytorch packages are installed
         # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/24
         - pip check
