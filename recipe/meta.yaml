@@ -1,7 +1,7 @@
 {% set version = "2.2.0" %}
 # Set the RC number to build release candidates. Set to None otherwise
-{% set rc = 8 %}
-{% set sha256 = "631c71f7f7d6174952f35b5ed4a45ec115720a4ef3eb619678de5893af54f403" %}
+{% set rc = None %}
+{% set sha256 = "e12d18c3dbb12d7ae2f61f5ab9a21023e3dd179d67ed87279ef96600b9ac08c5" %}
 {% set build_number = 0 %}
 
 package:
