@@ -31,6 +31,7 @@ build:
   skip: True  # [py<38]
   # Dropping ppc because of various build issues
   skip: True  # [(linux and ppc64le)]
+  skip: True  # [not win]
 
 {% if rc %}
 requirements:
@@ -82,7 +83,7 @@ outputs:
         # the PATH. Error message is "$RPATH/<libname>.dll not found". Maybe RPATH isn't being defined correctly?
         - "**/asmjit.dll"             # [win]
         - "**/c10.dll"                # [win]
-        - "**/fbgemm.dll"             # [win]
+        #- "**/fbgemm.dll"             # [win]
         - "**/shm.dll"                # [win]
         - "**/torch_cpu.dll"          # [win]
         - "**/torch_python.dll"       # [win]
