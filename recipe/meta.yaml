@@ -1,6 +1,6 @@
-{% set version = "2.2.0" %}
+{% set version = "2.3.0" %}
 # Set the RC number to build release candidates. Set to None otherwise
-{% set rc = None %}
+{% set rc = 2 %}
 {% set sha256 = "e12d18c3dbb12d7ae2f61f5ab9a21023e3dd179d67ed87279ef96600b9ac08c5" %}
 {% set build_number = 0 %}
 
@@ -78,6 +78,7 @@ outputs:
         - "**/libtorch_python.dylib"  # [osx]
         - "**/libiomp5.dylib"         # [osx]
         - "**/libc++.1.dylib"         # [osx]
+        - "**/libomp.dylib"           # [osx]
         # conda-build also can't find these on Windows sometimes, for example Python 3.8, in Powershell with cygwin added to
         # the PATH. Error message is "$RPATH/<libname>.dll not found". Maybe RPATH isn't being defined correctly?
         - "**/asmjit.dll"             # [win]
