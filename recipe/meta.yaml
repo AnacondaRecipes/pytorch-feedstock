@@ -78,6 +78,7 @@ outputs:
         - "**/libtorch_python.dylib"  # [osx]
         - "**/libiomp5.dylib"         # [osx]
         - "**/libc++.1.dylib"         # [osx]
+        - "**/libomp.dylib"           # [osx]
         # conda-build also can't find these on Windows sometimes, for example Python 3.8, in Powershell with cygwin added to
         # the PATH. Error message is "$RPATH/<libname>.dll not found". Maybe RPATH isn't being defined correctly?
         - "**/asmjit.dll"             # [win]
