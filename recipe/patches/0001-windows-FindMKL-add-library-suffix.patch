@@ -1,13 +1,3 @@
-From 4952a137558731fd8e80bb8b5c0d08a86abc6153 Mon Sep 17 00:00:00 2001
-From: Jean-Christophe Morin <jcmorin@anaconda.com>
-Date: Mon, 6 Nov 2023 13:45:24 -0500
-Subject: [PATCH] Fix FindMKL to make it use _dll suffix for libraries
-
-This is required because our mdl-devel package contains libraries named like
-"mkl_intel_lp64_dll.lib" instead of "mkl_intel_lp64.lib".
-
-Index: pytorch/cmake/Modules/FindMKL.cmake
-===================================================================
 diff --git a/cmake/Modules/FindMKL.cmake b/cmake/Modules/FindMKL.cmake
 index a02f3e092d1..ba452cbed45 100644
 --- a/cmake/Modules/FindMKL.cmake
