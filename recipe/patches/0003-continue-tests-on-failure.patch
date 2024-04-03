@@ -8,6 +8,6 @@ Index: pytorch/test/run_test.py
          # failure
 -        rerun_options = ["-x", "--reruns=2"]
 +        rerun_options = ["--reruns=2"]
- 
+
      pytest_args = [
          "-vv",
