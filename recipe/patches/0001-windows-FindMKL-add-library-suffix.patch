@@ -8,10 +8,8 @@ This is required because our mdl-devel package contains libraries named like
 
 Index: pytorch/cmake/Modules/FindMKL.cmake
 ===================================================================
-diff --git a/cmake/Modules/FindMKL.cmake b/cmake/Modules/FindMKL.cmake
-index a02f3e092d1..ba452cbed45 100644
---- a/cmake/Modules/FindMKL.cmake
-+++ b/cmake/Modules/FindMKL.cmake
+--- pytorch.orig/cmake/Modules/FindMKL.cmake	2023-11-14 14:57:21.419923293 -0600
++++ pytorch/cmake/Modules/FindMKL.cmake	2023-11-14 14:59:15.129813164 -0600
 @@ -252,7 +252,7 @@ MACRO(CHECK_ALL_LIBRARIES LIBRARIES OPENMP_TYPE OPENMP_LIBRARY _name _list _flag
            ENDIF(OPENMP_FOUND)
          ELSEIF(${_library} MATCHES "iomp")
