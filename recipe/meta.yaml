@@ -1,6 +1,6 @@
-{% set version = "2.2.0" %}
+{% set version = "2.3.0" %}
 # Set the RC number to build release candidates. Set to None otherwise
-{% set rc = None %}
+{% set rc = 2 %}
 {% set sha256 = "e12d18c3dbb12d7ae2f61f5ab9a21023e3dd179d67ed87279ef96600b9ac08c5" %}
 {% set build_number = 0 %}
 
