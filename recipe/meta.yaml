@@ -90,7 +90,7 @@ outputs:
         - "**/libcuda.so*"            # [(pytorch_variant == "gpu") and (linux and x86_64)]
         - "**/libtorch_cuda.so"       # [(pytorch_variant == "gpu") and (linux and x86_64)]
         - "**/libc10_cuda.so"         # [(pytorch_variant == "gpu") and (linux and x86_64)]
-
+        - "**/libomp.dylib"           # [osx]
     requirements:
       build:
         - {{ compiler('c') }}
