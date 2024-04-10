@@ -8,9 +8,21 @@ This is required because our mdl-devel package contains libraries named like
 
 Index: pytorch/cmake/Modules/FindMKL.cmake
 ===================================================================
---- pytorch.orig/cmake/Modules/FindMKL.cmake	2023-11-14 14:57:21.419923293 -0600
-+++ pytorch/cmake/Modules/FindMKL.cmake	2023-11-14 14:59:15.129813164 -0600
-@@ -255,7 +255,7 @@
+diff --git a/cmake/Modules/FindMKL.cmake b/cmake/Modules/FindMKL.cmake
+index a02f3e092d1..62c006e4ae2 100644
+--- a/cmake/Modules/FindMKL.cmake
++++ b/cmake/Modules/FindMKL.cmake
+@@ -104,6 +104,9 @@ ELSE(CMAKE_COMPILER_IS_GNUCC)
+   ELSE()
+     SET(mklthreads "mkl_intel_thread")
+     SET(mklrtls "iomp5" "guide")
++    IF (MSVC)
++      SET(mklrtls "libiomp5md")
++    ENDIF (MSVC)
+   ENDIF()
+   SET(mklifaces  "intel")
+ ENDIF (CMAKE_COMPILER_IS_GNUCC)
+@@ -252,7 +255,7 @@ MACRO(CHECK_ALL_LIBRARIES LIBRARIES OPENMP_TYPE OPENMP_LIBRARY _name _list _flag
            ENDIF(OPENMP_FOUND)
          ELSEIF(${_library} MATCHES "iomp")
            SET(_openmp_type "Intel")
@@ -19,16 +31,7 @@ Index: pytorch/cmake/Modules/FindMKL.cmake
            SET(_openmp_library "${${_prefix}_${_library}_LIBRARY}")
          ELSE()
            MESSAGE(FATAL_ERROR "Unknown OpenMP flavor: ${_library}")
-@@ -264,7 +264,7 @@
-         # Separately handling compiled TBB
-         SET(_found_tbb TRUE)
-       ELSE()
--        SET(lib_names ${_library})
-+        SET(lib_names ${_library}_dll)
-         FIND_LIBRARY(${_prefix}_${_library}_LIBRARY NAMES ${lib_names})
-       ENDIF()
-       MARK_AS_ADVANCED(${_prefix}_${_library}_LIBRARY)
-@@ -397,19 +397,19 @@
+@@ -402,23 +405,23 @@ IF (MKL_LIBRARIES)
    FOREACH(mkl64 ${mkl64s} "_core" "")
      FOREACH(mkls ${mklseq} "")
        IF (NOT MKL_LAPACK_LIBRARIES)

@@ -1,7 +1,7 @@
-{% set version = "2.2.0" %}
+{% set version = "2.3.0" %}
 # Set the RC number to build release candidates. Set to None otherwise
 {% set rc = None %}
-{% set sha256 = "e12d18c3dbb12d7ae2f61f5ab9a21023e3dd179d67ed87279ef96600b9ac08c5" %}
+{% set sha256 = "69579513b26261bbab32e13b7efc99ad287fcf3103087f2d4fdf1adacd25316f" %}
 {% set build_number = 0 %}
 
 package:
@@ -21,6 +21,7 @@ source:
     - patches/0001-windows-FindMKL-add-library-suffix.patch  # [win]
     - patches/0002-swap-openmp-search-precedence.patch      # [blas_impl == "mkl"]
     - patches/0003-continue-tests-on-failure.patch
+    - patches/0004-remove-mkl-constraint-win.patch           # [win]
 
 build:
   # Use a build number difference to ensure that the GPU
@@ -29,22 +30,22 @@ build:
   number: {{ build_number + 100 }}  # [pytorch_variant == "gpu"]
   number: {{ build_number }}        # [pytorch_variant == "cpu"]
   skip: True  # [py<38]
-  # Dropping ppc because of various build issues
-  skip: True  # [(linux and ppc64le)]
+  skip: True  # [osx and (blas_impl == "mkl")]
 
-{% if rc %}
 requirements:
   build:
-    - git                             # [unix] 
+    - python
+{% if rc %}
+    - git  # [unix]
 {% endif %}
+  host:
+    - python
 
 outputs:
   # The pytorch-cpu and pytorch-gpu metapackages are packages which the user can use to get the
   # corresponding pytorch variant. If they install the pytorch package, it will give them the
   # GPU variant if their platform supports it and the CPU variant otherwise.
   - name: pytorch-{{ pytorch_variant }}
-    build:
-      skip: True  # [py<38]
     requirements:
       run:
         - pytorch ={{ version }}={{ pytorch_variant }}* # NB pinning exact=True will also pin to the python version
@@ -53,11 +54,9 @@ outputs:
     script: build_pytorch.sh # [not win]
     script: bld_pytorch.bat  # [win]
     build:
-      skip: True  # [py<38]
       string: gpu_cuda{{ cudatoolkit | replace('.', '') }}py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}  # [(pytorch_variant == "gpu") and (linux and x86_64)]
       string: gpu_mps_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                      # [(pytorch_variant == "gpu") and (osx and arm64)]
       string: cpu_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                          # [pytorch_variant == "cpu"]
-      detect_binary_files_with_prefix: False
       entry_points:
         - torchrun = torch.distributed.run:main
       missing_dso_whitelist:
@@ -77,6 +76,7 @@ outputs:
         - "**/libtorch_cpu.dylib"     # [osx]
         - "**/libtorch_python.dylib"  # [osx]
         - "**/libiomp5.dylib"         # [osx]
+        - "**/libomp.dylib"           # [osx]
         - "**/libc++.1.dylib"         # [osx]
         # conda-build also can't find these on Windows sometimes, for example Python 3.8, in Powershell with cygwin added to
         # the PATH. Error message is "$RPATH/<libname>.dll not found". Maybe RPATH isn't being defined correctly?
@@ -90,27 +90,20 @@ outputs:
         - "**/libcuda.so*"            # [(pytorch_variant == "gpu") and (linux and x86_64)]
         - "**/libtorch_cuda.so"       # [(pytorch_variant == "gpu") and (linux and x86_64)]
         - "**/libc10_cuda.so"         # [(pytorch_variant == "gpu") and (linux and x86_64)]
-
     requirements:
       build:
         - {{ compiler('c') }}
         - {{ compiler('cxx') }}
         - cmake
-        - make                            # [unix]
         - git                             # [unix]
         - patch                           # [not win]
         - m2-patch                        # [win]
-        - python ={{PY_VER}}
+        - python
         - ninja-base
+        - pkg-config                      # [unix]
         # This has a strong run_export so we don't need to put it in `host` or `run`
         # We use llvm-openmp for openblas variants on osx.
-        - llvm-openmp                     # [osx and not (blas_impl == "mkl")]
-        # Keep libprotobuf here so that a compatibile version
-        # of protobuf is installed between build and host
-        # Unvendoring protobuf doesn't work properly for windows
-        # (due to errors in the Pytorch build system)
-        - libprotobuf                     # [not win]
-        - protobuf                        # [not win]
+        - llvm-openmp 14.0.6              # [osx and not (blas_impl == "mkl")]
       host:
         # GPU requirements
         - cudatoolkit {{ cudatoolkit }}*  # [(pytorch_variant == "gpu") and (linux and x86_64)]
@@ -120,47 +113,40 @@ outputs:
         - cupti 11.8.0                    # [(pytorch_variant == "gpu") and (linux and x86_64)]
         # OpenBLAS or MKL
         - mkl-devel {{ mkl }}.*           # [blas_impl == "mkl"]
-        - mkl {{ mkl }}.*                 # [blas_impl == "mkl"]
-        - openblas {{ openblas }}         # [blas_impl == "openblas"]
+        - openblas-devel {{ openblas }}   # [blas_impl == "openblas"]
         # OpenMP
         # We pull in the same versions of mkl and intel-openmp: intel aligns the versions
         # We use intel-openmp for all mkl variants.
         # For openblas on win and linux, we don't specify any openmp implementation; it comes from the compiler.
         - intel-openmp   {{ mkl }}        # [blas_impl == "mkl"]
+        - llvm-openmp 14.0.6              # [osx and not (blas_impl == "mkl")]
         # Other requirements
-        - cffi 1.15.1
         - libprotobuf {{ libprotobuf }}   # [not win]
         # on osx, libuv supports torch.distributed support. See build.sh.
         - libuv 1.44.2                    # [win or osx]
         - numpy {{ numpy }}
         - pip                             # Required for in tree builds
-        - pkg-config 0.29.2               # [unix]
         - python
-        - pyyaml 6.0.1
-        - requests 2.31.0
-        # CF: PyTorch relies on features that were removed in later versions.
+        - pyyaml
+        - requests
         - setuptools
         - sleef 3.5.1                     # [osx and arm64]
-        - typing_extensions
+        - typing_extensions >=4.8.0
         - wheel
-        - pybind11 2.10.4
+        - pybind11 2.12.0
         - eigen 3.3.7
         - astunparse 1.6.3
       run:
-        # OpenBLAS or MKL
-        - mkl {{ mkl }}.*                 # [blas_impl == "mkl"]
-        - libopenblas                     # [blas_impl == "openblas"]
         # OpenMP
         - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
+        - llvm-openmp                            # [osx and not (blas_impl == "mkl")]
         # GPU requirements
         - {{ pin_compatible('cudatoolkit', max_pin='x.x') }}  # [(pytorch_variant == "gpu") and (linux and x86_64)]
         - {{ pin_compatible('cudnn') }}                       # [(pytorch_variant == "gpu") and (linux and x86_64)]
         # Required for GPU profiler
         - cupti                           # [(pytorch_variant == "gpu") and (linux and x86_64)]
         # other requirements
-        - cffi
         # CF: needed to load C++ extensions
-        - ninja
         - {{ pin_compatible('numpy') }}
         - python
         - typing_extensions >=4.8.0
@@ -171,11 +157,14 @@ outputs:
         - jinja2
         - networkx
         - sympy
-        - fsspec 
+        - fsspec
         - __cuda >={{ cudatoolkit }}      # [(pytorch_variant == "gpu") and (linux and x86_64)]
         # On macOS, the GPU accelerated backend, MPS, can be used from macOS v12.3. This isn't tightly dependent on the
         # SDK version used.
         - __osx >=12.3                    # [(pytorch_variant == "gpu") and (osx and arm64)]
+      run_constrained:
+        # current intel-openmp builds are incompatible with llvm-openmp on osx-64
+        - llvm-openmp <0a0                # [(blas_impl == "mkl") and (osx and x86_64)]  
 
     test:
       requires:
@@ -193,7 +182,6 @@ outputs:
         - tabulate
         - boto3
         - pytest-rerunfailures
-        - pytest-shard
         - pytest-flakefinder
         - pytest-xdist
       imports:
@@ -222,7 +210,9 @@ outputs:
         - export MATRIX_CHANNEL="defaults"                                            # [not win]
         - export MATRIX_STABLE_VERSION="{{ version }}"                                # [not win]
         - export MATRIX_PACKAGE_TYPE="conda"                                          # [not win]
-        - export TARGET_OS="unix"                                                     # [not win]
+        - export TARGET_OS="linux"                                                    # [linux]
+        - export TARGET_OS="macos-arm64"                                              # [(osx and arm64)]
+        - export TARGET_OS="macos-x86_64"                                             # [(osx and x86_64)]
         - python ./smoke_test.py --package torchonly
         # We seem to have individual platform-specific test failures or flaky
         # tests, but the majority of tests pass.
@@ -263,6 +253,8 @@ about:
   doc_url: https://pytorch.org/docs/
 
 extra:
+  skip-lints:
+    - missing_tests
   recipe-maintainers:
     - tobijk
     - danpetry
