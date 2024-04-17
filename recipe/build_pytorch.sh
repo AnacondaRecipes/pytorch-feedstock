@@ -104,73 +104,78 @@ export PYTORCH_BUILD_NUMBER=$PKG_BUILDNUM
 # CUDA is used as the acceleration backend
 # for GPU builds; MKL or openBLAS is used as
 # the backend for CPU builds.
-if [[ ${pytorch_variant} = "gpu" ]]; then
+if [[ ${gpu_variant} == "metal" ]]; then
 
-    if [[ "$OSTYPE" == "darwin"* ]]; then
+    ###### Mac - MPS backend ######
+    export USE_MPS=1
 
-        ###### Mac - MPS backend ######
-        export USE_MPS=1
+elif [[ ${gpu_variant} == "cuda-11" ]]; then
 
+    export USE_CUDA=1
+
+    # Warning from pytorch v1.12.1: In the future we will require one to
+    # explicitly pass TORCH_CUDA_ARCH_LIST to cmake instead of implicitly
+    # setting it as an env variable.
+
+    # This is valid for each cudatoolkit version but was applied here only
+    # from cudatoolkit >= 11.8, as we won't rebuild older versions:
+    #
+    # +PTX should go to the oldest arch. There's a modest runtime performance
+    # hit for (unlisted) newer arches on doing this, but that must be set
+    # when wide compatibility is a concern.
+    #
+    # https://pytorch.org/docs/stable/cpp_extension.html (Compute capabilities)
+    # https://github.com/pytorch/builder/blob/c85da84005b44041b75e1eb3221ea7dcbd1b28aa/conda/pytorch-nightly/build.sh#L53-L89
+    if [[ ${cudatoolkit} == 9.0* ]]; then
+        export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;7.0"
+    elif [[ ${cudatoolkit} == 9.2* ]]; then
+        export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0"
+    elif [[ ${cudatoolkit} == 10.* ]]; then
+        export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5"
+    elif [[ ${cudatoolkit} == 11.0* ]]; then
+        export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5;8.0"
+    elif [[ ${cudatoolkit} == 11.1 ]]; then
+        export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5;8.0;8.6"
+    elif [[ ${cudatoolkit} == 11.2 ]]; then
+        export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5;8.0;8.6"
+    elif [[ ${cudatoolkit} == 11.3 ]]; then
+        export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5;8.0;8.6"
+    elif [[ ${cudatoolkit} == 11.8 ]]; then
+        export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5;8.0;8.6;9.0"
     else
-
-        ###### Linux - CUDA backend ######
-        export USE_CUDA=1
-
-        # Warning from pytorch v1.12.1: In the future we will require one to
-        # explicitly pass TORCH_CUDA_ARCH_LIST to cmake instead of implicitly
-        # setting it as an env variable.
-
-        # This is valid for each cudatoolkit version but was applied here only
-        # from cudatoolkit >= 11.8, as we won't rebuild older versions:
-        #
-        # +PTX should go to the oldest arch. There's a modest runtime performance
-        # hit for (unlisted) newer arches on doing this, but that must be set
-        # when wide compatibility is a concern.
-        #
-        # https://pytorch.org/docs/stable/cpp_extension.html (Compute capabilities)
-        # https://github.com/pytorch/builder/blob/c85da84005b44041b75e1eb3221ea7dcbd1b28aa/conda/pytorch-nightly/build.sh#L53-L89
-        if [[ ${cudatoolkit} == 9.0* ]]; then
-            export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;7.0"
-        elif [[ ${cudatoolkit} == 9.2* ]]; then
-            export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0"
-        elif [[ ${cudatoolkit} == 10.* ]]; then
-            export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5"
-        elif [[ ${cudatoolkit} == 11.0* ]]; then
-            export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5;8.0"
-        elif [[ ${cudatoolkit} == 11.1 ]]; then
-            export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5;8.0;8.6"
-        elif [[ ${cudatoolkit} == 11.2 ]]; then
-            export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5;8.0;8.6"
-        elif [[ ${cudatoolkit} == 11.3 ]]; then
-            export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5;8.0;8.6"
-        elif [[ ${cudatoolkit} == 11.8 ]]; then
-            export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5;8.0;8.6;9.0"
-        else
-            echo "No CUDA architecture list exists for cuda_compiler_version==${cudatoolkit}"
-            echo "in build.sh. Use https://en.wikipedia.org/wiki/CUDA#GPUs_supported to make one."
-            exit 1
-        fi
-
-        export TORCH_NVCC_FLAGS="-Xfatbin -compress-all"
-        export NCCL_ROOT_DIR=/usr/local/cuda
-        export USE_STATIC_NCCL=1
-        export CUDACXX=/usr/local/cuda/bin/nvcc
-        export CUDAHOSTCXX="${CXX}"                # If this isn't included, CUDA will use the system compiler to compile host
-                                                # files, rather than the one in the conda environment, resulting in compiler errors
-        export MAGMA_HOME="${PREFIX}"
-
-        export USE_STATIC_CUDNN=0   # Use our cudnn package
-
+        echo "No CUDA architecture list exists for cudatoolkit==${cudatoolkit}"
+        echo "in build.sh. Use https://en.wikipedia.org/wiki/CUDA#GPUs_supported to make one."
+        exit 1
     fi
 
-else
+    export TORCH_NVCC_FLAGS="-Xfatbin -compress-all"
+    export NCCL_ROOT_DIR=/usr/local/cuda
+    export USE_STATIC_NCCL=1
+    export CUDACXX=/usr/local/cuda/bin/nvcc
+    export CUDAHOSTCXX="${CXX}"                # If this isn't included, CUDA will use the system compiler to compile host
+                                            # files, rather than the one in the conda environment, resulting in compiler errors
+    export MAGMA_HOME="${PREFIX}"
+
+    export USE_STATIC_CUDNN=0   # Use our cudnn package
+
+elif [[ ${gpu_variant} == "cuda-12" ]]; then
+
+    export USE_CUDA=1
+    export TORCH_CUDA_ARCH_LIST="5.0+PTX;6.0;6.1;7.0;7.5;8.0;8.6;9.0"
+    export TORCH_NVCC_FLAGS="-Xfatbin -compress-all"
+    export MAGMA_HOME="${PREFIX}"
+    export USE_STATIC_CUDNN=0   # Use our cudnn package
+
+elif [[ ${gpu_variant} == "cpu" ]]; then
 
     if [[ "$OSTYPE" == "darwin"* ]]; then
         export USE_MPS=0
     else
         export USE_CUDA=0
     fi
-
+else
+    echo "Unsupported GPU variant: ${gpu_variant}"
+    exit 1
 fi
 
 case "${blas_impl}" in
