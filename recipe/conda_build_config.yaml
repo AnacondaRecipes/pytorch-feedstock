@@ -1,4 +1,4 @@
-# Comment/uncomment these as necessary. cuda-11 and cuda-12 matrix build is untested.
+# Comment/uncomment these as necessary. cuda-11/cuda-12 matrix build is untested.
 gpu_variant:
   - cpu
   - metal                    # [(osx and arm64)]
