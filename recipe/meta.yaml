@@ -28,7 +28,7 @@ build:
   # installed where the platform supports it.
   number: {{ build_number + 100 }}  # [gpu_variant != "cpu"]
   number: {{ build_number }}        # [gpu_variant == "cpu"]
-  skip: True  # [unix or py<38]
+  skip: True  # [py<38]
   # Dropping ppc because of various build issues
   skip: True  # [(linux and ppc64le)]
 
@@ -89,10 +89,10 @@ outputs:
         - "**/torch_cpu.dll"          # [win]
         - "**/torch_python.dll"       # [win]
         # libcuda.so is the cuda driver API library and is a system library.
-        - "**/libcuda.so*"            # [(gpu_variant == "cuda-11") or (gpu_variant == "cuda-12")]
+        - "**/libcuda.so*"            # [(gpu_variant or "").startswith("cuda")]
         # these aren't found sometimes, maybe for the same reason as at the top of this section
-        - "**/libtorch_cuda.so"       # [(gpu_variant == "cuda-11") or (gpu_variant == "cuda-12")]
-        - "**/libc10_cuda.so"         # [(gpu_variant == "cuda-11") or (gpu_variant == "cuda-12")]
+        - "**/libtorch_cuda.so"       # [(gpu_variant or "").startswith("cuda")]
+        - "**/libc10_cuda.so"         # [(gpu_variant or "").startswith("cuda")]
 
     requirements:
       build:
@@ -118,8 +118,8 @@ outputs:
       host:
         # GPU requirements
         - cudatoolkit {{ cudatoolkit }}*  # [gpu_variant == "cuda-11"]
-        - cudnn {{ cudnn }}*              # [(gpu_variant == "cuda-11") or (gpu_variant == "cuda-12")]
-        - magma 2.7.1                     # [(gpu_variant == "cuda-11") or (gpu_variant == "cuda-12")]
+        - cudnn {{ cudnn }}*              # [(gpu_variant or "").startswith("cuda")]
+        - magma 2.7.1                     # [(gpu_variant or "").startswith("cuda")]
         - cuda-version {{ cudatoolkit }}  # [gpu_variant == "cuda-11"]
         - cuda-driver-dev                 # [gpu_variant == "cuda-12"]
         - cuda-cudart-dev                 # [gpu_variant == "cuda-12"]
@@ -172,11 +172,11 @@ outputs:
         - {{ pin_compatible('intel-openmp') }}                # [blas_impl == "mkl"]
         # GPU requirements
         - {{ pin_compatible('cudatoolkit', max_pin='x.x') }}  # [gpu_variant == "cuda-11"]
-        - {{ pin_compatible('cudnn') }}                       # [(gpu_variant == "cuda-11") or (gpu_variant == "cuda-12")]
+        - {{ pin_compatible('cudnn') }}                       # [(gpu_variant or "").startswith("cuda")]
         # Required for GPU profiler
         # Required for GPU profiler
         - {{ pin_compatible('cupti') }}                       # [gpu_variant == "cuda-11"]
-        - {{ pin_compatible('cuda-cupti') }}                  # [gpu_variant == "cuda-12"]                          # [(gpu_variant == "gpu") and (linux and x86_64)]
+        - {{ pin_compatible('cuda-cupti') }}                  # [gpu_variant == "cuda-12"]
         # other requirements
         - cffi
         # CF: needed to load C++ extensions
@@ -186,7 +186,7 @@ outputs:
         - typing_extensions >=4.8.0
         # To stop the compiler pulling in an openmp implementation itself
         - _openmp_mutex                                       # [linux]
-        - {{ pin_compatible('magma') }}                       # [(gpu_variant == "cuda-11") or (gpu_variant == "cuda-12")]
+        - {{ pin_compatible('magma') }}                       # [(gpu_variant or "").startswith("cuda")]
         - filelock
         - jinja2
         - networkx
@@ -225,17 +225,17 @@ outputs:
         - tools/
       commands:
         # the smoke test script takes a bunch of env variables, defined below
-        - set MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cudatoolkit.split('.')[:2]) }}"    # [((gpu_variant == "cuda-11") or (gpu_variant == "cuda-12")) and (win)]
-        - set MATRIX_GPU_ARCH_TYPE="cuda"                                             # [((gpu_variant == "cuda-11") or (gpu_variant == "cuda-12")) and (win)]
+        - set MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cudatoolkit.split('.')[:2]) }}"    # [(gpu_variant or "").startswith("cuda") and (win)]
+        - set MATRIX_GPU_ARCH_TYPE="cuda"                                             # [(gpu_variant or "").startswith("cuda") and (win)]
         - set MATRIX_GPU_ARCH_VERSION="none"                                          # [(gpu_variant == "cpu") and (win)]
         - set MATRIX_GPU_ARCH_TYPE="none"                                             # [(gpu_variant == "cpu") and (win)]
         - set MATRIX_CHANNEL="defaults"                                               # [win]
         - set MATRIX_STABLE_VERSION={{ version }}                                     # [win]
         - set MATRIX_PACKAGE_TYPE="conda"                                             # [win]
         - set TARGET_OS="windows"                                                     # [win]
-        - export MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cudatoolkit.split('.')[:2]) }}" # [((gpu_variant == "cuda-11") or (gpu_variant == "cuda-12")) and (linux and x86_64)]
+        - export MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cudatoolkit.split('.')[:2]) }}" # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
         - export MATRIX_GPU_ARCH_VERSION="{{ MACOSX_SDK_VERSION }}"                   # [(gpu_variant == "metal")]
-        - export MATRIX_GPU_ARCH_TYPE="cuda"                                          # [((gpu_variant == "cuda-11") or (gpu_variant == "cuda-12")) and (linux and x86_64)]
+        - export MATRIX_GPU_ARCH_TYPE="cuda"                                          # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
         - export MATRIX_GPU_ARCH_TYPE="mps"                                           # [(gpu_variant == "metal")]
         - export MATRIX_GPU_ARCH_VERSION="none"                                       # [(gpu_variant == "cpu") and (not win)]
         - export MATRIX_GPU_ARCH_TYPE="none"                                          # [(gpu_variant == "cpu") and (not win)]
@@ -250,7 +250,7 @@ outputs:
         # (for example, in the case of missing imports). There doesn't seem to be a way of making a script exception return
         # non-zero but failing tests return zero.
         # The inductor tests test the torch.compile backend
-        - python ./test/run_test.py --inductor --continue-through-error || true       # [((gpu_variant == "cuda-11") or (gpu_variant == "cuda-12")) and (linux and x86_64)]
+        - python ./test/run_test.py --inductor --continue-through-error || true       # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
         - python ./test/run_test.py --core --continue-through-error || true
         # Run pip check so as to ensure that all pytorch packages are installed
         # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/24
@@ -262,10 +262,10 @@ outputs:
         # distributed support is enabled by default on linux; for mac, we enable it manually in build.sh
         - python -c "import torch; assert torch.distributed.is_available()"        # [linux or osx]
         - python -c "import torch; assert torch.backends.mkldnn.m.is_available()"  # [blas_impl == "mkl"]
-        - python -c "import torch; assert torch.backends.cuda.is_built()"          # [(gpu_variant == "cuda-11") or (gpu_variant == "cuda-12")]
-        - python -c "import torch; assert torch.backends.cudnn.is_available()"     # [(gpu_variant == "cuda-11") or (gpu_variant == "cuda-12")]
-        - python -c "import torch; assert torch.cuda.is_available()"               # [(gpu_variant == "cuda-11") or (gpu_variant == "cuda-12")]
-        - python -c "import torch; assert torch.backends.cudnn.enabled"            # [(gpu_variant == "cuda-11") or (gpu_variant == "cuda-12")]
+        - python -c "import torch; assert torch.backends.cuda.is_built()"          # [(gpu_variant or "").startswith("cuda")]
+        - python -c "import torch; assert torch.backends.cudnn.is_available()"     # [(gpu_variant or "").startswith("cuda")]
+        - python -c "import torch; assert torch.cuda.is_available()"               # [(gpu_variant or "").startswith("cuda")]
+        - python -c "import torch; assert torch.backends.cudnn.enabled"            # [(gpu_variant or "").startswith("cuda")]
         - python -c "import torch; assert torch.backends.mps.is_built()"           # [(gpu_variant == "metal")]
 
 about:
