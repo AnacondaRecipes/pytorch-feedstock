@@ -195,7 +195,7 @@ outputs:
         - __cuda >={{ cudatoolkit }}                          # [gpu_variant == "cuda-11"]
         # On macOS, the GPU accelerated backend, MPS, can be used from macOS v12.3. This isn't tightly dependent on the
         # SDK version used.
-        - __osx >=12.3                                        # [(gpu_variant == "metal")]
+        - __osx >=12.3                                        # [gpu_variant == "metal"]
 
     test:
       requires:
@@ -225,24 +225,26 @@ outputs:
         - tools/
       commands:
         # the smoke test script takes a bunch of env variables, defined below
-        - set MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cudatoolkit.split('.')[:2]) }}"    # [(gpu_variant or "").startswith("cuda") and (win)]
-        - set MATRIX_GPU_ARCH_TYPE="cuda"                                             # [(gpu_variant or "").startswith("cuda") and (win)]
-        - set MATRIX_GPU_ARCH_VERSION="none"                                          # [(gpu_variant == "cpu") and (win)]
-        - set MATRIX_GPU_ARCH_TYPE="none"                                             # [(gpu_variant == "cpu") and (win)]
-        - set MATRIX_CHANNEL="defaults"                                               # [win]
-        - set MATRIX_STABLE_VERSION={{ version }}                                     # [win]
-        - set MATRIX_PACKAGE_TYPE="conda"                                             # [win]
-        - set TARGET_OS="windows"                                                     # [win]
-        - export MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cudatoolkit.split('.')[:2]) }}" # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
-        - export MATRIX_GPU_ARCH_VERSION="{{ MACOSX_SDK_VERSION }}"                   # [(gpu_variant == "metal")]
-        - export MATRIX_GPU_ARCH_TYPE="cuda"                                          # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
-        - export MATRIX_GPU_ARCH_TYPE="mps"                                           # [(gpu_variant == "metal")]
-        - export MATRIX_GPU_ARCH_VERSION="none"                                       # [(gpu_variant == "cpu") and (not win)]
-        - export MATRIX_GPU_ARCH_TYPE="none"                                          # [(gpu_variant == "cpu") and (not win)]
-        - export MATRIX_CHANNEL="defaults"                                            # [not win]
-        - export MATRIX_STABLE_VERSION="{{ version }}"                                # [not win]
-        - export MATRIX_PACKAGE_TYPE="conda"                                          # [not win]
-        - export TARGET_OS="unix"                                                     # [not win]
+        - set MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cudatoolkit.split('.')[:2]) }}"              # [(gpu_variant == "cuda-11") and (win)]
+        - set MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cuda_compiler_version.split('.')[:2]) }}"    # [(gpu_variant == "cuda-12") and (win)]
+        - set MATRIX_GPU_ARCH_TYPE="cuda"                                                       # [(gpu_variant or "").startswith("cuda") and (win)]
+        - set MATRIX_GPU_ARCH_VERSION="none"                                                    # [(gpu_variant == "cpu") and (win)]
+        - set MATRIX_GPU_ARCH_TYPE="none"                                                       # [(gpu_variant == "cpu") and (win)]
+        - set MATRIX_CHANNEL="defaults"                                                         # [win]
+        - set MATRIX_STABLE_VERSION={{ version }}                                               # [win]
+        - set MATRIX_PACKAGE_TYPE="conda"                                                       # [win]
+        - set TARGET_OS="windows"                                                               # [win]
+        - export MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cudatoolkit.split('.')[:2]) }}"           # [(gpu_variant == "cuda-11") and (linux and x86_64)]
+        - export MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cuda_compiler_version.split('.')[:2]) }}" # [(gpu_variant == "cuda-12") and (linux and x86_64)]
+        - export MATRIX_GPU_ARCH_VERSION="{{ MACOSX_SDK_VERSION }}"                             # [(gpu_variant == "metal")]
+        - export MATRIX_GPU_ARCH_TYPE="cuda"                                                    # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
+        - export MATRIX_GPU_ARCH_TYPE="mps"                                                     # [(gpu_variant == "metal")]
+        - export MATRIX_GPU_ARCH_VERSION="none"                                                 # [(gpu_variant == "cpu") and (not win)]
+        - export MATRIX_GPU_ARCH_TYPE="none"                                                    # [(gpu_variant == "cpu") and (not win)]
+        - export MATRIX_CHANNEL="defaults"                                                      # [not win]
+        - export MATRIX_STABLE_VERSION="{{ version }}"                                          # [not win]
+        - export MATRIX_PACKAGE_TYPE="conda"                                                    # [not win]
+        - export TARGET_OS="unix"                                                               # [not win]
         - python ./smoke_test.py --package torchonly
         # We seem to have individual platform-specific test failures or flaky
         # tests, but the majority of tests pass.
