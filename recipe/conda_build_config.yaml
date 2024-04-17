@@ -1,3 +1,9 @@
+# Comment/uncomment these as necessary. cuda-11 and cuda-12 matrix build is untested.
+gpu_variant:
+  - cpu
+  - metal                    # [(osx and arm64)]
+  - cuda-11                  # [(linux and x86_64)]
+  - cuda-12                  # [(linux and x86_64)]
 # If we don't pin the compiler on windows, we get compiler syntax errors. This could be because conda-build pulls in a
 # different runtime version from the compiler version, for some reason. Upstream uses 2019 on their CI, and it's our
 # most recent, so let's use that.
@@ -17,11 +23,6 @@ CONDA_BUILD_SYSROOT:         # [(osx and x86_64)]
 blas_impl:
   - mkl                      # [x86 or x86_64]
   - openblas                 # [not win and not (osx and x86_64)]
-gpu_variant:
-  - cpu
-  - metal                    # [(osx and arm64)]
-  - cuda-11                  # [linux and x86_64]
-  - cuda-12                  # [linux and x86_64]
 # CONDA_BUILD_SYSROOT is defined in the base cbc.yaml, but it's reflected here so we can zip the keys and
 # build GPU and CPU at the same time for osx-arm64. It'll need to be manually updated here if the base cbc is changed.
 # This could be done using extend_keys instead, with a change to the base cbc.yaml.
@@ -36,26 +37,16 @@ zip_keys:                    # [(osx and arm64)]
   - gpu_variant              # [(osx and arm64)]
   - MACOSX_SDK_VERSION       # [(osx and arm64)]
   - CONDA_BUILD_SYSROOT      # [(osx and arm64)]
-
-# Below are the settings for linux-64 GPU. Currently, we're not building it, because we're waiting on
-# Triton to be packaged and included in defaults.
-# These are kept here for reference, when Triton is available.
-# For linux-64, we need to pin the compiler if we're building with CUDA support (but not otherwise), see here:
+# gcc/CUDA compatibility guide, for pinning if necessary:
 # https://docs.nvidia.com/cuda/archive/11.3.0/cuda-installation-guide-linux/index.html
-# We also don't build it yet on Windows, because we need magma as a dependency and there have been significant issues getting
-# CMake to build magma with CUDA support.
-# c_compiler_version:    # [(linux and x86_64)]
-#  - 11                 # [(linux and x86_64)]
-# cxx_compiler_version:  # [(linux and x86_64)]
-#  - 11                 # [(linux and x86_64)]
-# cudatoolkit:           # [(linux and x86_64)]
-#  - 11.8               # [(linux and x86_64)]
-# cudnn:                 # [(linux and x86_64)]
-#  - 8.9.2.26           # [(linux and x86_64)]
-# the below for cuda-12 only
-cuda_compiler_version:         # [linux and x86_64]
-  - 12.3                       # [linux and x86_64]
-cuda_compiler:                 # [linux and x86_64]
-  - cuda-nvcc                  # [linux and x86_64]
-cudnn:                 # [(linux and x86_64)]
- - 8.9.2.26           # [(linux and x86_64)]
+# We don't build a CUDA variant yet for Windows, due to issues getting CMake to build magma with CUDA support.
+# This is only used for cuda-11 gpu variant:
+cudatoolkit:                 # [(linux and x86_64)]
+ - 11.8                      # [(linux and x86_64)]
+# The next two kv's are only used for cuda-12 gpu variant:
+cuda_compiler_version:       # [(linux and x86_64)]
+  - 12.3                     # [(linux and x86_64)]
+cuda_compiler:               # [(linux and x86_64)]
+  - cuda-nvcc                # [(linux and x86_64)]
+cudnn:                       # [(linux and x86_64)]
+ - 8.9.2.26                  # [(linux and x86_64)]
