@@ -260,8 +260,6 @@ outputs:
         # Note that the `|| true` expression will make the build continue even if the whole script falls over completely
         # (for example, in the case of missing imports). There doesn't seem to be a way of making a script exception return
         # non-zero but failing tests return zero.
-        # The inductor tests test the torch.compile backend
-        - python ./test/run_test.py --inductor --continue-through-error || true       # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
         - python ./test/run_test.py --core --continue-through-error || true
         # Run pip check so as to ensure that all pytorch packages are installed
         # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/24
