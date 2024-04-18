@@ -165,6 +165,7 @@ elif [[ ${gpu_variant} == "cuda-12" ]]; then
     export TORCH_NVCC_FLAGS="-Xfatbin -compress-all"
     export MAGMA_HOME="${PREFIX}"
     export USE_STATIC_CUDNN=0   # Use our cudnn package
+    export CUDA_INC_PATH="${PREFIX}/targets/x86_64-linux/include/"  # Point cmake to the header files
 
 elif [[ ${gpu_variant} == "cpu" ]]; then
 

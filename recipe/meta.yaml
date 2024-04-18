@@ -99,6 +99,13 @@ outputs:
         - {{ compiler('c') }}
         - {{ compiler('cxx') }}
         - {{ compiler('cuda') }}          # [gpu_variant == "cuda-12"]
+        # The cuda compiler function above pulls in a number of other libraries, leading CMake to find CUDAToolkit in the
+        # build environment. See https://github.com/Kitware/CMake/blob/master/Modules/Internal/CMakeCUDAFindToolkit.cmake#L135
+        # If these two libraries aren't in the build environment they aren't found by PyTorch's build system as a result.
+        # Currently cuda libraries variously from the build and host environments are used by the build system (see logs).
+        # If this turns out to be a problem, we can address it.
+        - libcublas-dev                   # [gpu_variant == "cuda-12"]
+        - cuda-nvtx-dev                   # [gpu_variant == "cuda-12"]
         - cmake
         - make                            # [unix]
         - git                             # [unix]
