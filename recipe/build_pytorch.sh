@@ -39,6 +39,9 @@ export Python3_EXECUTABLE="${PYTHON}"
 
 export CMAKE_GENERATOR=Ninja
 
+export CMAKE_C_COMPILER_LAUNCHER=ccache
+export CMAKE_CXX_COMPILER_LAUNCHER=ccache
+export CMAKE_CUDA_COMPILER_LAUNCHER=ccache
 
 #################### ADJUST COMPILER AND LINKER FLAGS #####################
 # Pytorch's build system doesn't like us setting the c++ standard and will

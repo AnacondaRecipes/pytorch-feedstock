@@ -107,7 +107,7 @@ outputs:
         - libcublas-dev                   # [gpu_variant == "cuda-12"]
         - cuda-nvtx-dev                   # [gpu_variant == "cuda-12"]
         - cmake
-        - make                            # [unix]
+        - ccache
         - git                             # [unix]
         - patch                           # [not win]
         - m2-patch                        # [win]
