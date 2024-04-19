@@ -200,7 +200,8 @@ outputs:
         - sympy
         - fsspec
         # Required to support torch.compile. This is tested in smoke_test.py, which is required to pass
-        - triton {{ '.'.join(version.split('.')[:2]) }}.*       # [(gpu_variant or "").startswith("cuda")]
+        # torch.compile isn't supported on python 3.12 and we only build cuda for linux-64 at the moment
+        - triton {{ '.'.join(version.split('.')[:2]) }}.*       # [(gpu_variant or "").startswith("cuda") and (linux and x86_64) and (py!=312)]
         - __cuda >={{ cudatoolkit }}                          # [gpu_variant == "cuda-11"]
         # On macOS, the GPU accelerated backend, MPS, can be used from macOS v12.3. This isn't tightly dependent on the
         # SDK version used.
