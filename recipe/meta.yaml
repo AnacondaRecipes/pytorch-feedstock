@@ -193,7 +193,6 @@ outputs:
         - tabulate
         - boto3
         - pytest-rerunfailures
-        - pytest-shard
         - pytest-flakefinder
         - pytest-xdist
       imports:
