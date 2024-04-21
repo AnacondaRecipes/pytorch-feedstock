@@ -253,7 +253,9 @@ outputs:
         - export MATRIX_CHANNEL="defaults"                                                      # [not win]
         - export MATRIX_STABLE_VERSION="{{ version }}"                                          # [not win]
         - export MATRIX_PACKAGE_TYPE="conda"                                                    # [not win]
-        - export TARGET_OS="unix"                                                               # [not win]
+        - export TARGET_OS="linux"                                                              # [linux]
+        - export TARGET_OS="macos-arm64"                                                        # [(osx and arm64)]
+        - export TARGET_OS="macos-x86_64"                                                       # [(osx and x86_64)]
         - python ./smoke_test.py --package torchonly
         # We seem to have individual platform-specific test failures or flaky
         # tests, but the majority of tests pass.
