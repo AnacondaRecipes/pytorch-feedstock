@@ -90,7 +90,6 @@ outputs:
         - "**/libcuda.so*"            # [(pytorch_variant == "gpu") and (linux and x86_64)]
         - "**/libtorch_cuda.so"       # [(pytorch_variant == "gpu") and (linux and x86_64)]
         - "**/libc10_cuda.so"         # [(pytorch_variant == "gpu") and (linux and x86_64)]
-        - "**/libomp.dylib"           # [osx]
     requirements:
       build:
         - {{ compiler('c') }}
@@ -120,8 +119,7 @@ outputs:
         - cupti 11.8.0                    # [(pytorch_variant == "gpu") and (linux and x86_64)]
         # OpenBLAS or MKL
         - mkl-devel {{ mkl }}.*           # [blas_impl == "mkl"]
-        - mkl {{ mkl }}.*                 # [blas_impl == "mkl"]
-        - openblas {{ openblas }}         # [blas_impl == "openblas"]
+        - openblas-devel {{ openblas }}   # [blas_impl == "openblas"]
         # OpenMP
         # We pull in the same versions of mkl and intel-openmp: intel aligns the versions
         # We use intel-openmp for all mkl variants.
@@ -147,9 +145,6 @@ outputs:
         - eigen 3.3.7
         - astunparse 1.6.3
       run:
-        # OpenBLAS or MKL
-        - mkl {{ mkl }}.*                 # [blas_impl == "mkl"]
-        - libopenblas                     # [blas_impl == "openblas"]
         # OpenMP
         - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
         # GPU requirements
@@ -176,6 +171,9 @@ outputs:
         # On macOS, the GPU accelerated backend, MPS, can be used from macOS v12.3. This isn't tightly dependent on the
         # SDK version used.
         - __osx >=12.3                    # [(pytorch_variant == "gpu") and (osx and arm64)]
+      run_constrained:
+        # current intel-openmp builds are incompatible with llvm-openmp on osx-64
+        - llvm-openmp <0a0                # [(blas_impl == "mkl") and (osx and x86_64)]  
 
     test:
       requires:
