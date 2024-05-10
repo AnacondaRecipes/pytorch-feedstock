@@ -1,12 +1,3 @@
-# This suppresses erroneous overdepending errors;
-# there are packages needed to be loaded during runtime
-# which conda thinks aren't required
-build_parameters:
-  - "--suppress-variables"
-  - "--error-overlinking"
-  - "--skip-existing"
-  - "--no-test"
-
 # macOS 12.3 or above is required for running the GPU variant (MPS support). No way to specify this for only the GPU
 # variant, so it's specified for both.
 extra_labels_for_os:

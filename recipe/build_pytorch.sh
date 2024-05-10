@@ -195,9 +195,4 @@ export MAX_JOBS=$((${CPU_COUNT} > 4 ? 4 : ${CPU_COUNT}))
 
 # The Pytorch build system is invoked
 # via their setup.py
-"$PYTHON" -m pip install . \
-    --no-deps \
-    --no-binary :all: \
-    --no-clean \
-    --no-build-isolation \
-    -v
+"$PYTHON" -m pip install . --no-deps --no-build-isolation -v

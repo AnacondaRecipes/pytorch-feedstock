@@ -58,6 +58,7 @@ set BUILD_TEST=0
 set CPU_COUNT=1
 set MAX_JOBS=%CPU_COUNT%
 :: Use our Pybind11, Eigen
+set BUILD_CUSTOM_PROTOBUF=OFF
 set USE_SYSTEM_PYBIND11=1
 set USE_SYSTEM_EIGEN_INSTALL=1
 
@@ -79,10 +80,5 @@ set BLAS=MKL
 :: Tell Pytorch's embedded FindMKL where to find MKL.
 set INTEL_MKL_DIR=%LIBRARY_PREFIX%
 
-%PYTHON% -m pip install . ^
-    --no-deps ^
-    --no-binary :all: ^
-    --no-clean ^
-    --no-build-isolation ^
-    -v
+%PYTHON% -m pip install . --no-deps --no-build-isolation -v
 if errorlevel 1 exit /b 1
