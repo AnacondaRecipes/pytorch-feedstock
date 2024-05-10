@@ -57,39 +57,10 @@ outputs:
       string: gpu_cuda{{ cudatoolkit | replace('.', '') }}py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}  # [(pytorch_variant == "gpu") and (linux and x86_64)]
       string: gpu_mps_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                      # [(pytorch_variant == "gpu") and (osx and arm64)]
       string: cpu_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                          # [pytorch_variant == "cpu"]
-      detect_binary_files_with_prefix: False
       entry_points:
         - torchrun = torch.distributed.run:main
       missing_dso_whitelist:
-        # For some reason, the .sos built for python 3.11 look for .sos for linking in directories of a different
-        # python. This patches over this, although it's not great and the problem should be fixed properly.
-        # Note that this issue is sporadic - you may remove this, and the build may work but then break at a later date.
-        - "**/ld64.so.*"              # [linux]
-        - "**/libc10.so"              # [linux]
-        - "**/libshm.so"              # [linux]
-        - "**/libtorch.so"            # [linux]
-        - "**/libtorch_cpu.so"        # [linux]
-        - "**/libtorch_python.so"     # [linux]
-        - "**/libiomp5.so"            # [linux]
-        - "**/libc10.dylib"           # [osx]
-        - "**/libshm.dylib"           # [osx]
-        - "**/libtorch.dylib"         # [osx]
-        - "**/libtorch_cpu.dylib"     # [osx]
-        - "**/libtorch_python.dylib"  # [osx]
-        - "**/libiomp5.dylib"         # [osx]
-        - "**/libc++.1.dylib"         # [osx]
-        # conda-build also can't find these on Windows sometimes, for example Python 3.8, in Powershell with cygwin added to
-        # the PATH. Error message is "$RPATH/<libname>.dll not found". Maybe RPATH isn't being defined correctly?
-        - "**/asmjit.dll"             # [win]
-        - "**/c10.dll"                # [win]
-        - "**/fbgemm.dll"             # [win]
-        - "**/shm.dll"                # [win]
-        - "**/torch_cpu.dll"          # [win]
-        - "**/torch_python.dll"       # [win]
-        # CUDA shared libraries are provided by cudatoolkit, i.e. outside the conda build environment
-        - "**/libcuda.so*"            # [(pytorch_variant == "gpu") and (linux and x86_64)]
-        - "**/libtorch_cuda.so"       # [(pytorch_variant == "gpu") and (linux and x86_64)]
-        - "**/libc10_cuda.so"         # [(pytorch_variant == "gpu") and (linux and x86_64)]
+        - "**/ld64.so.*"              # [s390x]
     requirements:
       build:
         - {{ compiler('c') }}
