@@ -44,7 +44,7 @@ outputs:
   # GPU variant if their platform supports it and the CPU variant otherwise.
   - name: pytorch-{{ pytorch_variant }}
     build:
-      skip: True  # [py<38]
+      skip: True  # [py!=38]
     requirements:
       run:
         - pytorch ={{ version }}={{ pytorch_variant }}* # NB pinning exact=True will also pin to the python version
@@ -53,7 +53,7 @@ outputs:
     script: build_pytorch.sh # [not win]
     script: bld_pytorch.bat  # [win]
     build:
-      skip: True  # [py<38]
+      skip: True  # [py!=38]
       string: gpu_cuda{{ cudatoolkit | replace('.', '') }}py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}  # [(pytorch_variant == "gpu") and (linux and x86_64)]
       string: gpu_mps_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                      # [(pytorch_variant == "gpu") and (osx and arm64)]
       string: cpu_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                          # [pytorch_variant == "cpu"]
