@@ -28,7 +28,7 @@ build:
   # installed where the platform supports it.
   number: {{ build_number + 100 }}  # [pytorch_variant == "gpu"]
   number: {{ build_number }}        # [pytorch_variant == "cpu"]
-  skip: True  # [py<38]
+  skip: True  # [py!=38]
   # Dropping ppc because of various build issues
   skip: True  # [(linux and ppc64le)]
 
