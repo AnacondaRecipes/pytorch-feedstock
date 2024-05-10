@@ -12,4 +12,3 @@ build_parameters:
 extra_labels_for_os:
   osx-arm64: [ventura]
 
-aggregate_branch: 3.12
