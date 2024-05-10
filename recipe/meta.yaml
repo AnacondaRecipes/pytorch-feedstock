@@ -125,6 +125,7 @@ outputs:
         # We use intel-openmp for all mkl variants.
         # For openblas on win and linux, we don't specify any openmp implementation; it comes from the compiler.
         - intel-openmp   {{ mkl }}        # [blas_impl == "mkl"]
+        - llvm-openmp                     # [osx and not (blas_impl == "mkl")]
         # Other requirements
         - cffi 1.15.1
         - libprotobuf {{ libprotobuf }}   # [not win]
@@ -147,6 +148,7 @@ outputs:
       run:
         # OpenMP
         - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
+        - llvm-openmp                            # [osx and not (blas_impl == "mkl")]
         # GPU requirements
         - {{ pin_compatible('cudatoolkit', max_pin='x.x') }}  # [(pytorch_variant == "gpu") and (linux and x86_64)]
         - {{ pin_compatible('cudnn') }}                       # [(pytorch_variant == "gpu") and (linux and x86_64)]
