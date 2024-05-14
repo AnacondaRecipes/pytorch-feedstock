@@ -23,22 +23,22 @@ fi
 if [[ "${build_platform}" = "osx-arm64" ]]; then
     export DEVELOPER_DIR=/Library/Developer/CommandLineTools
 fi
+export CMAKE_GENERATOR=Ninja
 export CMAKE_LIBRARY_PATH=$PREFIX/lib:$PREFIX/include:$CMAKE_LIBRARY_PATH
 export CMAKE_PREFIX_PATH=$PREFIX
-export CMAKE_BUILD_TYPE=Release
-
-# Apparently, the PATH that conda generates when stacking environments, does not
-# have a logical order, potentially leading to CMake looking for (and finding)
-# things in the wrong (e.g. parent) environment. In particular, we want to avoid
-# finding the wrong Python interpreter.
-# Additionally, we explicitly tell CMake where the correct Python interpreter is,
-# because simply setting the PATH doesn't work completely.
-export PATH=$PREFIX/bin:$PREFIX:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH
+for ARG in $CMAKE_ARGS; do
+  if [[ "$ARG" == "-DCMAKE_"* ]]; then
+    cmake_arg=$(echo $ARG | cut -d= -f1)
+    cmake_arg=$(echo $cmake_arg| cut -dD -f2-)
+    cmake_val=$(echo $ARG | cut -d= -f2-)
+    printf -v $cmake_arg "$cmake_val"
+    export ${cmake_arg}
+  fi
+done
+unset CMAKE_INSTALL_PREFIX
+export Python3_FIND_STRATEGY=LOCATION
 export Python3_ROOT_DIR=${PREFIX}
-export Python3_EXECUTABLE="${PYTHON}"
-
-export CMAKE_GENERATOR=Ninja
-
+export Python3_EXECUTABLE=${PREFIX}/bin/python
 
 #################### ADJUST COMPILER AND LINKER FLAGS #####################
 # Pytorch's build system doesn't like us setting the c++ standard and will
