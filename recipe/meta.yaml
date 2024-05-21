@@ -30,6 +30,8 @@ build:
   number: {{ build_number }}        # [pytorch_variant == "cpu"]
   skip: True  # [py<38]
   skip: True  # [osx and (blas_impl == "mkl")]
+  skip: True  # [not win]
+  skip: True  # [py!=312]
 
 requirements:
   build:
