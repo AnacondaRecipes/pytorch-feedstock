@@ -58,7 +58,8 @@ set BUILD_TEST=0
 set CPU_COUNT=1
 set MAX_JOBS=%CPU_COUNT%
 :: Use our Pybind11, Eigen
-set BUILD_CUSTOM_PROTOBUF=OFF
+:: Note that BUILD_CUSTOM_PROTOBUF=OFF doesn't work properly as of last testing, and results in
+:: duplicate symbols at link time.
 set USE_SYSTEM_PYBIND11=1
 set USE_SYSTEM_EIGEN_INSTALL=1
 
