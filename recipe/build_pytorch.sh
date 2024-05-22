@@ -199,9 +199,9 @@ esac
 
 
 
-# The build needs a lot of memory. Limit to 4 CPUs max, 1 CPU min, ${CPU_COUNT} - 1
-# otherwise to give room for other processes, avoiding out of memory errors.
-export MAX_JOBS=$((${CPU_COUNT} > 4 ? 4 : (${CPU_COUNT} > 1 ? ${CPU_COUNT} - 1 : 1)))
+# Leave a spare core for other tasks. This may need to be adjusted
+# if we get out of memory errors.
+export MAX_JOBS=$((CPU_COUNT > 1 ? CPU_COUNT - 1 : 1))
 
 
 # The Pytorch build system is invoked
