@@ -1,0 +1,21 @@
+This is to stop pip check complaining.
+
+Changing the constraints on mkl in the conda recipe to match isn't possible, as
+there's no compatible version of numpy with python 3.12.
+
+This looks to be a (overly?) cautious pinning by pytorch, see discussion:
+https://github.com/pytorch/pytorch/pull/102604/files#r1465484309
+
+Index: pytorch/setup.py
+===================================================================
+--- pytorch.orig/setup.py	2024-05-03 14:37:02.824162543 -0500
++++ pytorch/setup.py	2024-05-28 15:41:37.219797775 -0500
+@@ -1111,7 +1111,7 @@
+         "networkx",
+         "jinja2",
+         "fsspec",
+-        'mkl>=2021.1.1,<=2021.4.0; platform_system == "Windows"',
++        'mkl; platform_system == "Windows"',
+     ]
+ 
+     # Parse the command line and check the arguments before we proceed with

@@ -21,6 +21,7 @@ source:
     - patches/0001-windows-FindMKL-add-library-suffix.patch  # [win]
     - patches/0002-swap-openmp-search-precedence.patch      # [blas_impl == "mkl"]
     - patches/0003-continue-tests-on-failure.patch
+    - patches/0004-remove-mkl-constraint-win.patch           # [win]
 
 build:
   # Use a build number difference to ensure that the GPU
