@@ -124,7 +124,6 @@ outputs:
         - intel-openmp   {{ mkl }}        # [blas_impl == "mkl"]
         - llvm-openmp 14.0.6              # [osx and not (blas_impl == "mkl")]
         # Other requirements
-        - cffi 1.16.0
         - libprotobuf {{ libprotobuf }}   # [not win]
         # on osx, libuv supports torch.distributed support. See build.sh.
         - libuv 1.44.2                    # [win or osx]
@@ -135,7 +134,7 @@ outputs:
         - requests
         - setuptools
         - sleef 3.5.1                     # [osx and arm64]
-        - typing_extensions
+        - typing_extensions >=4.8.0
         - wheel
         - pybind11 2.12.0
         - eigen 3.3.7
@@ -150,7 +149,6 @@ outputs:
         # Required for GPU profiler
         - cupti                           # [(pytorch_variant == "gpu") and (linux and x86_64)]
         # other requirements
-        - cffi
         # CF: needed to load C++ extensions
         - {{ pin_compatible('numpy') }}
         - python
