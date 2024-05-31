@@ -29,7 +29,6 @@ build:
   number: {{ build_number + 100 }}  # [gpu_variant != "cpu"]
   number: {{ build_number }}        # [gpu_variant == "cpu"]
   skip: True  # [py<38]
-  skip: True  # [py!=3.11]
   # Dropping ppc because of various build issues
   skip: True  # [(linux and ppc64le)]
 
@@ -46,7 +45,7 @@ outputs:
   - name: pytorch-{{ "cpu" if gpu_variant == "cpu" else "gpu" }}
     build:
       skip: True  # [py<38]
-      skip: True  # [py!=3.11]
+      skip: True  # [py!=311]
     requirements:
       run:
         - pytorch ={{ version }}={{ "cpu" if gpu_variant == "cpu" else "gpu" }}* # NB pinning exact=True will also pin to the python version
@@ -56,7 +55,7 @@ outputs:
     script: bld_pytorch.bat  # [win]
     build:
       skip: True  # [py<38]
-      skip: True  # [py!=3.11]
+      skip: True  # [py!=311]
       string: gpu_cuda{{ cudatoolkit | replace('.', '') }}py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}            # [gpu_variant == "cuda-11"]
       string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda-12"]
       string: gpu_mps_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                # [gpu_variant == "metal"]
