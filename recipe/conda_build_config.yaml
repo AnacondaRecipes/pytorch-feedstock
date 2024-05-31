@@ -22,7 +22,7 @@ CONDA_BUILD_SYSROOT:         # [(osx and x86_64)]
 # blas_impl is the same as in aggregate cbc.yaml otherwise.
 blas_impl:
   - mkl                      # [x86 or x86_64]
-  - openblas                 # [not win and not (osx and x86_64)]
+  #- openblas                 # [not win and not (osx and x86_64)]
 # CONDA_BUILD_SYSROOT is defined in the base cbc.yaml, but it's reflected here so we can zip the keys and
 # build GPU and CPU at the same time for osx-arm64. It'll need to be manually updated here if the base cbc is changed.
 # This could be done using extend_keys instead, with a change to the base cbc.yaml.
