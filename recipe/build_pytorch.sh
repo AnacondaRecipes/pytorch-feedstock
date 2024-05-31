@@ -42,6 +42,7 @@ export CMAKE_GENERATOR=Ninja
 export CMAKE_C_COMPILER_LAUNCHER=ccache
 export CMAKE_CXX_COMPILER_LAUNCHER=ccache
 export CMAKE_CUDA_COMPILER_LAUNCHER=ccache
+export CCACHE_BASEDIR=${PREFIX}/../
 
 #################### ADJUST COMPILER AND LINKER FLAGS #####################
 # Pytorch's build system doesn't like us setting the c++ standard and will
@@ -164,7 +165,7 @@ elif [[ ${gpu_variant} == "cuda-11" ]]; then
 elif [[ ${gpu_variant} == "cuda-12" ]]; then
 
     export USE_CUDA=1
-    export TORCH_CUDA_ARCH_LIST="5.0+PTX;6.0;6.1;7.0;7.5;8.0;8.6;9.0"
+    export TORCH_CUDA_ARCH_LIST="7.5"
     export TORCH_NVCC_FLAGS="-Xfatbin -compress-all"
     export MAGMA_HOME="${PREFIX}"
     export USE_STATIC_CUDNN=0   # Use our cudnn package

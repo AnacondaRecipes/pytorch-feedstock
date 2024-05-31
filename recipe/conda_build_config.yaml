@@ -1,8 +1,8 @@
 # Comment/uncomment these as necessary. cuda-11/cuda-12 matrix build is untested.
 gpu_variant:
-  - cpu
-  - metal                    # [(osx and arm64)]
-  - cuda-11                  # [(linux and x86_64)]
+  #- cpu
+  #- metal                    # [(osx and arm64)]
+  #- cuda-11                  # [(linux and x86_64)]
   - cuda-12                  # [(linux and x86_64)]
 # If we don't pin the compiler on windows, we get compiler syntax errors. This could be because conda-build pulls in a
 # different runtime version from the compiler version, for some reason. Upstream uses 2019 on their CI, and it's our
