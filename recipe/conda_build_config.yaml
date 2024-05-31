@@ -43,10 +43,5 @@ zip_keys:                    # [(osx and arm64)]
 # This is only used for cuda-11 gpu variant:
 cudatoolkit:                 # [(linux and x86_64)]
  - 11.8                      # [(linux and x86_64)]
-# The next two kv's are only used for cuda-12 gpu variant:
-cuda_compiler_version:       # [(linux and x86_64)]
-  - 12.3                     # [(linux and x86_64)]
-cuda_compiler:               # [(linux and x86_64)]
-  - cuda-nvcc                # [(linux and x86_64)]
 cudnn:                       # [(linux and x86_64)]
  - 8.9.2.26                  # [(linux and x86_64)]
