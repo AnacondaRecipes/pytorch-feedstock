@@ -55,9 +55,11 @@ set USE_TENSORPIPE=0
 set DISTUTILS_USE_SDK=1
 set BUILD_TEST=0
 :: Don't increase MAX_JOBS to NUMBER_OF_PROCESSORS, as it will run out of heap
-set CPU_COUNT=2
+set CPU_COUNT=1
 set MAX_JOBS=%CPU_COUNT%
 :: Use our Pybind11, Eigen
+:: Note that BUILD_CUSTOM_PROTOBUF=OFF doesn't work properly as of last testing, and results in
+:: duplicate symbols at link time.
 set USE_SYSTEM_PYBIND11=1
 set USE_SYSTEM_EIGEN_INSTALL=1
 
@@ -79,10 +81,5 @@ set BLAS=MKL
 :: Tell Pytorch's embedded FindMKL where to find MKL.
 set INTEL_MKL_DIR=%LIBRARY_PREFIX%
 
-%PYTHON% -m pip install . ^
-    --no-deps ^
-    --no-binary :all: ^
-    --no-clean ^
-    --no-build-isolation ^
-    -v
+%PYTHON% -m pip install . --no-deps --no-build-isolation -v
 if errorlevel 1 exit /b 1

@@ -12,7 +12,7 @@ is the entry point to the Pytorch build system.
 # GPU building
 
 To build with GPU support, uncomment/comment the lines in conda_build_config.yaml as documented there. Currently, these
-builds need to be done manually on a machine with cudatoolkit installed, as the CI system does not support them.
+builds need to be done manually on a machine with the linux drivers installed, as the CI system does not support them.
 
 # Tests
 
@@ -20,6 +20,17 @@ Note that the PyTorch test suite is run, but there is no indication of test resu
 fallen over completely, without looking at the logs. It is very important to validate the package by looking at the test
 results before release. A statistically small number of test failures is generally ok, for example because of floating
 point hardware implementation differences on different architectures.
+
+# Handling long builds
+
+The builds are very long, but there are some measures you can take to reduce them during development.
+
+1. Only build one python variant. Currently the most supported variant is python 3.11; python 3.12 isn't supported for
+   some features.
+2. Use ccache. Note that ccache will result in cache misses if the build folder is different, which is the case by
+   default if conda-build is called twice. To get around this, build in a previous folder (conda build --dirty <previous_root_folder_name>)
+   or export CCACHE_BASEDIR=${PREFIX}/../  to strip the root folder (untested, needs to be there before the first run).
+3. (For CUDA) only build the compute capability of the build/test machine. (TORCH_CUDA_ARCH_LIST)
 
 # Further work
 
