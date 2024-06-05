@@ -59,6 +59,8 @@ outputs:
       string: cpu_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                          # [pytorch_variant == "cpu"]
       entry_points:
         - torchrun = torch.distributed.run:main
+      ignore_run_exports:             # [osx]
+        - libuv                       # [osx]
       missing_dso_whitelist:
         # For some reason, the .sos built for python 3.11 look for .sos for linking in directories of a different
         # python. This patches over this, although it's not great and the problem should be fixed properly.
