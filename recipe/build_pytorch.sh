@@ -145,7 +145,7 @@ elif [[ ${gpu_variant} == "cuda-11" ]]; then
     elif [[ ${cudatoolkit} == 11.3 ]]; then
         export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5;8.0;8.6"
     elif [[ ${cudatoolkit} == 11.8 ]]; then
-        export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5;8.0;8.6;9.0"
+        export TORCH_CUDA_ARCH_LIST="7.5"
     else
         echo "No CUDA architecture list exists for cudatoolkit==${cudatoolkit}"
         echo "in build.sh. Use https://en.wikipedia.org/wiki/CUDA#GPUs_supported to make one."
