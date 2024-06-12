@@ -267,7 +267,7 @@ outputs:
         - python ./test/run_test.py --core --continue-through-error || true
          # The inductor tests test the torch.compile backend
          # torch.compile isn't supported on python 3.12 yet
-        - python ./test/run_test.py --inductor --continue-through-error || true                 # [(gpu_variant or "").startswith("cuda") and (linux and x86_64) and (py!=312)]
+        - python test/run_test.py -i inductor/test_torchinductor.py --continue-through-error || true                 # [(gpu_variant or "").startswith("cuda") and (linux and x86_64) and (py!=312)]
         # Run pip check so as to ensure that all pytorch packages are installed
         # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/24
         - pip check
