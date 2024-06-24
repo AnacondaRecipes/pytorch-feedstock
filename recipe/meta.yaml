@@ -54,6 +54,7 @@ outputs:
   - name: pytorch
     script: build_pytorch.sh # [not win]
     script: bld_pytorch.bat  # [win]
+    build:
       string: gpu_cuda{{ cudatoolkit | replace('.', '') }}py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}            # [gpu_variant == "cuda-11"]
       string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda-12"]
       string: gpu_mps_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                # [gpu_variant == "metal"]
