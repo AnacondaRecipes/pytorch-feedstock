@@ -22,6 +22,7 @@ source:
     - patches/0002-swap-openmp-search-precedence.patch      # [blas_impl == "mkl"]
     - patches/0003-continue-tests-on-failure.patch
     - patches/0004-remove-mkl-constraint-win.patch           # [win]
+    - patches/0005-fix-triton-hash-with-backend.patch
 
 build:
   # Use a build number difference to ensure that the GPU
@@ -67,6 +68,7 @@ outputs:
         # For some reason, the .sos built for python 3.11 look for .sos for linking in directories of a different
         # python. This patches over this, although it's not great and the problem should be fixed properly.
         # Note that this issue is sporadic - you may remove this, and the build may work but then break at a later date.
+        # These are present in the site-packages directory
         - "**/ld64.so.*"              # [linux]
         - "**/libc10.so"              # [linux]
         - "**/libshm.so"              # [linux]
