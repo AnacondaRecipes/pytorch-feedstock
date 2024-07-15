@@ -32,6 +32,11 @@ The builds are very long, but there are some measures you can take to reduce the
    or export CCACHE_BASEDIR=${PREFIX}/../  to strip the root folder (untested, needs to be there before the first run).
 3. (For CUDA) only build the compute capability of the build/test machine. (TORCH_CUDA_ARCH_LIST)
 
+Additionally, once review is done, you can merge without rebuilding (by adding "skip CI" to the PR title) and then take
+the packages from the staging channel. Note that in this case, you need to
+[manually sign](https://github.com/anaconda-distribution/perseverance-skills/blob/3c36b68a1b2068823074fdec317e9928300d715e/sections/02_Package_building/01_How_tos/Manually_building_release_packages.md?plain=1#L19)
+the windows packages.
+
 # Further work
 
 ## Unvendoring
