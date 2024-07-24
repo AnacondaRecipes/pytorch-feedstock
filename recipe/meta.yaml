@@ -30,7 +30,8 @@ build:
   # installed where the platform supports it.
   number: {{ build_number + 100 }}  # [gpu_variant != "cpu"]
   number: {{ build_number }}        # [gpu_variant == "cpu"]
-  skip: True  # [py<38]
+  skip: True  # [py!=312]
+  skip: True  # [gpu_variant != "metal"]
   # torch.compile isn't supported with python 3.12:
   # https://github.com/pytorch/pytorch/blob/97ff6cfd9c86c5c09d7ce775ab64ec5c99230f5d/test/test_transformers.py#L3418
   skip: True  # [py==312 and (gpu_variant or "").startswith("cuda")]
@@ -260,7 +261,7 @@ outputs:
         # Note that the `|| true` expression will make the build continue even if the whole script falls over completely
         # (for example, in the case of missing imports). There doesn't seem to be a way of making a script exception return
         # non-zero but failing tests return zero.
-        - python ./test/run_test.py --core --continue-through-error || true
+        - python ./test/run_test.py --mps --continue-through-error --keep-going || true
          # The inductor tests test the torch.compile backend. Using the options below avoids running distributed tests,
          # which would be run if we used the --inductor option. (Distributed tests would only be correctly run on a multi-gpu test platform,
          # which we don't have.)
