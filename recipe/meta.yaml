@@ -266,6 +266,7 @@ outputs:
          # which we don't have.)
          # torch.compile isn't supported on python 3.12 yet
         - python test/run_test.py -i inductor/test_torchinductor.py --continue-through-error || true                 # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
+        - python ./test/run_test.py --mps --continue-through-error || true                                           # [(gpu_variant == "metal")]
         # Run pip check so as to ensure that all pytorch packages are installed
         # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/24
         - pip check
