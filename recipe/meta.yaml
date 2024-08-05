@@ -154,6 +154,9 @@ outputs:
         - llvm-openmp 14.0.6              # [osx and not (blas_impl == "mkl")]
         # Other requirements
         - libprotobuf {{ libprotobuf }}   # [not win]
+        # libabseil is linked against via the vendored-in onnx when
+        # it's in the environment. libprotobuf pulls it in anyway, so we should make it an explicit dependency.
+        - libabseil {{ libabseil }}       # [not win]
         # on osx, libuv supports torch.distributed support. See build.sh.
         - libuv 1.44.2                    # [win or osx]
         - numpy {{ numpy }}
