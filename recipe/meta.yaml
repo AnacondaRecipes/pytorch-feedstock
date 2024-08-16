@@ -34,6 +34,9 @@ build:
   # torch.compile isn't supported with python 3.12:
   # https://github.com/pytorch/pytorch/blob/97ff6cfd9c86c5c09d7ce775ab64ec5c99230f5d/test/test_transformers.py#L3418
   skip: True  # [py==312 and (gpu_variant or "").startswith("cuda")]
+  # for testing
+  skip: True  # [not (osx and arm64)]
+  skip: True  # [not py==312]
 
 {% if rc %}
 requirements:
@@ -82,7 +85,6 @@ outputs:
         - "**/libtorch_cpu.dylib"     # [osx]
         - "**/libtorch_python.dylib"  # [osx]
         - "**/libiomp5.dylib"         # [osx]
-        - "**/libomp.dylib"           # [osx]
         - "**/libc++.1.dylib"         # [osx]
         # conda-build also can't find these on Windows sometimes, for example Python 3.8, in Powershell with cygwin added to
         # the PATH. Error message is "$RPATH/<libname>.dll not found". Maybe RPATH isn't being defined correctly?
