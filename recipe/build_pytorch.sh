@@ -84,6 +84,8 @@ fi
 export BUILD_CUSTOM_PROTOBUF=OFF
 export USE_SYSTEM_PYBIND11=1
 export USE_SYSTEM_EIGEN_INSTALL=1
+# If not set, libomp is embedded into the package on osx
+export PACKAGE_TYPE="conda"
 
 # Breakpad is missing a ppc64 and s390x port
 case "$build_platform" in
