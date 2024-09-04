@@ -34,9 +34,6 @@ build:
   # torch.compile isn't supported with python 3.12:
   # https://github.com/pytorch/pytorch/blob/97ff6cfd9c86c5c09d7ce775ab64ec5c99230f5d/test/test_transformers.py#L3418
   skip: True  # [py==312 and (gpu_variant or "").startswith("cuda")]
-  # for testing
-  skip: True  # [not (osx and arm64)]
-  skip: True  # [not py==312]
 
 {% if rc %}
 requirements:
