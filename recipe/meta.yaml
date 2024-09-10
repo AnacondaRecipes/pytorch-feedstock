@@ -2,7 +2,7 @@
 # Set the RC number to build release candidates. Set to None otherwise
 {% set rc = None %}
 {% set sha256 = "69579513b26261bbab32e13b7efc99ad287fcf3103087f2d4fdf1adacd25316f" %}
-{% set build_number = 0 %}
+{% set build_number = 1 %}
 
 package:
   name: pytorch-select
@@ -82,7 +82,6 @@ outputs:
         - "**/libtorch_cpu.dylib"     # [osx]
         - "**/libtorch_python.dylib"  # [osx]
         - "**/libiomp5.dylib"         # [osx]
-        - "**/libomp.dylib"           # [osx]
         - "**/libc++.1.dylib"         # [osx]
         # conda-build also can't find these on Windows sometimes, for example Python 3.8, in Powershell with cygwin added to
         # the PATH. Error message is "$RPATH/<libname>.dll not found". Maybe RPATH isn't being defined correctly?
@@ -154,6 +153,9 @@ outputs:
         - llvm-openmp 14.0.6              # [osx and not (blas_impl == "mkl")]
         # Other requirements
         - libprotobuf {{ libprotobuf }}   # [not win]
+        # libabseil is linked against via the vendored-in onnx when
+        # it's in the environment. libprotobuf pulls it in anyway, so we should make it an explicit dependency.
+        - libabseil {{ libabseil }}       # [not win]
         # on osx, libuv supports torch.distributed support. See build.sh.
         - libuv 1.44.2                    # [win or osx]
         - numpy {{ numpy }}
@@ -266,6 +268,7 @@ outputs:
          # which we don't have.)
          # torch.compile isn't supported on python 3.12 yet
         - python test/run_test.py -i inductor/test_torchinductor.py --continue-through-error || true                 # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
+        - python ./test/run_test.py --mps --continue-through-error || true                                           # [(gpu_variant == "metal")]
         # Run pip check so as to ensure that all pytorch packages are installed
         # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/24
         - pip check

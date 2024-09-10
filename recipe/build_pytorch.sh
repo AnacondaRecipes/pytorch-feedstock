@@ -77,12 +77,15 @@ export BUILD_DOCS=OFF     # This is the default, but just in case it changes one
 # Use our sleef (only available on osx-arm64), protobuf,
 # Pybind, Eigen packages, rather than the ones submodule'd
 # into the Pytorch source tree
+# Unvendoring onnx requires our package to provide ONNXConfig.cmake etc first
 if [[ "${build_platform}" = "osx-arm64" ]]; then
     export USE_SYSTEM_SLEEF=1
 fi
 export BUILD_CUSTOM_PROTOBUF=OFF
 export USE_SYSTEM_PYBIND11=1
 export USE_SYSTEM_EIGEN_INSTALL=1
+# If not set, libomp is embedded into the package on osx
+export PACKAGE_TYPE="conda"
 
 # Breakpad is missing a ppc64 and s390x port
 case "$build_platform" in
