@@ -1,0 +1,60 @@
+From 4952a137558731fd8e80bb8b5c0d08a86abc6153 Mon Sep 17 00:00:00 2001
+From: Jean-Christophe Morin <jcmorin@anaconda.com>
+Date: Mon, 6 Nov 2023 13:45:24 -0500
+Subject: [PATCH] Fix FindMKL to make it use _dll suffix for libraries
+
+This is required because our mdl-devel package contains libraries named like
+"mkl_intel_lp64_dll.lib" instead of "mkl_intel_lp64.lib".
+
+Index: pytorch/cmake/Modules/FindMKL.cmake
+===================================================================
+--- pytorch.orig/cmake/Modules/FindMKL.cmake	2024-11-19 16:11:16.666292111 -0600
++++ pytorch/cmake/Modules/FindMKL.cmake	2024-11-19 16:14:15.719045239 -0600
+@@ -119,6 +119,9 @@
+     ELSE()
+       SET(mklthreads "mkl_intel_thread")
+       SET(mklrtls "iomp5" "guide")
++      IF (MSVC)
++        SET(mklrtls "libiomp5md")
++      ENDIF (MSVC)
+     ENDIF()
+     SET(mklifaces  "intel")
+   ENDIF (CMAKE_COMPILER_IS_GNUCC)
+@@ -268,7 +271,7 @@
+           ENDIF(OPENMP_FOUND)
+         ELSEIF(${_library} MATCHES "iomp")
+           SET(_openmp_type "Intel")
+-          FIND_LIBRARY(${_prefix}_${_library}_LIBRARY NAMES ${_library})
++          FIND_LIBRARY(${_prefix}_${_library}_LIBRARY NAMES ${_library} REQUIRED)
+           SET(_openmp_library "${${_prefix}_${_library}_LIBRARY}")
+         ELSE()
+           MESSAGE(FATAL_ERROR "Unknown OpenMP flavor: ${_library}")
+@@ -421,23 +424,23 @@
+   FOREACH(mkl64 ${mkl64s} "_core" "")
+     FOREACH(mkls ${mklseq} "")
+       IF (NOT MKL_LAPACK_LIBRARIES)
+-        FIND_LIBRARY(MKL_LAPACK_LIBRARIES NAMES "mkl_lapack${mkl64}${mkls}")
++        FIND_LIBRARY(MKL_LAPACK_LIBRARIES NAMES "mkl_lapack${mkl64}${mkls}_dll")
+         MARK_AS_ADVANCED(MKL_LAPACK_LIBRARIES)
+       ENDIF (NOT MKL_LAPACK_LIBRARIES)
+       IF (NOT MKL_LAPACK_LIBRARIES)
+-        FIND_LIBRARY(MKL_LAPACK_LIBRARIES NAMES "mkl_lapack95${mkl64}${mkls}")
++        FIND_LIBRARY(MKL_LAPACK_LIBRARIES NAMES "mkl_lapack95${mkl64}${mkls}_dll")
+         MARK_AS_ADVANCED(MKL_LAPACK_LIBRARIES)
+       ENDIF (NOT MKL_LAPACK_LIBRARIES)
+       IF (NOT MKL_SCALAPACK_LIBRARIES)
+-        FIND_LIBRARY(MKL_SCALAPACK_LIBRARIES NAMES "mkl_scalapack${mkl64}${mkls}")
++        FIND_LIBRARY(MKL_SCALAPACK_LIBRARIES NAMES "mkl_scalapack${mkl64}${mkls}_dll")
+         MARK_AS_ADVANCED(MKL_SCALAPACK_LIBRARIES)
+       ENDIF (NOT MKL_SCALAPACK_LIBRARIES)
+       IF (NOT MKL_SOLVER_LIBRARIES)
+-        FIND_LIBRARY(MKL_SOLVER_LIBRARIES NAMES "mkl_solver${mkl64}${mkls}")
++        FIND_LIBRARY(MKL_SOLVER_LIBRARIES NAMES "mkl_solver${mkl64}${mkls}_dll")
+         MARK_AS_ADVANCED(MKL_SOLVER_LIBRARIES)
+       ENDIF (NOT MKL_SOLVER_LIBRARIES)
+       IF (NOT MKL_CDFT_LIBRARIES)
+-        FIND_LIBRARY(MKL_CDFT_LIBRARIES NAMES "mkl_cdft${mkl64}${mkls}")
++        FIND_LIBRARY(MKL_CDFT_LIBRARIES NAMES "mkl_cdft${mkl64}${mkls}_dll")
+         MARK_AS_ADVANCED(MKL_CDFT_LIBRARIES)
+       ENDIF (NOT MKL_CDFT_LIBRARIES)
+     ENDFOREACH(mkls)
