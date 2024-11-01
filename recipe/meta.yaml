@@ -2,7 +2,7 @@
 # Set the RC number to build release candidates. Set to None otherwise
 {% set rc = None %}
 {% set sha256 = "6c66b59345091907cd62a693b647cee224558e7f15a9b04f4f322f4f6ffeb75b" %}
-{% set build_number = 1 %}
+{% set build_number = 0 %}
 
 package:
   name: pytorch-select
