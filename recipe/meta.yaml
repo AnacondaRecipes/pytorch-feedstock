@@ -34,6 +34,8 @@ build:
   # torch.compile isn't supported with python 3.12:
   # https://github.com/pytorch/pytorch/blob/97ff6cfd9c86c5c09d7ce775ab64ec5c99230f5d/test/test_transformers.py#L3418
   skip: True  # [py==312 and (gpu_variant or "").startswith("cuda")]
+  # remove if you see this - just because the other subdirs are building ok.
+  skip: True  # [not win]
 
 {% if rc %}
 requirements:
@@ -163,7 +165,8 @@ outputs:
         - python
         - pyyaml
         - requests
-        - setuptools
+        # https://github.com/pytorch/pytorch/issues/136541
+        - setuptools <=72.1.0
         - sleef 3.5.1                     # [osx and arm64]
         - typing_extensions >=4.8.0
         - wheel
