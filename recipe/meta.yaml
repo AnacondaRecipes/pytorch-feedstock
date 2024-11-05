@@ -34,8 +34,6 @@ build:
   # torch.compile isn't supported with python 3.12:
   # https://github.com/pytorch/pytorch/blob/97ff6cfd9c86c5c09d7ce775ab64ec5c99230f5d/test/test_transformers.py#L3418
   skip: True  # [py==312 and (gpu_variant or "").startswith("cuda")]
-  # remove if you see this - just because the other subdirs are building ok.
-  skip: True  # [not win]
 
 {% if rc %}
 requirements:
@@ -160,7 +158,7 @@ outputs:
         - libabseil {{ libabseil }}       # [not win]
         # on osx, libuv supports torch.distributed support. See build.sh.
         - libuv 1.44.2                    # [win or osx]
-        - numpy {{ numpy }}
+        - numpy 2.0.0
         - pip                             # Required for in tree builds
         - python
         - pyyaml
@@ -185,7 +183,8 @@ outputs:
         - {{ pin_compatible('cuda-cupti') }}                  # [gpu_variant == "cuda-12"]
         # other requirements
         # CF: needed to load C++ extensions
-        - {{ pin_compatible('numpy') }}
+        # see https://github.com/pytorch/pytorch/blob/v2.3.0/RELEASE.md#tldr
+        - numpy >=1.22.4 <3.0.0
         - python
         - typing_extensions >=4.8.0
         # To stop the compiler pulling in an openmp implementation itself
