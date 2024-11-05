@@ -184,7 +184,7 @@ outputs:
         # other requirements
         # CF: needed to load C++ extensions
         # see https://github.com/pytorch/pytorch/blob/v2.3.0/RELEASE.md#tldr
-        - numpy >=1.22.4 <3.0.0
+        - numpy >=1.22.4,<3.0.0
         - python
         - typing_extensions >=4.8.0
         # To stop the compiler pulling in an openmp implementation itself
