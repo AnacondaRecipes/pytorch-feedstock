@@ -175,6 +175,7 @@ requirements:
     - pybind11 2.12.0
     - eigen 3.3.7
     - astunparse 1.6.3
+    - opentelemetry-api
 
 # these tests are for the libtorch output below, but due to
 # a particularity of conda-build, that output is defined in
@@ -303,6 +304,7 @@ outputs:
         - pybind11 2.12.0
         - eigen 3.3.7
         - astunparse 1.6.3
+        - opentelemetry-api
       run:
         - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
         - llvm-openmp                            # [osx and not (blas_impl == "mkl")]
@@ -336,6 +338,7 @@ outputs:
         - __osx >=12.3                                               # [gpu_variant == "metal"]
         - libtorch {{ version }}
         - setuptools
+        - opentelemetry-api
       run_constrained:
         # current intel-openmp builds are incompatible with llvm-openmp on osx-64
         - llvm-openmp <0a0                # [(blas_impl == "mkl") and (osx and x86_64)]  
