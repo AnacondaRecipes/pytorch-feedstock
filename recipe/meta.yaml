@@ -1,8 +1,8 @@
-{% set version = "2.3.0" %}
+{% set version = "2.3.1" %}
 # Set the RC number to build release candidates. Set to None otherwise
 {% set rc = None %}
-{% set sha256 = "69579513b26261bbab32e13b7efc99ad287fcf3103087f2d4fdf1adacd25316f" %}
-{% set build_number = 1 %}
+{% set sha256 = "6c66b59345091907cd62a693b647cee224558e7f15a9b04f4f322f4f6ffeb75b" %}
+{% set build_number = 0 %}
 
 package:
   name: pytorch-select
@@ -158,12 +158,13 @@ outputs:
         - libabseil {{ libabseil }}       # [not win]
         # on osx, libuv supports torch.distributed support. See build.sh.
         - libuv 1.44.2                    # [win or osx]
-        - numpy {{ numpy }}
+        - numpy 2.0.0
         - pip                             # Required for in tree builds
         - python
         - pyyaml
         - requests
-        - setuptools
+        # https://github.com/pytorch/pytorch/issues/136541
+        - setuptools <=72.1.0
         - sleef 3.5.1                     # [osx and arm64]
         - typing_extensions >=4.8.0
         - wheel
@@ -182,7 +183,8 @@ outputs:
         - {{ pin_compatible('cuda-cupti') }}                  # [gpu_variant == "cuda-12"]
         # other requirements
         # CF: needed to load C++ extensions
-        - {{ pin_compatible('numpy') }}
+        # see https://github.com/pytorch/pytorch/blob/v2.3.0/RELEASE.md#tldr
+        - numpy >=1.22.4,<3.0.0
         - python
         - typing_extensions >=4.8.0
         # To stop the compiler pulling in an openmp implementation itself
