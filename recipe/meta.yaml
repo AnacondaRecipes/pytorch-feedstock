@@ -48,7 +48,7 @@ source:
       # https://github.com/pytorch/pytorch/pull/133235
       - patches/0006-Update-sympy-version.patch
       - patches/0007-continue-tests-on-failure.patch
-      - patches/0008-remove-mkl-constraint-win.patch                           # [win]
+      - patches/0009-add-missing-includes.patch
 
       # See https://github.com/pytorch/pytorch/pull/137331
       # for status
