@@ -188,7 +188,7 @@ test:
     - test -f $PREFIX/lib/{{ each_lib }}.dylib  # [osx]
     {% endfor %}
     {% for each_lib in ['libc10_cuda', 'libcaffe2_nvrtc', 'libtorch_cuda', 'libtorch_cuda_linalg'] %}
-    - test -f $PREFIX/lib/{{ each_lib }}.so     # [linux and cuda_compiler_version != "None"]
+    - test -f $PREFIX/lib/{{ each_lib }}.so     # [linux and (gpu_variant or "").startswith("cuda")]
     {% endfor %}
 
 outputs:
@@ -206,8 +206,6 @@ outputs:
       run_exports:
         - {{ pin_subpackage('pytorch', max_pin='x.x') }}
         - {{ pin_subpackage('libtorch', max_pin='x.x') }}
-      skip: true  # [win]
-      skip: true  # [cuda_compiler_version != "None" and linux64 and blas_impl != "mkl"]
 
     script: build_pytorch.sh   # [unix]
     script: build_pytorch.bat  # [win]
@@ -220,7 +218,7 @@ outputs:
         - {{ compiler('c') }}
         - {{ compiler('cxx') }}
         - {{ compiler('cuda') }}                 # [(gpu_variant or "").startswith("cuda")]
-        - nvtx-c                                 # [cuda_compiler_version != "None" and build_platform != target_platform]
+        - nvtx-c                                 # [(gpu_variant or "").startswith("cuda") and build_platform != target_platform]
         {% if cuda_major >= 12 %}
         - cuda-driver-dev                        # [build_platform != target_platform]
         - cuda-cudart-dev                        # [build_platform != target_platform]
