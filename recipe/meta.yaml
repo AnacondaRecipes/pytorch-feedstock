@@ -73,7 +73,7 @@ build:
   ignore_run_exports:
     - python *                               # [megabuild]
     - numpy *                                # [megabuild]
-  skip: True  # [py<38]
+  skip: True  # [py<39]
 
 requirements:
   # Keep this list synchronized (except for python*, numpy*) in outputs
@@ -145,8 +145,7 @@ requirements:
     # other requirements
     - python 3.12  # [megabuild]
     - python       # [not megabuild]
-    - numpy *      # [megabuild]
-    - numpy        # [not megabuild]
+    - numpy 2.*
     - pip
     - setuptools
     - wheel
@@ -172,7 +171,7 @@ requirements:
     - libuv
     - pkg-config  # [unix]
     - typing_extensions
-    - pybind11 2.12.0
+    - pybind11 2.12.1
     - eigen 3.3.7
     - astunparse 1.6.3
     - opentelemetry-api
@@ -206,6 +205,7 @@ outputs:
       run_exports:
         - {{ pin_subpackage('pytorch', max_pin='x.x') }}
         - {{ pin_subpackage('libtorch', max_pin='x.x') }}
+      skip: True  # [py<39]
 
     script: build_pytorch.sh   # [unix]
     script: build_pytorch.bat  # [win]
@@ -272,7 +272,7 @@ outputs:
         {% endif %}
         # other requirements
         - python
-        - numpy
+        - numpy 2.*
         - pip
         - setuptools
         - wheel
@@ -299,7 +299,7 @@ outputs:
         - pkg-config  # [unix]
         - typing_extensions
         - {{ pin_subpackage('libtorch', exact=True) }}
-        - pybind11 2.12.0
+        - pybind11 2.12.1
         - eigen 3.3.7
         - astunparse 1.6.3
         - opentelemetry-api
@@ -312,6 +312,8 @@ outputs:
         - {{ pin_compatible('cuda-cupti') }}                  # [gpu_variant == "cuda-12"]
         # other requirements
         - python
+        # from https://numpy.org/neps/nep-0029-deprecation_policy.html
+        - numpy >=1.24.0,<3.0.0
         - typing_extensions
         # To stop the compiler pulling in an openmp implementation itself (although I'm not sure this mutex works anyway)
         - _openmp_mutex                                       # [linux]
