@@ -159,7 +159,8 @@ if [[ "$blas_impl" == "openblas" ]]; then
     #sed -i.bak "s#FIND_LIBRARY.*#set(OpenBLAS_LIB ${PREFIX}/lib/liblapack${SHLIB_EXT} ${PREFIX}/lib/libcblas${SHLIB_EXT} ${PREFIX}/lib/libblas${SHLIB_EXT})#g" cmake/Modules/FindOpenBLAS.cmake
 elif [[ "$blas_impl" == "mkl" ]]; then
     export BLAS=MKL
-    export USE_MKLDNN=1
+    # TODO: look at mkldnn properly later
+    export USE_MKLDNN=0
 else
     echo "[ERROR] Unsupported BLAS implementation '${blas_impl}'" >&2
     exit 1
