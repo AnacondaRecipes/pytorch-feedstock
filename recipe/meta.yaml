@@ -147,7 +147,7 @@ requirements:
     - python       # [not megabuild]
     - numpy 2.*
     - pip
-    - setuptools
+    - setuptools <=72.1.0
     - wheel
     - pyyaml
     - requests
@@ -274,7 +274,7 @@ outputs:
         - python
         - numpy 2.*
         - pip
-        - setuptools
+        - setuptools <=72.1.0
         - wheel
         - pyyaml
         - requests
