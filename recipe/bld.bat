@@ -67,6 +67,7 @@ set CMAKE_GENERATOR=Ninja
 set "CMAKE_GENERATOR_PLATFORM="
 set "CMAKE_PREFIX_PATH=%LIBRARY_PREFIX%"
 set CMAKE_BUILD_TYPE=Release
+set CMAKE_INSTALL_RPATH=%LIBRARY_BIN%
 :: This is so that CMake finds the environment's Python, not another one
 set Python_EXECUTABLE=%PYTHON%
 set Python3_EXECUTABLE=%PYTHON%
