@@ -201,6 +201,14 @@ outputs:
         - torchrun = torch.distributed.run:main
       ignore_run_exports:             # [osx]
         - libuv                       # [osx]
+      missing_dso_whitelist:
+        # The are dynamically loaded from %SP_DIR%\torch\lib\
+        - "**/asmjit.dll"             # [win]
+        - "**/c10.dll"                # [win]
+        - "**/fbgemm.dll"             # [win]
+        - "**/shm.dll"                # [win]
+        - "**/torch_cpu.dll"          # [win]
+        - "**/torch_python.dll"       # [win]
       detect_binary_files_with_prefix: false
       run_exports:
         - {{ pin_subpackage('pytorch', max_pin='x.x') }}
