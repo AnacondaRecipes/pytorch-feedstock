@@ -192,6 +192,15 @@ test:
 
 outputs:
   - name: libtorch
+    build:
+      missing_dso_whitelist:
+        # The are dynamically loaded from %SP_DIR%\torch\lib\
+        - "**/asmjit.dll"             # [win]
+        - "**/c10.dll"                # [win]
+        - "**/fbgemm.dll"             # [win]
+        - "**/shm.dll"                # [win]
+        - "**/torch_cpu.dll"          # [win]
+        - "**/torch_python.dll"       # [win]
   - name: pytorch
     build:
       string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda-12"]
