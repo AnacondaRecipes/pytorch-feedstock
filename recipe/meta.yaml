@@ -143,8 +143,8 @@ requirements:
     - cuda-cupti
     {% endif %}
     # other requirements
-    - python 3.12  # [megabuild]
-    - python       # [not megabuild]
+    - python 3.12  # [megabuild and not win]
+    - python       # [not megabuild or win]
     - numpy 2.*
     - pip
     - setuptools <=72.1.0
@@ -175,6 +175,8 @@ requirements:
     - eigen 3.3.7
     - astunparse 1.6.3
     - opentelemetry-api
+  run:
+    - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
 
 # these tests are for the libtorch output below, but due to
 # a particularity of conda-build, that output is defined in

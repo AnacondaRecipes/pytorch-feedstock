@@ -87,11 +87,5 @@ set "USE_SYSTEM_SLEEF=OFF"
 :: duplicate symbols at link time.
 :: set "BUILD_CUSTOM_PROTOBUF=OFF"
 
-if "%blas_impl%" == "mkl" (
-   set "USE_OPENMP=1"
-) else (
-   set "USE_OPENMP=0"
-)
-
 %PYTHON% -m pip install . --no-deps --no-build-isolation -vv
 if errorlevel 1 exit /b 1
