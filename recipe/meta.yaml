@@ -175,8 +175,9 @@ requirements:
     - eigen 3.3.7
     - astunparse 1.6.3
     - opentelemetry-api
-  run:
-    - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
+  run:  # [win]
+    - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl" and win]
+    - python  # [win]
 
 # these tests are for the libtorch output below, but due to
 # a particularity of conda-build, that output is defined in
@@ -374,7 +375,8 @@ outputs:
         - mock  # [linux]
         - pip
         - expecttest
-        - xmlrunner
+        # unittest-xml-reporting provides xmlrunner 
+        - unittest-xml-reporting 
       imports:
         - torch
       source_files:
