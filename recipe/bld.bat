@@ -21,6 +21,29 @@ if "%pytorch_variant%" == "gpu" (
     set USE_CUDA=0
 )
 
+if "%PKG_NAME%" == "pytorch" (
+  set "PIP_ACTION=install"
+  :: We build libtorch for a specific python version. 
+  :: This ensures its only build once. However, when that version changes 
+  :: we need to make sure to update that here.
+  sed "s/3.12/%PY_VER%/g" build/CMakeCache.txt.orig > build/CMakeCache.txt
+  sed -i "s/312/%CONDA_PY%/g" build/CMakeCache.txt
+
+  :: We use a fan-out build to avoid the long rebuild of libtorch
+  :: However, the location of the numpy headers changes between python 3.8
+  :: and 3.9+ since numpy 2.0 only exists for 3.9+
+  if "%PY_VER%" == "3.8" (
+    sed -i.bak "s#numpy\\\\_core\\\\include#numpy\\\\core\\\\include#g" build/CMakeCache.txt
+  ) else ( 
+    sed -i.bak "s#numpy\\\\core\\\\include#numpy\\\\_core\\\\include#g" build/CMakeCache.txt
+  )
+
+) else (
+  :: For the main script we just build a wheel for so that the C++/CUDA
+  :: parts are built. Then they are reused in each python version.
+  set "PIP_ACTION=wheel"
+)
+
 :: =============================== CUDA FLAGS> ======================================
 if "%build_with_cuda%" == "" goto cuda_flags_end
 
@@ -89,3 +112,33 @@ set "USE_SYSTEM_SLEEF=OFF"
 
 %PYTHON% -m pip install . --no-deps --no-build-isolation -vv
 if errorlevel 1 exit /b 1
+
+if "%PKG_NAME%" == "libtorch" (
+    :: Extract the compiled wheel into a temporary directory
+    if not exist "%SRC_DIR%/dist" mkdir %SRC_DIR%/dist
+    pushd %SRC_DIR%/dist
+    for %%f in (../torch-*.whl) do (
+        wheel unpack %%f
+    )
+
+    :: Navigate into the unpacked wheel
+    pushd torch-*
+
+    :: Move the binaries into the packages site-package directory
+    robocopy /NP /NFL /NDL /NJH /E torch\bin %SP_DIR%\torch\bin\
+    robocopy /NP /NFL /NDL /NJH /E torch\lib %SP_DIR%\torch\lib\
+    robocopy /NP /NFL /NDL /NJH /E torch\share %SP_DIR%\torch\share\
+    for %%f in (ATen caffe2 torch c10) do (
+        robocopy /NP /NFL /NDL /NJH /E torch\include\%%f %SP_DIR%\torch\include\%%f\
+    )
+
+    :: Remove the python binary file, that is placed in the site-packages 
+    :: directory by the specific python specific pytorch package.
+    del %SP_DIR%\torch\lib\torch_python.*
+    
+    popd
+    popd
+
+    :: Keep the original backed up to sed later
+    copy build\CMakeCache.txt build\CMakeCache.txt.orig
+)
