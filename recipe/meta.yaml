@@ -175,8 +175,8 @@ requirements:
     - eigen 3.3.7
     - astunparse 1.6.3
     - opentelemetry-api
-  run:  # [win]
-    - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl" and win]
+  run:
+    - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
 
 # these tests are for the libtorch output below, but due to
 # a particularity of conda-build, that output is defined in
