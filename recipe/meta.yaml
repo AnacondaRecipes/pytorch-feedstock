@@ -74,6 +74,7 @@ build:
     - python *                               # [megabuild]
     - numpy *                                # [megabuild]
   skip: True  # [py<39]
+  skip: True  # [win]
 
 requirements:
   # Keep this list synchronized (except for python*, numpy*) in outputs
@@ -175,6 +176,9 @@ requirements:
     - eigen 3.3.7
     - astunparse 1.6.3
     - opentelemetry-api
+  # satisfy overlinking checks
+  run:
+    - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
 
 # these tests are for the libtorch output below, but due to
 # a particularity of conda-build, that output is defined in
@@ -192,6 +196,9 @@ test:
 
 outputs:
   - name: libtorch
+    build:
+      missing_dso_whitelist:
+        - $RPATH/ld64.so.1  # [s390x]
   - name: pytorch
     build:
       string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda-12"]
@@ -201,11 +208,14 @@ outputs:
         - torchrun = torch.distributed.run:main
       ignore_run_exports:             # [osx]
         - libuv                       # [osx]
+      missing_dso_whitelist:
+        - $RPATH/ld64.so.1  # [s390x]
       detect_binary_files_with_prefix: false
       run_exports:
         - {{ pin_subpackage('pytorch', max_pin='x.x') }}
         - {{ pin_subpackage('libtorch', max_pin='x.x') }}
       skip: True  # [py<39]
+      skip: True  # [win]
 
     script: build_pytorch.sh   # [unix]
     script: build_pytorch.bat  # [win]
@@ -355,7 +365,11 @@ outputs:
         - mock  # [linux]
         - pip
         - expecttest
-        - xmlrunner
+        # unittest-xml-reporting provides xmlrunner
+        - unittest-xml-reporting
+        - pytest-rerunfailures
+        - pytest-flakefinder
+        - pytest-xdist
       imports:
         - torch
       source_files:
