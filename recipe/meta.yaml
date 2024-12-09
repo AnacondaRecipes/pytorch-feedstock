@@ -54,7 +54,7 @@ source:
       # for status
       - patches/137331.patch
 {% endif %}
-  - url: https://github.com/pytorch/builder/blob/{{ smoke_test_commit }}/test/smoke_test/smoke_test.py
+  - url: https://raw.githubusercontent.com/pytorch/builder/{{ smoke_test_commit }}/test/smoke_test/smoke_test.py
     folder: smoke_test
 
 
