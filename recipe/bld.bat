@@ -26,8 +26,9 @@ if "%PKG_NAME%" == "pytorch" (
   :: We build libtorch for a specific python version. 
   :: This ensures its only build once. However, when that version changes 
   :: we need to make sure to update that here.
-  sed "s/3.12/%PY_VER%/g" build/CMakeCache.txt.orig > build/CMakeCache.txt
-  sed -i "s/312/%CONDA_PY%/g" build/CMakeCache.txt
+  for /f "tokens=2 delims=." %%a in ("%PY_VER%") do set MINOR_VER=%%a
+  sed "s/Python;3;12/Python;3;%MINOR_VER%/g;s/v3.12/v%PY_VER%/g" build/CMakeCache.txt.orig > build/CMakeCache.txt
+  sed -i "s/python312/python%CONDA_PY%/g" build/CMakeCache.txt
 
   :: We use a fan-out build to avoid the long rebuild of libtorch
   :: However, the location of the numpy headers changes between python 3.8
