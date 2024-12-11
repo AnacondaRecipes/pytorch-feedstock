@@ -23,26 +23,14 @@ if "%pytorch_variant%" == "gpu" (
 
 if "%PKG_NAME%" == "pytorch" (
   set "PIP_ACTION=install"
-  :: We build libtorch for a specific python version. 
-  :: This ensures its only build once. However, when that version changes 
-  :: we need to make sure to update that here.
-  for /f "tokens=2 delims=." %%a in ("%PY_VER%") do set MINOR_VER=%%a
-  sed "s/Python;3;12/Python;3;%MINOR_VER%/g;s/v3.12/v%PY_VER%/g" build/CMakeCache.txt.orig > build/CMakeCache.txt
-  sed -i "s/python312/python%CONDA_PY%/g" build/CMakeCache.txt
-
-  :: We use a fan-out build to avoid the long rebuild of libtorch
-  :: However, the location of the numpy headers changes between python 3.8
-  :: and 3.9+ since numpy 2.0 only exists for 3.9+
-  if "%PY_VER%" == "3.8" (
-    sed -i.bak "s#numpy\\\\_core\\\\include#numpy\\\\core\\\\include#g" build/CMakeCache.txt
-  ) else ( 
-    sed -i.bak "s#numpy\\\\core\\\\include#numpy\\\\_core\\\\include#g" build/CMakeCache.txt
-  )
-
+  set BUILD_PYTHON_ONLY=1
 ) else (
   :: For the main script we just build a wheel for so that the C++/CUDA
   :: parts are built. Then they are reused in each python version.
   set "PIP_ACTION=wheel"
+  :: Skip building functorch when building libpytorch
+  :: set BUILD_LIBTORCH_WHL=1
+  set BUILD_FUNCTORCH=OFF
 )
 
 :: =============================== CUDA FLAGS> ======================================
@@ -133,14 +121,6 @@ if "%PKG_NAME%" == "libtorch" (
         robocopy /NP /NFL /NDL /NJH /E torch\include\%%f %SP_DIR%\torch\include\%%f\
     )
 
-    :: Remove the python binary files, that are placed in the site-packages 
-    :: directory by the specific python specific pytorch package.
-    del %SP_DIR%\torch\lib\torch_python.*
-    del %SP_DIR%\functorch\_C*.pyd
-    
     popd
     popd
-
-    :: Keep the original backed up to sed later
-    copy build\CMakeCache.txt build\CMakeCache.txt.orig
 )
