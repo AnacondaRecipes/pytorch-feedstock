@@ -155,12 +155,9 @@ fi
 if [[ "$blas_impl" == "openblas" ]]; then
     # Fake openblas
     export BLAS=OpenBLAS
-    export USE_MKLDNN=0
     #sed -i.bak "s#FIND_LIBRARY.*#set(OpenBLAS_LIB ${PREFIX}/lib/liblapack${SHLIB_EXT} ${PREFIX}/lib/libcblas${SHLIB_EXT} ${PREFIX}/lib/libblas${SHLIB_EXT})#g" cmake/Modules/FindOpenBLAS.cmake
 elif [[ "$blas_impl" == "mkl" ]]; then
     export BLAS=MKL
-    # TODO: look at mkldnn properly later
-    export USE_MKLDNN=0
 else
     echo "[ERROR] Unsupported BLAS implementation '${blas_impl}'" >&2
     exit 1
@@ -187,12 +184,11 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     # we can override the default and set USE_DISTRIBUTED=1.
     export USE_DISTRIBUTED=1
 
-    # TODO: the mkldnn stuff from conda-forge isn't working for us. figure out why
-    # if [[ "$target_platform" == "osx-arm64" ]]; then
-    #     # MKLDNN did not support on Apple M1 at the time support Apple M1
-    #     # was added. Revisit later
-    #     export USE_MKLDNN=0
-    # fi
+    if [[ "$target_platform" == "osx-arm64" ]]; then
+        # MKLDNN did not support on Apple M1 at the time support Apple M1
+        # was added. Revisit later
+        export USE_MKLDNN=0
+    fi
 
     if [[ ${gpu_variant} == "metal" ]]; then
         export USE_MPS=1
@@ -209,7 +205,7 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
     # Even though cudnn is used for CUDA builds, it's good to enable
     # for MKLDNN for CUDA builds when CUDA builds are used on a machine
     # with no NVIDIA GPUs. However compilation fails with mkldnn and cuda enabled.
-    #export USE_MKLDNN=OFF
+    export USE_MKLDNN=OFF
     export USE_CUDA=1
     # PyTorch Vendors an old version of FindCUDA
     # https://gitlab.kitware.com/cmake/cmake/-/blame/master/Modules/FindCUDA.cmake#L891
@@ -279,9 +275,9 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
 else
     # MKLDNN is an Apache-2.0 licensed library for DNNs and is used
     # for CPU builds. Not to be confused with MKL.
-    #export USE_MKLDNN=1
+    export USE_MKLDNN=1
     export USE_CUDA=0
-    #export CMAKE_TOOLCHAIN_FILE="${RECIPE_DIR}/cross-linux.cmake"
+    export CMAKE_TOOLCHAIN_FILE="${RECIPE_DIR}/cross-linux.cmake"
 fi
 
 echo '${CXX}'=${CXX}
