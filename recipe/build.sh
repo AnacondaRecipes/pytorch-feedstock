@@ -293,7 +293,8 @@ if [[ "$PKG_NAME" == "libtorch" ]]; then
   pushd torch-*
   mv torch/bin/* ${PREFIX}/bin
   mv torch/lib/* ${PREFIX}/lib
-  mv torch/share/* ${PREFIX}/share
+  # need to merge these now because we're using system pybind11
+  rsync -a torch/share/* ${PREFIX}/share
   for f in ATen caffe2 tensorpipe torch c10; do
     mv torch/include/$f ${PREFIX}/include/$f
   done
