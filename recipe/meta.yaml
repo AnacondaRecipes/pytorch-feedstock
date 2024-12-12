@@ -175,6 +175,7 @@ requirements:
     - eigen 3.3.7
     - astunparse 1.6.3
     - opentelemetry-api
+  # satisfy overlinking checks
   run:
     - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
 
@@ -227,6 +228,7 @@ outputs:
         - {{ pin_subpackage('pytorch', max_pin='x.x') }}
         - {{ pin_subpackage('libtorch', max_pin='x.x') }}
       skip: True  # [py<39]
+      skip: True  # [win]
 
     script: build_pytorch.sh   # [unix]
     script: build_pytorch.bat  # [win]
@@ -376,7 +378,7 @@ outputs:
         - mock  # [linux]
         - pip
         - expecttest
-        # unittest-xml-reporting provides xmlrunner 
+        # unittest-xml-reporting provides xmlrunner
         - unittest-xml-reporting
         - pytest-rerunfailures
         - pytest-flakefinder
