@@ -291,11 +291,11 @@ if [[ "$PKG_NAME" == "libtorch" ]]; then
   pushd $SRC_DIR/dist
   wheel unpack ../torch-*.whl
   pushd torch-*
-  cp -r torch/bin/* ${PREFIX}/bin
-  cp -r torch/lib/* ${PREFIX}/lib
-  cp -r torch/share/* ${PREFIX}/share
+  mv torch/bin/* ${PREFIX}/bin
+  mv torch/lib/* ${PREFIX}/lib
+  mv torch/share/* ${PREFIX}/share
   for f in ATen caffe2 tensorpipe torch c10; do
-    cp -r torch/include/$f ${PREFIX}/include/$f
+    mv torch/include/$f ${PREFIX}/include/$f
   done
   rm ${PREFIX}/lib/libtorch_python.*
   popd
@@ -309,6 +309,5 @@ else
   # With upstream non-split build, `libtorch_python.so`
   # and TorchConfig.cmake are both in ${SP_DIR}/torch/lib and therefore
   # this is not needed.
-  # TODO this isn't in the site-packages directory as expected by conda-forge. why?
-  cp ${SRC_DIR}/dist/torch-*/torch/lib/libtorch_python${SHLIB_EXT} ${PREFIX}/lib
+  mv ${SP_DIR}/torch/lib/libtorch_python${SHLIB_EXT} ${PREFIX}/lib
 fi
