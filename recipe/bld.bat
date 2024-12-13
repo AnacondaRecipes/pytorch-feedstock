@@ -25,12 +25,13 @@ set "PIP_ACTION=install"
 
 if "%PKG_NAME%" == "pytorch" (
   set BUILD_PYTHON_ONLY=1
+  set BUILD_LIBTORCH_WHL=
+  set BUILD_PYTHON=ON
 ) else (
   :: For the main script we just build a wheel for so that the C++/CUDA
   :: parts are built. Then they are reused in each python version.
-  :: Skip building functorch when building libpytorch
-  :: set BUILD_LIBTORCH_WHL=1
-  set BUILD_FUNCTORCH=OFF
+  :: Skip building functorch when building libtorch
+  set BUILD_LIBTORCH_WHL=1
 )
 
 :: =============================== CUDA FLAGS> ======================================
@@ -98,6 +99,11 @@ set "USE_SYSTEM_SLEEF=OFF"
 :: Note that BUILD_CUSTOM_PROTOBUF=OFF (which would use our protobuf) doesn't work properly as of last testing, and results in
 :: duplicate symbols at link time.
 :: set "BUILD_CUSTOM_PROTOBUF=OFF"
+set C10_BUILD_SHARED_LIBS=1
+set BUILD_SHARED_LIBS=1
+
+:: Clear the build from any remaining artifacts.
+cmake --build build --target clean
 
 %PYTHON% -m pip install . --no-deps --no-build-isolation -vv --no-clean
 if errorlevel 1 exit /b 1
