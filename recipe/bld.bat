@@ -27,6 +27,7 @@ if "%PKG_NAME%" == "pytorch" (
   set BUILD_PYTHON_ONLY=1
   set BUILD_LIBTORCH_WHL=
   set BUILD_PYTHON=ON
+  set CMAKE_ARGS=-DBUILD_PYTHON=ON
 ) else (
   :: For the main script we just build a wheel for so that the C++/CUDA
   :: parts are built. Then they are reused in each python version.
@@ -105,5 +106,5 @@ set BUILD_SHARED_LIBS=1
 :: Clear the build from any remaining artifacts.
 cmake --build build --target clean
 
-%PYTHON% -m pip install . --no-deps --no-build-isolation -vv --no-clean
+%PYTHON% -m pip install . --no-deps --no-build-isolation -vv
 if errorlevel 1 exit /b 1
