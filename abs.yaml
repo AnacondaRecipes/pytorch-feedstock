@@ -6,10 +6,3 @@ aggregate_check: false
 
 channels:
   - https://staging.continuum.io/prefect/fs/sympy-feedstock/pr10/3afd78c
-
-# the conda build parameters to use
-build_parameters:
-  - "--suppress-variables"
-  - "--skip-existing"
-  - "--error-overlinking"
-  - "--no-test"
