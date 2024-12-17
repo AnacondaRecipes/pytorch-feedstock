@@ -106,5 +106,6 @@ set BUILD_SHARED_LIBS=1
 :: Clear the build from any remaining artifacts.
 cmake --build build --target clean
 
-%PYTHON% -m pip install . --no-deps --no-build-isolation -vv
+:: %PYTHON% -m pip install . --no-deps --no-build-isolation -vv
+python setup.py install --cmake
 if errorlevel 1 exit /b 1
