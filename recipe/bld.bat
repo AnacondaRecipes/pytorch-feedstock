@@ -160,9 +160,10 @@ if "%PKG_NAME%" == "libtorch" (
         robocopy /NP /NFL /NDL /NJH /E torch\include\%%f %SP_DIR%\torch\include\%%f\
     )
 
-    :: Remove the python binary file, that is placed in the site-packages 
+    :: Remove the python binary files, that are placed in the site-packages 
     :: directory by the specific python specific pytorch package.
     del %SP_DIR%\torch\lib\torch_python.*
+    del %SP_DIR%\functorch\_C*.pyd
     
     popd
     popd
