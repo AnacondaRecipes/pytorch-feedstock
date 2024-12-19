@@ -124,15 +124,6 @@ set "USE_SYSTEM_SLEEF=OFF"
 set "BUILD_CUSTOM_PROTOBUF=OFF"
 set "USE_LITE_PROTO=ON"
 
-:: Configure sccache
-set "CMAKE_C_COMPILER_LAUNCHER=sccache"
-set "CMAKE_CXX_COMPILER_LAUNCHER=sccache"
-set "CMAKE_CUDA_COMPILER_LAUNCHER=sccache"
-
-sccache --stop-server
-sccache --start-server
-sccache --zero-stats
-
 :: Clear the build from any remaining artifacts.
 cmake --build build --target clean
 
@@ -179,6 +170,3 @@ if "%PKG_NAME%" == "libtorch" (
     :: Keep the original backed up to sed later
     copy build\CMakeCache.txt build\CMakeCache.txt.orig
 )
-
-:: Show the sccache stats.
-sccache --show-stats

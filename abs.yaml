@@ -6,4 +6,3 @@ aggregate_check: false
 
 channels:
   - https://staging.continuum.io/prefect/fs/sympy-feedstock/pr10/3afd78c
-  - build/label/sccache
