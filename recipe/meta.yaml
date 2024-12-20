@@ -118,8 +118,8 @@ requirements:
     - ninja-base
     # Keep libprotobuf here so that a compatibile version
     # of protobuf is installed between build and host
-    - libprotobuf    # [not win]
-    - protobuf       # [not win]
+    - libprotobuf
+    - protobuf
     - make      # [linux]
     # Uncomment to use ccache, see README and build_pytorch.sh
     # - ccache
@@ -167,7 +167,7 @@ requirements:
     - intel-openmp   {{ mkl }}        # [blas_impl == "mkl"]
     - llvm-openmp 14.0.6              # [osx and not (blas_impl == "mkl")]
     - libabseil
-    - libprotobuf {{ libprotobuf }}   # [not win]
+    - libprotobuf {{ libprotobuf }}
     - sleef 3.5.1                     # [not win]
     - typing
     - libuv
@@ -269,8 +269,8 @@ outputs:
         - ninja-base
         # Keep libprotobuf here so that a compatibile version
         # of protobuf is installed between build and host
-        - libprotobuf  # [not win]
-        - protobuf     # [not win]
+        - libprotobuf
+        - protobuf
         - make      # [linux]
         # Uncomment to use ccache, see README and build_pytorch.sh
         # - ccache
@@ -316,7 +316,7 @@ outputs:
         - intel-openmp   {{ mkl }}        # [blas_impl == "mkl"]
         - llvm-openmp 14.0.6              # [osx and not (blas_impl == "mkl")]
         - libabseil
-        - libprotobuf {{ libprotobuf }}   # [not win]
+        - libprotobuf {{ libprotobuf }}
         - sleef 3.5.1                     # [not win]
         - typing
         - libuv
