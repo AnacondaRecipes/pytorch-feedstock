@@ -114,6 +114,7 @@ requirements:
     # This has a strong run_export so we don't need to put it in `host` or `run`
     # We use llvm-openmp for openblas variants on osx.
     - llvm-openmp 14.0.6              # [osx and not (blas_impl == "mkl")]
+    - libuv     # [win]
     - cmake
     - ninja-base
     # Keep libprotobuf here so that a compatibile version
