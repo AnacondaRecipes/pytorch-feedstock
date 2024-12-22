@@ -199,6 +199,13 @@ outputs:
   - name: libtorch
     build:
       missing_dso_whitelist:
+        # The are dynamically loaded from %SP_DIR%\torch\lib\
+        - "**/asmjit.dll"             # [win]
+        - "**/c10.dll"                # [win]
+        - "**/fbgemm.dll"             # [win]
+        - "**/shm.dll"                # [win]
+        - "**/torch_cpu.dll"          # [win]
+        - "**/torch_python.dll"       # [win]
         - $RPATH/ld64.so.1  # [s390x]
   - name: pytorch
     build:
@@ -210,6 +217,13 @@ outputs:
       ignore_run_exports:             # [osx]
         - libuv                       # [osx]
       missing_dso_whitelist:
+        # The are dynamically loaded from %SP_DIR%\torch\lib\
+        - "**/asmjit.dll"             # [win]
+        - "**/c10.dll"                # [win]
+        - "**/fbgemm.dll"             # [win]
+        - "**/shm.dll"                # [win]
+        - "**/torch_cpu.dll"          # [win]
+        - "**/torch_python.dll"       # [win]
         - $RPATH/ld64.so.1  # [s390x]
       detect_binary_files_with_prefix: false
       run_exports:
