@@ -1,4 +1,5 @@
 @echo On
+setlocal enabledelayedexpansion
 
 :: The PyTorch test suite includes some symlinks, which aren't resolved on Windows, leading to packaging errors.
 :: ATTN! These change and have to be updated manually, often with each release. 
@@ -21,6 +22,50 @@ if "%pytorch_variant%" == "gpu" (
     set USE_CUDA=0
 )
 
+:: TODO(baszalmstra): Figure out if we need these flags
+SET "USE_NUMA=0"
+SET "USE_ITT=0"
+
+:: KINETO seems to require CUPTI and will look quite hard for it.
+:: CUPTI seems to cause trouble when users install a version of
+:: cudatoolkit different than the one specified at compile time.
+:: https://github.com/conda-forge/pytorch-cpu-feedstock/issues/135
+set "USE_KINETO=OFF"
+
+if "%PKG_NAME%" == "pytorch" (
+  set "PIP_ACTION=install"
+  :: We build libtorch for a specific python version. 
+  :: This ensures its only build once. However, when that version changes 
+  :: we need to make sure to update that here.
+  :: Get the full python version string
+  for /f "tokens=2" %%a in ('python --version 2^>^&1') do set PY_VERSION_FULL=%%a
+
+  :: Replace Python312 or python312 with ie Python311 or python311
+  sed "s/\([Pp]ython\)312/\1%CONDA_PY%/g" build/CMakeCache.txt.orig > build/CMakeCache.txt
+
+  :: Replace version string v3.12.8() with ie v3.11.11()
+  sed -i.bak -E "s/v3\.12\.[0-9]+/v%PY_VERSION_FULL%/g" build/CMakeCache.txt
+
+  :: Replace interpreter properties Python;3;12;8;64 with ie Python;3;11;11;64
+  sed -i.bak -E "s/Python;3;12;[0-9]+;64/Python;%PY_VERSION_FULL:.=;%;64/g" build/CMakeCache.txt
+
+  :: Replace cp312-win_amd64 with ie cp311-win_amd64
+  sed -i.bak "s/cp312/cp%CONDA_PY%/g" build/CMakeCache.txt
+
+  :: We use a fan-out build to avoid the long rebuild of libtorch
+  :: However, the location of the numpy headers changes between python 3.8
+  :: and 3.9+ since numpy 2.0 only exists for 3.9+
+  if "%PY_VER%" == "3.8" (
+    sed -i.bak "s#numpy\\\\_core\\\\include#numpy\\\\core\\\\include#g" build/CMakeCache.txt
+  ) else ( 
+    sed -i.bak "s#numpy\\\\core\\\\include#numpy\\\\_core\\\\include#g" build/CMakeCache.txt
+  )
+) else (
+  :: For the main script we just build a wheel for so that the C++/CUDA
+  :: parts are built. Then they are reused in each python version.
+  set "PIP_ACTION=wheel"
+)
+
 :: =============================== CUDA FLAGS> ======================================
 if "%build_with_cuda%" == "" goto cuda_flags_end
 
@@ -41,6 +86,7 @@ set USE_MKLDNN=1
 set USE_TENSORPIPE=0
 set DISTUTILS_USE_SDK=1
 set BUILD_TEST=0
+set INSTALL_TEST=0
 :: Don't increase MAX_JOBS to NUMBER_OF_PROCESSORS, as it will run out of heap
 set CPU_COUNT=1
 set MAX_JOBS=%CPU_COUNT%
@@ -64,9 +110,12 @@ set CUDNN_INCLUDE_DIR=%LIBRARY_PREFIX%\include
 :: =============================== CUDA< ======================================
 
 set CMAKE_GENERATOR=Ninja
+set "CMAKE_GENERATOR_TOOLSET="
 set "CMAKE_GENERATOR_PLATFORM="
 set "CMAKE_PREFIX_PATH=%LIBRARY_PREFIX%"
-set CMAKE_BUILD_TYPE=Release
+set "CMAKE_INCLUDE_PATH=%LIBRARY_INC%"
+set "CMAKE_LIBRARY_PATH=%LIBRARY_LIB%"
+set "CMAKE_BUILD_TYPE=Release"
 :: This is so that CMake finds the environment's Python, not another one
 set Python_EXECUTABLE=%PYTHON%
 set Python3_EXECUTABLE=%PYTHON%
@@ -82,9 +131,55 @@ set INTEL_MKL_DIR=%LIBRARY_PREFIX%
 
 set "libuv_ROOT=%LIBRARY_PREFIX%"
 set "USE_SYSTEM_SLEEF=OFF"
-:: Note that BUILD_CUSTOM_PROTOBUF=OFF (which would use our protobuf) doesn't work properly as of last testing, and results in
-:: duplicate symbols at link time.
-:: set "BUILD_CUSTOM_PROTOBUF=OFF"
 
-%PYTHON% -m pip install . --no-deps --no-build-isolation -vv
+:: Use our protobuf
+set "BUILD_CUSTOM_PROTOBUF=OFF"
+set "USE_LITE_PROTO=ON"
+
+:: Clear the build from any remaining artifacts.
+cmake --build build --target clean
+
+%PYTHON% -m pip install . --no-deps --no-build-isolation -vvv --no-clean
 if errorlevel 1 exit /b 1
+
+:: Here we split the build into two parts.
+:: 
+:: Both the packages libtorch and pytorch use this same build script.
+:: - The output of the libtorch package should just contain the binaries that are 
+::   not related to Python.
+:: - The output of the pytorch package contains everything except for the 
+::   non-python specific binaries.
+::
+:: This ensures that a user can quickly switch between python versions without the
+:: need to redownload all the large CUDA binaries.
+
+if "%PKG_NAME%" == "libtorch" (
+    :: Extract the compiled wheel into a temporary directory
+    if not exist "%SRC_DIR%/dist" mkdir %SRC_DIR%/dist
+    pushd %SRC_DIR%/dist
+    for %%f in (../torch-*.whl) do (
+        wheel unpack %%f
+    )
+
+    :: Navigate into the unpacked wheel
+    pushd torch-*
+
+    :: Move the binaries into the packages site-package directory
+    robocopy /NP /NFL /NDL /NJH /E torch\bin %SP_DIR%\torch\bin\
+    robocopy /NP /NFL /NDL /NJH /E torch\lib %SP_DIR%\torch\lib\
+    robocopy /NP /NFL /NDL /NJH /E torch\share %SP_DIR%\torch\share\
+    for %%f in (ATen caffe2 torch c10) do (
+        robocopy /NP /NFL /NDL /NJH /E torch\include\%%f %SP_DIR%\torch\include\%%f\
+    )
+
+    :: Remove the python binary files, that are placed in the site-packages 
+    :: directory by the specific python specific pytorch package.
+    del %SP_DIR%\torch\lib\torch_python.*
+    del %SP_DIR%\functorch\_C*.pyd
+    
+    popd
+    popd
+
+    :: Keep the original backed up to sed later
+    copy build\CMakeCache.txt build\CMakeCache.txt.orig
+)
