@@ -147,7 +147,7 @@ requirements:
     # other requirements
     - python 3.12  # [megabuild]
     - python       # [not megabuild]
-    - numpy 2.*
+    - numpy 2
     - pip
     - setuptools <=72.1.0
     - wheel
@@ -155,7 +155,7 @@ requirements:
     - requests
     - future
     - six
-    - mkl-devel {{ mkl }}.*           # [blas_impl == "mkl"]
+    - mkl-devel {{ mkl }}           # [blas_impl == "mkl"]
     - openblas-devel {{ openblas }}   # [blas_impl == "openblas"]
     # - libcblas * *_mkl      # [blas_impl == "mkl"]
     # - libcblas              # [blas_impl != "mkl"]
@@ -296,7 +296,7 @@ outputs:
         {% endif %}
         # other requirements
         - python
-        - numpy 2.*
+        - numpy 2
         - pip
         - setuptools <=72.1.0
         - wheel
@@ -304,7 +304,7 @@ outputs:
         - requests
         - future
         - six
-        - mkl-devel {{ mkl }}.*           # [blas_impl == "mkl"]
+        - mkl-devel {{ mkl }}           # [blas_impl == "mkl"]
         - openblas-devel {{ openblas }}   # [blas_impl == "openblas"]
         # - libcblas * *_mkl      # [blas_impl == "mkl"]
         # - libcblas              # [blas_impl != "mkl"]
