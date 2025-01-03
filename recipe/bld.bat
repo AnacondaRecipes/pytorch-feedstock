@@ -32,40 +32,6 @@ SET "USE_ITT=0"
 :: https://github.com/conda-forge/pytorch-cpu-feedstock/issues/135
 set "USE_KINETO=OFF"
 
-if "%PKG_NAME%" == "pytorch" (
-  set "PIP_ACTION=install"
-  :: We build libtorch for a specific python version. 
-  :: This ensures its only build once. However, when that version changes 
-  :: we need to make sure to update that here.
-  :: Get the full python version string
-  for /f "tokens=2" %%a in ('python --version 2^>^&1') do set PY_VERSION_FULL=%%a
-
-  :: Replace Python312 or python312 with ie Python311 or python311
-  sed "s/\([Pp]ython\)312/\1%CONDA_PY%/g" build/CMakeCache.txt.orig > build/CMakeCache.txt
-
-  :: Replace version string v3.12.8() with ie v3.11.11()
-  sed -i.bak -E "s/v3\.12\.[0-9]+/v%PY_VERSION_FULL%/g" build/CMakeCache.txt
-
-  :: Replace interpreter properties Python;3;12;8;64 with ie Python;3;11;11;64
-  sed -i.bak -E "s/Python;3;12;[0-9]+;64/Python;%PY_VERSION_FULL:.=;%;64/g" build/CMakeCache.txt
-
-  :: Replace cp312-win_amd64 with ie cp311-win_amd64
-  sed -i.bak "s/cp312/cp%CONDA_PY%/g" build/CMakeCache.txt
-
-  :: We use a fan-out build to avoid the long rebuild of libtorch
-  :: However, the location of the numpy headers changes between python 3.8
-  :: and 3.9+ since numpy 2.0 only exists for 3.9+
-  if "%PY_VER%" == "3.8" (
-    sed -i.bak "s#numpy\\\\_core\\\\include#numpy\\\\core\\\\include#g" build/CMakeCache.txt
-  ) else ( 
-    sed -i.bak "s#numpy\\\\core\\\\include#numpy\\\\_core\\\\include#g" build/CMakeCache.txt
-  )
-) else (
-  :: For the main script we just build a wheel for so that the C++/CUDA
-  :: parts are built. Then they are reused in each python version.
-  set "PIP_ACTION=wheel"
-)
-
 :: =============================== CUDA FLAGS> ======================================
 if "%build_with_cuda%" == "" goto cuda_flags_end
 
@@ -136,12 +102,6 @@ set "USE_SYSTEM_SLEEF=OFF"
 set "BUILD_CUSTOM_PROTOBUF=OFF"
 set "USE_LITE_PROTO=ON"
 
-:: Clear the build from any remaining artifacts.
-cmake --build build --target clean
-
-%PYTHON% -m pip install . --no-deps --no-build-isolation -vvv --no-clean
-if errorlevel 1 exit /b 1
-
 :: Here we split the build into two parts.
 :: 
 :: Both the packages libtorch and pytorch use this same build script.
@@ -154,32 +114,23 @@ if errorlevel 1 exit /b 1
 :: need to redownload all the large CUDA binaries.
 
 if "%PKG_NAME%" == "libtorch" (
-    :: Extract the compiled wheel into a temporary directory
-    if not exist "%SRC_DIR%/dist" mkdir %SRC_DIR%/dist
-    pushd %SRC_DIR%/dist
-    for %%f in (../torch-*.whl) do (
-        wheel unpack %%f
-    )
+  :: For the main script we just build a wheel for so that the C++/CUDA
+  :: parts are built. Then they are reused in each python version.
+  set BUILD_LIBTORCH_WHL=1
+  set BUILD_PYTHON_ONLY=0
 
-    :: Navigate into the unpacked wheel
-    pushd torch-*
-
-    :: Move the binaries into the packages site-package directory
-    robocopy /NP /NFL /NDL /NJH /E torch\bin %SP_DIR%\torch\bin\
-    robocopy /NP /NFL /NDL /NJH /E torch\lib %SP_DIR%\torch\lib\
-    robocopy /NP /NFL /NDL /NJH /E torch\share %SP_DIR%\torch\share\
-    for %%f in (ATen caffe2 torch c10) do (
-        robocopy /NP /NFL /NDL /NJH /E torch\include\%%f %SP_DIR%\torch\include\%%f\
-    )
-
-    :: Remove the python binary files, that are placed in the site-packages 
-    :: directory by the specific python specific pytorch package.
-    del %SP_DIR%\torch\lib\torch_python.*
-    del %SP_DIR%\functorch\_C*.pyd
-    
-    popd
-    popd
-
-    :: Keep the original backed up to sed later
-    copy build\CMakeCache.txt build\CMakeCache.txt.orig
+   %PYTHON% setup.py bdist_wheel
+   %PYTHON% -m pip install --find-links=dist torch_no_python --no-build-isolation --no-deps
 )
+else (
+  set BUILD_LIBTORCH_WHL=0
+  :: In theory we want BUILD_PYTHON_ONLY=1 but that ends up causing lots of linking problems.
+  :: set BUILD_PYTHON_ONLY=1
+
+  :: NOTE: Passing --cmake is necessary here since the torch frontend has it's
+  :: own cmake files that it needs to generate
+  %PYTHON% setup.py bdist_wheel --cmake
+)
+
+if errorlevel 1 exit /b 1
+
