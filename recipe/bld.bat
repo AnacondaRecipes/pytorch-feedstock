@@ -25,7 +25,6 @@ if "%pytorch_variant%" == "gpu" (
 :: TODO(baszalmstra): Figure out if we need these flags
 SET "USE_NUMA=0"
 SET "USE_ITT=0"
-
 :: KINETO seems to require CUPTI and will look quite hard for it.
 :: CUPTI seems to cause trouble when users install a version of
 :: cudatoolkit different than the one specified at compile time.
@@ -119,10 +118,9 @@ if "%PKG_NAME%" == "libtorch" (
   set BUILD_LIBTORCH_WHL=1
   set BUILD_PYTHON_ONLY=0
 
-   %PYTHON% setup.py bdist_wheel
-   %PYTHON% -m pip install --find-links=dist torch_no_python --no-build-isolation --no-deps
-)
-else (
+  %PYTHON% setup.py bdist_wheel
+  %PYTHON% -m pip install --find-links=dist torch_no_python --no-build-isolation --no-deps
+) else (
   set BUILD_LIBTORCH_WHL=0
   :: In theory we want BUILD_PYTHON_ONLY=1 but that ends up causing lots of linking problems.
   :: set BUILD_PYTHON_ONLY=1
