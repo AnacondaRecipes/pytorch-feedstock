@@ -97,9 +97,9 @@ set INTEL_MKL_DIR=%LIBRARY_PREFIX%
 set "libuv_ROOT=%LIBRARY_PREFIX%"
 set "USE_SYSTEM_SLEEF=OFF"
 
-:: Use our protobuf
-set "BUILD_CUSTOM_PROTOBUF=OFF"
-set "USE_LITE_PROTO=ON"
+:: TODO: Use our protobuf
+:: set "BUILD_CUSTOM_PROTOBUF=OFF"
+:: set "USE_LITE_PROTO=ON"
 
 :: Here we split the build into two parts.
 :: 
