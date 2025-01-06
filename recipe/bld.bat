@@ -120,6 +120,9 @@ if "%PKG_NAME%" == "libtorch" (
 
   %PYTHON% setup.py bdist_wheel
   %PYTHON% -m pip install --find-links=dist torch_no_python --no-build-isolation --no-deps
+
+  :: building libtorch generates an empty __init__.py file. We don't want to package that, it should come from pytorch.
+  rm %SP_DIR%\torch\__init__.py
 ) else (
   set BUILD_LIBTORCH_WHL=0
   :: In theory we want BUILD_PYTHON_ONLY=1 but that ends up causing lots of linking problems.
