@@ -181,6 +181,7 @@ requirements:
   # satisfy overlinking checks
   run:
     - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
+    - libuv  # [win]
 
 # these tests are for the libtorch output below, but due to
 # a particularity of conda-build, that output is defined in
@@ -385,6 +386,8 @@ outputs:
         - pytest-rerunfailures
         - pytest-flakefinder
         - pytest-xdist
+        # Needed for test_autograd.py
+        - pybind11
       imports:
         - torch
       source_files:
@@ -393,6 +396,8 @@ outputs:
         # as of pytorch=2.0.0, there is a bug when trying to run tests without the tools
         - tools
         - smoke_test
+        # See files needed: https://github.com/pytorch/pytorch/blob/main/test/test_ops.py#L271-L274
+        - aten/src/ATen/native
       commands:
         # the smoke test script takes a bunch of env variables, defined below
         - set MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cudatoolkit.split('.')[:2]) }}"              # [(gpu_variant == "cuda-11") and (win)]
@@ -426,6 +431,8 @@ outputs:
         # (for example, in the case of missing imports). There doesn't seem to be a way of making a script exception return
         # non-zero but failing tests return zero.
         - python ./test/run_test.py --core --continue-through-error || true  # [not win]
+        # Hack to fix test_autograd.py so it can find pybind11
+        - mv %PREFIX%/pybind11_global/pybind11 %PREFIX%/include  # [win]
         - cmd.exe /c "python ./test/run_test.py --core --continue-through-error" || ver > nul 2> nul  # [win]
         # The inductor tests test the torch.compile backend. Using the options below avoids running distributed tests,
         # which would be run if we used the --inductor option. (Distributed tests would only be correctly run on a multi-gpu test platform,
