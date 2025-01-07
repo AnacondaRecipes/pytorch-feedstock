@@ -169,7 +169,7 @@ requirements:
     - llvm-openmp 14.0.6              # [osx and not (blas_impl == "mkl")]
     - libabseil
     - libprotobuf {{ libprotobuf }}
-    - sleef 3.5.1                     # [not win]
+    - sleef 3.5.1
     - typing
     - libuv
     - pkg-config  # [unix]
@@ -319,7 +319,7 @@ outputs:
         - llvm-openmp 14.0.6              # [osx and not (blas_impl == "mkl")]
         - libabseil
         - libprotobuf {{ libprotobuf }}
-        - sleef 3.5.1                     # [not win]
+        - sleef 3.5.1
         - typing
         - libuv
         - pkg-config  # [unix]
