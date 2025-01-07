@@ -7,7 +7,6 @@ setlocal enabledelayedexpansion
 :: for a failure with error message: "conda_package_handling.exceptions.ArchiveCreationError: <somefile> Cannot stat
 :: while writing file")
 
-set TH_BINARY_BUILD=1
 set PYTORCH_BUILD_VERSION=%PKG_VERSION%
 set PYTORCH_BUILD_NUMBER=%PKG_BUILDNUM%
 
@@ -22,9 +21,6 @@ if "%pytorch_variant%" == "gpu" (
     set USE_CUDA=0
 )
 
-:: TODO(baszalmstra): Figure out if we need these flags
-SET "USE_NUMA=0"
-SET "USE_ITT=0"
 :: KINETO seems to require CUPTI and will look quite hard for it.
 :: CUPTI seems to cause trouble when users install a version of
 :: cudatoolkit different than the one specified at compile time.
