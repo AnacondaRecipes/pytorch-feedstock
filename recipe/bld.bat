@@ -109,7 +109,7 @@ set "USE_LITE_PROTO=ON"
 :: need to redownload all the large CUDA binaries.
 
 if "%PKG_NAME%" == "libtorch" (
-  :: For the main script we just build a wheel for so that the C++/CUDA
+  :: For the main script we just build a wheel for libtorch so that the C++/CUDA
   :: parts are built. Then they are reused in each python version.
   set BUILD_LIBTORCH_WHL=1
   set BUILD_PYTHON_ONLY=0
@@ -126,6 +126,7 @@ if "%PKG_NAME%" == "libtorch" (
 
   :: NOTE: Passing --cmake is necessary here since the torch frontend has it's
   :: own cmake files that it needs to generate
+  %PYTHON% setup.py clean
   %PYTHON% setup.py bdist_wheel --cmake
   %PYTHON% -m pip install --find-links=dist torch --no-build-isolation --no-deps
 )
