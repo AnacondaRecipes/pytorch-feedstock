@@ -126,7 +126,7 @@ if "%PKG_NAME%" == "libtorch" (
 
   :: NOTE: Passing --cmake is necessary here since the torch frontend has it's
   :: own cmake files that it needs to generate
-  %PYTHON% setup.py clean
+  cmake -DPython_EXECUTABLE="%PYTHON%" --build build --target clean
   %PYTHON% setup.py bdist_wheel --cmake
   %PYTHON% -m pip install --find-links=dist torch --no-build-isolation --no-deps
 )
