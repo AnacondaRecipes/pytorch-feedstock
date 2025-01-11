@@ -124,7 +124,7 @@ if "%PKG_NAME%" == "libtorch" (
   :: In theory we want BUILD_PYTHON_ONLY=1 but that ends up causing lots of linking problems.
   :: set BUILD_PYTHON_ONLY=1
 
-  :: NOTE: Passing --cmake is necessary here since the torch frontend has it's
+  :: NOTE: Passing --cmake is necessary here since the torch frontend has its
   :: own cmake files that it needs to generate
   cmake -DPython_EXECUTABLE="%PYTHON%" --build build --target clean
   %PYTHON% setup.py bdist_wheel --cmake
