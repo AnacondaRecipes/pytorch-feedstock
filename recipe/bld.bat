@@ -119,6 +119,7 @@ if "%PKG_NAME%" == "libtorch" (
 
   :: building libtorch generates an empty __init__.py file. We don't want to package that, it should come from pytorch.
   rm %SP_DIR%\torch\__init__.py
+  %PYTHON% setup.py clean
 ) else (
   set BUILD_LIBTORCH_WHL=0
   :: In theory we want BUILD_PYTHON_ONLY=1 but that ends up causing lots of linking problems.
@@ -126,7 +127,6 @@ if "%PKG_NAME%" == "libtorch" (
 
   :: NOTE: Passing --cmake is necessary here since the torch frontend has its
   :: own cmake files that it needs to generate
-  cmake -DPython_EXECUTABLE="%PYTHON%" --build build --target clean
   %PYTHON% setup.py bdist_wheel --cmake
   %PYTHON% -m pip install --find-links=dist torch --no-build-isolation --no-deps
 )
