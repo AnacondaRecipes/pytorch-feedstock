@@ -122,8 +122,7 @@ if "%PKG_NAME%" == "libtorch" (
   %PYTHON% setup.py clean
 ) else (
   set BUILD_LIBTORCH_WHL=0
-  :: In theory we want BUILD_PYTHON_ONLY=1 but that ends up causing lots of linking problems.
-  :: set BUILD_PYTHON_ONLY=1
+  set BUILD_PYTHON_ONLY=1
 
   :: NOTE: Passing --cmake is necessary here since the torch frontend has its
   :: own cmake files that it needs to generate
