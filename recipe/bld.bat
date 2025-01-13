@@ -9,6 +9,9 @@ setlocal enabledelayedexpansion
 
 set PYTORCH_BUILD_VERSION=%PKG_VERSION%
 set PYTORCH_BUILD_NUMBER=%PKG_BUILDNUM%
+:: Always pass 0 to avoid appending ".post" to version string.
+:: https://github.com/conda-forge/pytorch-cpu-feedstock/issues/315
+set PYTORCH_BUILD_NUMBER=0
 
 :: uncomment to debug cmake build
 :: set CMAKE_VERBOSE_MAKEFILE=1
