@@ -1,4 +1,0 @@
-# macOS 12.3 or above is required for running the GPU variant (MPS support). No way to specify this for only the GPU
-# variant, so it's specified for both.
-extra_labels_for_os:
-  osx-arm64: [ventura]
