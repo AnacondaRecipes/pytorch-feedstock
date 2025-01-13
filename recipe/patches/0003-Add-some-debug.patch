@@ -1,0 +1,38 @@
+From 70fc29138019a125d391ba9171ee8c5e82249a00 Mon Sep 17 00:00:00 2001
+From: Eric Lundby <Eric.Lundby@gmail.com>
+Date: Mon, 13 Jan 2025 16:11:21 -0700
+Subject: [PATCH 3/3] Add some debug
+
+---
+ c10/CMakeLists.txt    | 1 +
+ caffe2/CMakeLists.txt | 2 ++
+ 2 files changed, 3 insertions(+)
+
+diff --git a/c10/CMakeLists.txt b/c10/CMakeLists.txt
+index b794b528991..3e7d2b3c618 100644
+--- a/c10/CMakeLists.txt
++++ b/c10/CMakeLists.txt
+@@ -14,6 +14,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+ 
+ if(BUILD_LIBTORCHLESS)
+   find_library(C10_LIB c10 PATHS $ENV{LIBTORCH_LIB_PATH} NO_DEFAULT_PATH)
++  message("C10_LIB found at: ${C10_LIB}")
+ else()
+   set(C10_LIB c10)
+ endif()
+diff --git a/caffe2/CMakeLists.txt b/caffe2/CMakeLists.txt
+index 9be7f3732f3..14365003c3b 100644
+--- a/caffe2/CMakeLists.txt
++++ b/caffe2/CMakeLists.txt
+@@ -729,6 +729,8 @@ set(Caffe2_CPU_SRCS ${Caffe2_CPU_SRCS_NON_AVX} ${Caffe2_CPU_SRCS_AVX2} ${Caffe2_
+ if(BUILD_LIBTORCHLESS)
+   find_library(TORCH_LIB torch PATHS $ENV{LIBTORCH_LIB_PATH} NO_DEFAULT_PATH)
+   find_library(TORCH_CPU_LIB torch_cpu PATHS $ENV{LIBTORCH_LIB_PATH} NO_DEFAULT_PATH)
++  message(STATUS "TORCH_LIB: ${TORCH_LIB}")
++  message(STATUS "TORCH_CPU_LIB: ${TORCH_CPU_LIB}")
+ 
+   if(USE_CUDA)
+     find_library(TORCH_CUDA_LIB torch_cuda PATHS $ENV{LIBTORCH_LIB_PATH} NO_DEFAULT_PATH)
+-- 
+2.39.5 (Apple Git-154)
+

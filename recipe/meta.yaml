@@ -50,6 +50,9 @@ source:
       - patches/0007-continue-tests-on-failure.patch
       - patches/0008-add-missing-includes.patch
       - patches/0009-use-prefix-include-for-inductor.patch
+      - patches/0001-Remove-optional-pdb-file-on-windows.patch  # [win]
+      - patches/0002-Set-the-conda-location-for-libtorch.patch  # [win]
+      - patches/0003-Add-some-debug.patch  # [win]
 
       # See https://github.com/pytorch/pytorch/pull/137331
       # for status
