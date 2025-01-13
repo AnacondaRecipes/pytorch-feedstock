@@ -6,6 +6,12 @@ echo "####################################################################"
 echo "Building PyTorch using BLAS implementation: $blas_impl              "
 echo "####################################################################"
 
+if [[ "${PKG_NAME}" == "libtorch" && "${build_libtorchless}" == "on" ]]; then
+    # Commands to execute when both conditions are true
+    echo "Both conditions are met: PKG_NAME=libtorch and build_libtorchless=on"
+    exit 0
+fi
+
 # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/243
 # https://github.com/pytorch/pytorch/blob/v2.3.1/setup.py#L341
 export PACKAGE_TYPE=conda

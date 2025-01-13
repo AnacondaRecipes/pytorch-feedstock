@@ -39,3 +39,6 @@ zip_keys:                    # [(osx and arm64)]
 megabuild:
 - true
 #- false     # [osx]
+
+build_libtorchless:
+  - on

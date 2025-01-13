@@ -1,6 +1,11 @@
 @echo On
 setlocal enabledelayedexpansion
 
+if "%PKG_NAME%" == "libtorch" if /i "%build_libtorchless%" == "on" (
+    echo Both conditions are met: PKG_NAME=libtorch and build_libtorchless=on
+    exit /b 0
+)
+
 :: The PyTorch test suite includes some symlinks, which aren't resolved on Windows, leading to packaging errors.
 :: ATTN! These change and have to be updated manually, often with each release. 
 :: (no current symlinks being packaged. Leaving this information here as it took some months to find the issue. Look out
