@@ -1,7 +1,16 @@
 {% set version = "2.5.1" %}
+{% set sha256 = "740eb5fff95e33cfe699bad43be83523f569c7cc7f9c285c2a255416443dd266" %}
+# Set the RC number to build release candidates. Set to None otherwise
+{% set rc = None %}
 {% set build = 1 %}
 
-{% if cuda_compiler_version != "None" %}
+# Keep this in sync with the release
+{% set smoke_test_commit = "8757658a36dfc1d7c85da543bd424ce1cc546f74" %}
+
+# Use a higher build number for the CUDA variant, to ensure that it's
+# preferred by conda's solver, and it's preferentially
+# installed where the platform supports it.
+{% if gpu_variant != "cpu" %}
 {% set build = build + 200 %}
 {% endif %}
 
@@ -9,7 +18,7 @@
 {% set build = build + 100 %}
 {% endif %}
 
-{% if cuda_compiler_version in (None, "None", True, False) %}
+{% if not (gpu_variant or "").startswith("cuda") %}
 {% set cuda_major = 0 %}
 {% else %}
 {% set cuda_major = environ.get("cuda_compiler_version", "11.8").split(".")[0] | int %}
@@ -20,25 +29,41 @@ package:
   version: {{ version }}
 
 source:
-  url: https://github.com/pytorch/pytorch/releases/download/v{{ version }}/pytorch-v{{ version }}.tar.gz
-  sha256: 740eb5fff95e33cfe699bad43be83523f569c7cc7f9c285c2a255416443dd266
-  patches:
-    - patches/0003-Force-usage-of-python-3-and-error-without-numpy.patch
-    # https://github.com/pytorch/pytorch/pull/137084
-    - patches/0004-Help-find-numpy.patch
-    # https://github.com/pytorch/pytorch/pull/138287
-    - patches/0005-Use-system-nvtx3.patch
-    # sympy 1.13.2 was reported to result in test failures on Windows and mac
-    # https://github.com/pytorch/pytorch/pull/133235
-    - patches/0006-Update-sympy-version.patch
-    - patches/0007-Fix-duplicate-linker-script.patch  # [cuda_compiler_version != "None" and aarch64]
-    # https://github.com/pytorch/pytorch/pull/137331
-    - patches/137331.patch
+{% if rc != None %}
+  - git_url: https://github.com/pytorch/pytorch.git
+    git_rev: v{{ version }}-rc{{ rc }}
+{% else %}
+  # The "pytorch-v" tarballs contain submodules; the "pytorch-" ones don't.
+  - url: https://github.com/pytorch/pytorch/releases/download/v{{ version }}/pytorch-v{{ version }}.tar.gz
+    sha256: {{ sha256 }}
+    patches:
+      - patches/0001-windows-FindMKL-add-library-suffix.patch                  # [win]
+      - patches/0002-swap-openmp-search-precedence.patch                       # [blas_impl == "mkl"]
+      - patches/0003-Force-usage-of-python-3-and-error-without-numpy.patch
+      # https://github.com/pytorch/pytorch/pull/137084
+      - patches/0004-Help-find-numpy.patch
+      # https://github.com/pytorch/pytorch/pull/138287
+      - patches/0005-Use-system-nvtx3.patch
+      # sympy 1.13.2 was reported to result in test failures on Windows and mac
+      # https://github.com/pytorch/pytorch/pull/133235
+      - patches/0006-Update-sympy-version.patch
+      - patches/0007-continue-tests-on-failure.patch
+      - patches/0008-add-missing-includes.patch
+      - patches/0009-use-prefix-include-for-inductor.patch
+
+      # See https://github.com/pytorch/pytorch/pull/137331
+      # for status
+      - patches/137331.patch
+{% endif %}
+  - url: https://raw.githubusercontent.com/pytorch/builder/{{ smoke_test_commit }}/test/smoke_test/smoke_test.py
+    folder: smoke_test
+
 
 build:
   number: {{ build }}
-  string: cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
-  string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                 # [cuda_compiler_version == "None"]
+  string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda-12"]
+  string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
+  string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                 # [gpu_variant == "cpu"]
   detect_binary_files_with_prefix: false
   run_exports:
     - {{ pin_subpackage('libtorch', max_pin='x.x') }}
@@ -49,11 +74,8 @@ build:
   ignore_run_exports:
     - python *                               # [megabuild]
     - numpy *                                # [megabuild]
-  skip: true  # [win]
-  skip: true  # [cuda_compiler_version != "None" and linux64 and blas_impl != "mkl"]
-  # 2024/04 This build seems to fail due to disk space on the CIs
-  # We can potentially re-enable it at a later time
-  skip: true  # [cuda_compiler_version == "11.8" and aarch64]
+  skip: True  # [py<39]
+  skip: True  # [win]
 
 requirements:
   # Keep this list synchronized (except for python*, numpy*) in outputs
@@ -65,10 +87,10 @@ requirements:
     - cross-python_{{ target_platform }}     # [build_platform != target_platform]
     - numpy  *                               # [megabuild and build_platform != target_platform]
     - numpy                                  # [not megabuild and build_platform != target_platform]
-    - {{ stdlib('c') }}
+    #- {{ stdlib('c') }}
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
-    - {{ compiler('cuda') }}                 # [cuda_compiler_version != "None"]
+    - {{ compiler('cuda') }}                 # [(gpu_variant or "").startswith("cuda")]
     - nvtx-c                                 # [cuda_compiler_version != "None" and build_platform != target_platform]
     {% if cuda_major >= 12 %}
     - cuda-driver-dev                        # [build_platform != target_platform]
@@ -89,21 +111,25 @@ requirements:
     - patch     # [not win]
     - git       # [not win]
     - libgomp        # [linux]
-    - llvm-openmp    # [osx]
+    # This has a strong run_export so we don't need to put it in `host` or `run`
+    # We use llvm-openmp for openblas variants on osx.
+    - llvm-openmp 14.0.6              # [osx and not (blas_impl == "mkl")]
     - cmake
-    - ninja
+    - ninja-base
     # Keep libprotobuf here so that a compatibile version
     # of protobuf is installed between build and host
-    - libprotobuf
-    - protobuf
+    - libprotobuf    # [not win]
+    - protobuf       # [not win]
     - make      # [linux]
+    # Uncomment to use ccache, see README and build_pytorch.sh
+    # - ccache
   host:
     # GPU requirements
-    - cudnn                           # [cuda_compiler_version != "None"]
-    - nccl                            # [cuda_compiler_version != "None"]
-    - magma                           # [cuda_compiler_version != "None"]
-    - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
-    - nvtx-c                          # [cuda_compiler_version != "None"]
+    - cudnn 9.1.1.17                  # [(gpu_variant or "").startswith("cuda")]
+    - nccl 2.21.5.1                   # [(gpu_variant or "").startswith("cuda")]
+    - magma 2.7.1                     # [(gpu_variant or "").startswith("cuda")]
+    - cuda-version {{ cuda_compiler_version }}  # [(gpu_variant or "").startswith("cuda")]
+    - nvtx-c                          # [(gpu_variant or "").startswith("cuda")]
     {% if cuda_major >= 12 %}
     - cuda-driver-dev
     - cuda-cudart-dev
@@ -116,45 +142,44 @@ requirements:
     - libcurand-dev
     - libcusolver-dev
     - libcusparse-dev
+    - cuda-cupti
     {% endif %}
     # other requirements
     - python 3.12  # [megabuild]
     - python       # [not megabuild]
-    - numpy *      # [megabuild]
-    - numpy        # [not megabuild]
+    - numpy 2.*
     - pip
     - setuptools
+    - wheel
     - pyyaml
     - requests
     - future
     - six
-    - mkl-devel {{ mkl }}   # [blas_impl == "mkl"]
-    - libcblas * *_mkl      # [blas_impl == "mkl"]
-    - libcblas              # [blas_impl != "mkl"]
-    - liblapack             # [blas_impl != "mkl"]
-    - libgomp   # [linux]
-    - llvm-openmp    # [osx]
+    - mkl-devel {{ mkl }}.*           # [blas_impl == "mkl"]
+    - openblas-devel {{ openblas }}   # [blas_impl == "openblas"]
+    # - libcblas * *_mkl      # [blas_impl == "mkl"]
+    # - libcblas              # [blas_impl != "mkl"]
+    # - liblapack             # [blas_impl != "mkl"]
+    # - libgomp   # [linux]
+    # We pull in the same versions of mkl and intel-openmp: intel aligns the versions
+    # We use intel-openmp for all mkl variants.
+    # For openblas on win and linux, we don't specify any openmp implementation; it comes from the compiler.
+    - intel-openmp   {{ mkl }}        # [blas_impl == "mkl"]
+    - llvm-openmp 14.0.6              # [osx and not (blas_impl == "mkl")]
     - libabseil
-    - libprotobuf
-    - sleef
+    - libprotobuf {{ libprotobuf }}   # [not win]
+    - sleef 3.5.1                     # [not win]
     - typing
     - libuv
     - pkg-config  # [unix]
     - typing_extensions
+    - pybind11 2.12.1
+    - eigen 3.3.7
+    - astunparse 1.6.3
+    - opentelemetry-api
+  # satisfy overlinking checks
   run:
-    # GPU requirements without run_exports
-    - {{ pin_compatible('cudnn') }}                       # [cuda_compiler_version != "None"]
-  run_constrained:
-    # These constraints ensure conflict between pytorch and
-    # pytorch-cpu 1.1 which we built before conda-forge had GPU infrastructure
-    # built into place.
-    # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/65
-    - pytorch-cpu =={{ version }}  # [cuda_compiler_version == "None"]
-    - pytorch-gpu ==99999999       # [cuda_compiler_version == "None"]
-    - pytorch-gpu =={{ version }}  # [cuda_compiler_version != "None"]
-    - pytorch-cpu ==99999999       # [cuda_compiler_version != "None"]
-    - pytorch {{ version }} cuda{{ cuda_compiler_version | replace('.', '') }}_*_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
-    - pytorch {{ version }} cpu_{{ blas_impl }}_*_{{ PKG_BUILDNUM }}                                 # [cuda_compiler_version == "None"]
+    - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
 
 # these tests are for the libtorch output below, but due to
 # a particularity of conda-build, that output is defined in
@@ -167,21 +192,31 @@ test:
     - test -f $PREFIX/lib/{{ each_lib }}.dylib  # [osx]
     {% endfor %}
     {% for each_lib in ['libc10_cuda', 'libcaffe2_nvrtc', 'libtorch_cuda', 'libtorch_cuda_linalg'] %}
-    - test -f $PREFIX/lib/{{ each_lib }}.so     # [linux and cuda_compiler_version != "None"]
+    - test -f $PREFIX/lib/{{ each_lib }}.so     # [linux and (gpu_variant or "").startswith("cuda")]
     {% endfor %}
 
 outputs:
   - name: libtorch
+    build:
+      missing_dso_whitelist:
+        - $RPATH/ld64.so.1  # [s390x]
   - name: pytorch
     build:
-      string: cuda{{ cuda_compiler_version | replace('.', '') }}_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
-      string: cpu_{{ blas_impl }}_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                 # [cuda_compiler_version == "None"]
+      string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda-12"]
+      string: gpu_mps_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
+      string: cpu_{{ blas_impl }}_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
+      entry_points:
+        - torchrun = torch.distributed.run:main
+      ignore_run_exports:             # [osx]
+        - libuv                       # [osx]
+      missing_dso_whitelist:
+        - $RPATH/ld64.so.1  # [s390x]
       detect_binary_files_with_prefix: false
       run_exports:
         - {{ pin_subpackage('pytorch', max_pin='x.x') }}
         - {{ pin_subpackage('libtorch', max_pin='x.x') }}
-      skip: true  # [win]
-      skip: true  # [cuda_compiler_version != "None" and linux64 and blas_impl != "mkl"]
+      skip: True  # [py<39]
+      skip: True  # [win]
 
     script: build_pytorch.sh   # [unix]
     script: build_pytorch.bat  # [win]
@@ -190,11 +225,11 @@ outputs:
         - python                                 # [build_platform != target_platform]
         - cross-python_{{ target_platform }}     # [build_platform != target_platform]
         - numpy                                  # [build_platform != target_platform]
-        - {{ stdlib('c') }}
+        #- {{ stdlib('c') }}
         - {{ compiler('c') }}
         - {{ compiler('cxx') }}
-        - {{ compiler('cuda') }}                 # [cuda_compiler_version != "None"]
-        - nvtx-c                                 # [cuda_compiler_version != "None" and build_platform != target_platform]
+        - {{ compiler('cuda') }}                 # [(gpu_variant or "").startswith("cuda")]
+        - nvtx-c                                 # [(gpu_variant or "").startswith("cuda") and build_platform != target_platform]
         {% if cuda_major >= 12 %}
         - cuda-driver-dev                        # [build_platform != target_platform]
         - cuda-cudart-dev                        # [build_platform != target_platform]
@@ -214,21 +249,24 @@ outputs:
         - git       # [not win]
         - m2-git    # [win]
         - libgomp   # [linux]
-        - llvm-openmp    # [osx]
+        # This has a strong run_export so we don't need to put it in `host` or `run`
+        # We use llvm-openmp for openblas variants on osx.
+        - llvm-openmp 14.0.6              # [osx and not (blas_impl == "mkl")]
         - cmake
-        - ninja
+        - ninja-base
         # Keep libprotobuf here so that a compatibile version
         # of protobuf is installed between build and host
-        - libprotobuf
-        - protobuf
+        - libprotobuf  # [not win]
+        - protobuf     # [not win]
         - make      # [linux]
+        # Uncomment to use ccache, see README and build_pytorch.sh
+        # - ccache
       host:
         # GPU requirements
-        - cudnn                           # [cuda_compiler_version != "None"]
-        - nccl                            # [cuda_compiler_version != "None"]
-        - magma                           # [cuda_compiler_version != "None"]
-        - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
-        - nvtx-c                          # [cuda_compiler_version != "None"]
+        - cudnn 9.1.1.17                  # [(gpu_variant or "").startswith("cuda")]
+        - nccl 2.21.5.1                   # [(gpu_variant or "").startswith("cuda")]
+        - magma 2.7.1                     # [(gpu_variant or "").startswith("cuda")]
+        - nvtx-c                          # [(gpu_variant or "").startswith("cuda")]
         {% if cuda_major >= 12 %}
         - cuda-driver-dev
         - cuda-cudart-dev
@@ -241,37 +279,56 @@ outputs:
         - libcurand-dev
         - libcusolver-dev
         - libcusparse-dev
+        - cuda-cupti
         {% endif %}
         # other requirements
         - python
-        - numpy
+        - numpy 2.*
         - pip
         - setuptools
+        - wheel
         - pyyaml
         - requests
         - future
         - six
-        - mkl-devel {{ mkl }}   # [blas_impl == "mkl"]
-        - libcblas * *_mkl      # [blas_impl == "mkl"]
-        - libcblas              # [blas_impl != "mkl"]
-        - liblapack             # [blas_impl != "mkl"]
-        - libgomp   # [linux]
-        - llvm-openmp    # [osx]
+        - mkl-devel {{ mkl }}.*           # [blas_impl == "mkl"]
+        - openblas-devel {{ openblas }}   # [blas_impl == "openblas"]
+        # - libcblas * *_mkl      # [blas_impl == "mkl"]
+        # - libcblas              # [blas_impl != "mkl"]
+        # - liblapack             # [blas_impl != "mkl"]
+        # - libgomp   # [linux]
+        # We pull in the same versions of mkl and intel-openmp: intel aligns the versions
+        # We use intel-openmp for all mkl variants.
+        # For openblas on win and linux, we don't specify any openmp implementation; it comes from the compiler.
+        - intel-openmp   {{ mkl }}        # [blas_impl == "mkl"]
+        - llvm-openmp 14.0.6              # [osx and not (blas_impl == "mkl")]
         - libabseil
-        - libprotobuf
-        - sleef
+        - libprotobuf {{ libprotobuf }}   # [not win]
+        - sleef 3.5.1                     # [not win]
         - typing
         - libuv
         - pkg-config  # [unix]
         - typing_extensions
         - {{ pin_subpackage('libtorch', exact=True) }}
+        - pybind11 2.12.1
+        - eigen 3.3.7
+        - astunparse 1.6.3
+        - opentelemetry-api
       run:
-        - llvm-openmp    # [osx]
+        - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
+        - llvm-openmp                            # [osx and not (blas_impl == "mkl")]
         # GPU requirements without run_exports
-        - {{ pin_compatible('cudnn') }}                       # [cuda_compiler_version != "None"]
+        - {{ pin_compatible('cudnn') }}          # [(gpu_variant or "").startswith("cuda")]
+        # Required for GPU profiler
+        - {{ pin_compatible('cuda-cupti') }}                  # [gpu_variant == "cuda-12"]
         # other requirements
         - python
+        # from https://numpy.org/neps/nep-0029-deprecation_policy.html
+        - numpy >=1.24.0,<3.0.0
         - typing_extensions
+        # To stop the compiler pulling in an openmp implementation itself (although I'm not sure this mutex works anyway)
+        - _openmp_mutex                                       # [linux]
+        - {{ pin_compatible('magma') }}                       # [(gpu_variant or "").startswith("cuda")]
         # sympy 1.13.2 was reported to result in test failures on Windows and mac
         # https://github.com/pytorch/pytorch/pull/133235
         - sympy >=1.13.1,!=1.13.2
@@ -280,19 +337,22 @@ outputs:
         - networkx
         - nomkl                 # [blas_impl != "mkl"]
         - fsspec
+        # Required to support torch.compile. This is tested in smoke_test.py, which is required to pass
+        # torch.compile isn't supported on python 3.12 and we only build cuda for linux-64 at the moment
+        - torchtriton {{ '.'.join(version.split('.')[:2]) }}.*       # [(gpu_variant or "").startswith("cuda") and (linux and x86_64) and (py!=312)]
         # avoid that people without GPUs needlessly download ~0.5-1GB
-        - __cuda  # [cuda_compiler_version != "None"]
+        # The CUDA version constraint is handled in cuda-version as a run_constrained.
+        # However, that doesn't enforce that the package requires a GPU; that needs to be done here.
+        - __cuda  # [(gpu_variant or "").startswith("cuda")]
+        # On macOS, the GPU accelerated backend, MPS, can be used from macOS v12.3. This isn't tightly dependent on the
+        # SDK version used.
+        - __osx >=12.3                                               # [gpu_variant == "metal"]
         - libtorch {{ version }}
         - setuptools
+        - opentelemetry-api
       run_constrained:
-        # These constraints ensure conflict between pytorch and
-        # pytorch-cpu 1.1 which we built before conda-forge had GPU infrastructure
-        # built into place.
-        # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/65
-        - pytorch-cpu =={{ version }}  # [cuda_compiler_version == "None"]
-        - pytorch-gpu ==99999999       # [cuda_compiler_version == "None"]
-        - pytorch-gpu =={{ version }}  # [cuda_compiler_version != "None"]
-        - pytorch-cpu ==99999999       # [cuda_compiler_version != "None"]
+        # current intel-openmp builds are incompatible with llvm-openmp on osx-64
+        - llvm-openmp <0a0                # [(blas_impl == "mkl") and (osx and x86_64)]  
 
     test:
       requires:
@@ -306,48 +366,80 @@ outputs:
         - mock  # [linux]
         - pip
         - expecttest
-        - xmlrunner
+        # unittest-xml-reporting provides xmlrunner
+        - unittest-xml-reporting
+        - pytest-rerunfailures
+        - pytest-flakefinder
+        - pytest-xdist
       imports:
-        - torch  # [not (aarch64 and cuda_compiler_version != "None")]
+        - torch
       source_files:
         - test
         # tools/ is needed to optimise test run
         # as of pytorch=2.0.0, there is a bug when trying to run tests without the tools
         - tools
+        - smoke_test
       commands:
-        - OMP_NUM_THREADS=4 python ./test/run_test.py || true  # [not win and not (aarch64 and cuda_compiler_version != "None")]
-        - python ./test/run_test.py  # [win]
+        # the smoke test script takes a bunch of env variables, defined below
+        - set MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cudatoolkit.split('.')[:2]) }}"              # [(gpu_variant == "cuda-11") and (win)]
+        - set MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cuda_compiler_version.split('.')[:2]) }}"    # [(gpu_variant == "cuda-12") and (win)]
+        - set MATRIX_GPU_ARCH_TYPE="cuda"                                                       # [(gpu_variant or "").startswith("cuda") and (win)]
+        - set MATRIX_GPU_ARCH_VERSION="none"                                                    # [(gpu_variant == "cpu") and (win)]
+        - set MATRIX_GPU_ARCH_TYPE="none"                                                       # [(gpu_variant == "cpu") and (win)]
+        - set MATRIX_CHANNEL="defaults"                                                         # [win]
+        - set MATRIX_STABLE_VERSION={{ version }}                                               # [win]
+        - set MATRIX_PACKAGE_TYPE="conda"                                                       # [win]
+        - set TARGET_OS="windows"                                                               # [win]
+        - set OMP_NUM_THREADS=4                                                                 # [win]
+        - export MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cudatoolkit.split('.')[:2]) }}"           # [(gpu_variant == "cuda-11") and (linux and x86_64)]
+        - export MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cuda_compiler_version.split('.')[:2]) }}" # [(gpu_variant == "cuda-12") and (linux and x86_64)]
+        - export MATRIX_GPU_ARCH_VERSION="{{ MACOSX_SDK_VERSION }}"                             # [(gpu_variant == "metal")]
+        - export MATRIX_GPU_ARCH_TYPE="cuda"                                                    # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
+        - export MATRIX_GPU_ARCH_TYPE="mps"                                                     # [(gpu_variant == "metal")]
+        - export MATRIX_GPU_ARCH_VERSION="none"                                                 # [(gpu_variant == "cpu") and (not win)]
+        - export MATRIX_GPU_ARCH_TYPE="none"                                                    # [(gpu_variant == "cpu") and (not win)]
+        - export MATRIX_CHANNEL="defaults"                                                      # [not win]
+        - export MATRIX_STABLE_VERSION="{{ version }}"                                          # [not win]
+        - export MATRIX_PACKAGE_TYPE="conda"                                                    # [not win]
+        - export TARGET_OS="linux"                                                              # [linux]
+        - export TARGET_OS="macos-arm64"                                                        # [(osx and arm64)]
+        - export TARGET_OS="macos-x86_64"                                                       # [(osx and x86_64)]
+        - export OMP_NUM_THREADS=4                                                              # [not win]
+        - python ./smoke_test/smoke_test.py --package torchonly
+        # We seem to have individual platform-specific test failures or flaky
+        # tests, but the majority of tests pass.
+        # Note that the `|| true` expression will make the build continue even if the whole script falls over completely
+        # (for example, in the case of missing imports). There doesn't seem to be a way of making a script exception return
+        # non-zero but failing tests return zero.
+        - python ./test/run_test.py --core --continue-through-error || true
+        # The inductor tests test the torch.compile backend. Using the options below avoids running distributed tests,
+        # which would be run if we used the --inductor option. (Distributed tests would only be correctly run on a multi-gpu test platform,
+        # which we don't have.)
+        # torch.compile isn't supported on python 3.12 yet
+        - python test/run_test.py -i inductor/test_torchinductor.py --continue-through-error || true                 # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
+        - python ./test/run_test.py --mps --continue-through-error || true                                           # [(gpu_variant == "metal")]
         # Run pip check so as to ensure that all pytorch packages are installed
         # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/24
         - pip check
-        - python -c "import torch; print(torch.__version__)"                       # [not (aarch64 and cuda_compiler_version != "None")]
-        - python -c "import torch; assert torch.backends.mkldnn.m.is_available()"  # [x86 and cuda_compiler_version == "None"]
-        # Running tests on aarch64 + cuda is not supported until we move to Alma Linux 8
-        # https://github.com/conda-forge/pytorch-cpu-feedstock/pull/267#issuecomment-2387225526
+        - python -c "import torch; print(torch.__version__)"
+        # We have had issues with openmp .dylibs being doubly loaded in certain cases. These two tests catch those issues
+        - python -c "import torch; import numpy"
+        - python -c "import numpy; import torch"
+        # distributed support is enabled by default on linux; for mac, we enable it manually in build.sh
+        - python -c "import torch; assert torch.distributed.is_available()"        # [linux or osx]
+        - python -c "import torch; assert torch.backends.mkldnn.m.is_available()"  # [blas_impl == "mkl"]
+        - python -c "import torch; assert torch.backends.cuda.is_built()"          # [(gpu_variant or "").startswith("cuda")]
+        - python -c "import torch; assert torch.backends.cudnn.is_available()"     # [(gpu_variant or "").startswith("cuda")]
+        - python -c "import torch; assert torch.cuda.is_available()"               # [(gpu_variant or "").startswith("cuda")]
+        - python -c "import torch; assert torch.backends.cudnn.enabled"            # [(gpu_variant or "").startswith("cuda")]
+        - python -c "import torch; assert torch.backends.mps.is_built()"           # [(gpu_variant == "metal")]
         - python -c "import torch; torch.tensor(1).to('cpu').numpy(); print('numpy support enabled!!!')"
-        # At conda-forge, we target versions of OSX that are too old for MPS support
-        # But if users install a newer version of OSX, they will have MPS support
-        # https://github.com/conda-forge/pytorch-cpu-feedstock/pull/123#issuecomment-1186355073
-        # - python -c "import torch; assert torch.backends.mps.is_available()" # [osx]
         - test -f $PREFIX/lib/libtorch_python${SHLIB_EXT}     # [unix]
 
-  # 2021/08/01, hmaarrfk
-  # While this seems like a roundabout way of defining the package name
-  # It helps the linter avoid errors on a package not having tests.
-  {% set pytorch_cpu_gpu = "pytorch-cpu" %}   # [cuda_compiler_version == "None"]
-  {% set pytorch_cpu_gpu = "pytorch-gpu" %}   # [cuda_compiler_version != "None"]
-  - name: {{ pytorch_cpu_gpu }}
-    build:
-      string: cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
-      string: cpu_{{ blas_impl }}_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                      # [cuda_compiler_version == "None"]
-      detect_binary_files_with_prefix: false
-      skip: true  # [cuda_compiler_version != "None" and linux64 and blas_impl != "mkl"]
-      # weigh down cpu implementation and give cuda preference
-      track_features:
-        - pytorch-cpu                                      # [cuda_compiler_version == "None"]
+  - name: pytorch-{{ "cpu" if gpu_variant == "cpu" else "gpu" }}
     requirements:
       run:
-        - {{ pin_subpackage("pytorch", exact=True) }}
+        - pytorch ={{ version }}={{ "cpu" if gpu_variant == "cpu" else "gpu" }}* # NB pinning exact=True will also pin to the python version
     test:
       imports:
         - torch
@@ -362,12 +454,20 @@ about:
     - NOTICE
     - third_party/pybind11/LICENSE
   summary: PyTorch is an optimized tensor library for deep learning using GPUs and CPUs.
+  description: |
+    PyTorch is a Python package that provides two high-level features:
+      - Tensor computation (like NumPy) with strong GPU acceleration
+      - Deep neural networks built on a tape-based autograd system
+    You can reuse your favorite Python packages such as NumPy, SciPy, and Cython to extend PyTorch when needed.
+  doc_url: https://pytorch.org/docs/
 
 extra:
+  skip-lints:
+    - missing_tests
   recipe-maintainers:
     - hmaarrfk
     - sodre
     - benjaminrwilson
     - Tobias-Fischer
     - beckermr
-  feedstock-name: pytorch-cpu
+    - danpetry

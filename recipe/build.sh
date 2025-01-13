@@ -2,6 +2,10 @@
 
 set -ex
 
+echo "####################################################################"
+echo "Building PyTorch using BLAS implementation: $blas_impl              "
+echo "####################################################################"
+
 # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/243
 # https://github.com/pytorch/pytorch/blob/v2.3.1/setup.py#L341
 export PACKAGE_TYPE=conda
@@ -14,9 +18,21 @@ rm -rf pyproject.toml
 
 export USE_NUMA=0
 export USE_ITT=0
+
+#################### ADJUST COMPILER AND LINKER FLAGS #####################
+# Pytorch's build system doesn't like us setting the c++ standard and will
+# issue a warning. In particular, if it's set to anything other than c++14,
+# we'll get compiler errors. Let's just remove it like we're told.
+export CXXFLAGS="$(echo $CXXFLAGS | sed 's/-std=c++[0-9][0-9]//g')"
+# The below three lines expose symbols that would otherwise be hidden or
+# optimised away. They were here before, so removing them would potentially
+# break users' programs
 export CFLAGS="$(echo $CFLAGS | sed 's/-fvisibility-inlines-hidden//g')"
 export CXXFLAGS="$(echo $CXXFLAGS | sed 's/-fvisibility-inlines-hidden//g')"
 export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,--as-needed//g')"
+# The default conda LDFLAGs include -Wl,-dead_strip_dylibs, which removes all the
+# MKL sequential, core, etc. libraries, resulting in a "Symbol not found: _mkl_blas_caxpy"
+# error on osx-64.
 export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,-dead_strip_dylibs//g')"
 export LDFLAGS_LD="$(echo $LDFLAGS_LD | sed 's/-dead_strip_dylibs//g')"
 if [[ "$c_compiler" == "clang" ]]; then
@@ -45,10 +61,36 @@ fi
 # can be imported on system without a GPU
 LDFLAGS="${LDFLAGS//-Wl,-z,now/-Wl,-z,lazy}"
 
+################ CONFIGURE CMAKE FOR CONDA ENVIRONMENT ###################
+if [[ "$OSTYPE" != "darwin"* ]]; then
+    export CMAKE_SYSROOT=$CONDA_BUILD_SYSROOT
+else
+    export CMAKE_OSX_SYSROOT=$CONDA_BUILD_SYSROOT
+fi
+# Required to make the right SDK found on Anaconda's CI system. Ideally should be fixed in the CI or conda-build
+if [[ "${build_platform}" = "osx-arm64" ]]; then
+    export DEVELOPER_DIR=/Library/Developer/CommandLineTools
+fi
 export CMAKE_GENERATOR=Ninja
 export CMAKE_LIBRARY_PATH=$PREFIX/lib:$PREFIX/include:$CMAKE_LIBRARY_PATH
 export CMAKE_PREFIX_PATH=$PREFIX
 export CMAKE_BUILD_TYPE=Release
+
+# Apparently, the PATH that conda generates when stacking environments, does not
+# have a logical order, potentially leading to CMake looking for (and finding)
+# things in the wrong (e.g. parent) environment. In particular, we want to avoid
+# finding the wrong Python interpreter.
+# Additionally, we explicitly tell CMake where the correct Python interpreter is,
+# because simply setting the PATH doesn't work completely.
+export PATH=$PREFIX/bin:$PREFIX:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH
+export Python3_ROOT_DIR=${PREFIX}
+export Python3_EXECUTABLE="${PYTHON}"
+
+# Uncomment to use ccache; development only
+# export CMAKE_C_COMPILER_LAUNCHER=ccache
+# export CMAKE_CXX_COMPILER_LAUNCHER=ccache
+# export CMAKE_CUDA_COMPILER_LAUNCHER=ccache
+# export CCACHE_BASEDIR=${PREFIX}/../
 
 for ARG in $CMAKE_ARGS; do
   if [[ "$ARG" == "-DCMAKE_"* ]]; then
@@ -60,7 +102,8 @@ for ARG in $CMAKE_ARGS; do
   fi
 done
 unset CMAKE_INSTALL_PREFIX
-export TH_BINARY_BUILD=1
+#export TH_BINARY_BUILD=1
+# Use our build version and number for inserting into binaries
 export PYTORCH_BUILD_VERSION=$PKG_VERSION
 export PYTORCH_BUILD_NUMBER=$PKG_BUILDNUM
 
@@ -70,6 +113,16 @@ export BUILD_TEST=0
 export USE_SYSTEM_SLEEF=1
 # use our protobuf
 export BUILD_CUSTOM_PROTOBUF=OFF
+export USE_SYSTEM_PYBIND11=1
+export USE_SYSTEM_EIGEN_INSTALL=1
+# TODO:Unvendor onnx. Requires our package to provide ONNXConfig.cmake etc first
+# Breakpad is missing a ppc64 and s390x port
+case "$build_platform" in
+    linux-ppc64le|linux-s390x)
+        export USE_BREAKPAD=OFF
+    ;;
+esac
+
 rm -rf $PREFIX/bin/protoc
 
 if [[ "${target_platform}" != "${build_platform}" ]]; then
@@ -94,15 +147,20 @@ if [[ "${CI}" == "github_actions" ]]; then
     # cirun-openstack-gpu-2xlarge, which has 32GB RAM, 8 CPUs
     export MAX_JOBS=4
 else
-    export MAX_JOBS=${CPU_COUNT}
+    # Leave a spare core for other tasks. This may need to be reduced further
+    # if we get out of memory errors. (Each job uses a certain amount of memory.)
+    export MAX_JOBS=$((CPU_COUNT > 1 ? CPU_COUNT - 1 : 1))
 fi
 
-if [[ "$blas_impl" == "generic" ]]; then
+if [[ "$blas_impl" == "openblas" ]]; then
     # Fake openblas
     export BLAS=OpenBLAS
-    sed -i.bak "s#FIND_LIBRARY.*#set(OpenBLAS_LIB ${PREFIX}/lib/liblapack${SHLIB_EXT} ${PREFIX}/lib/libcblas${SHLIB_EXT} ${PREFIX}/lib/libblas${SHLIB_EXT})#g" cmake/Modules/FindOpenBLAS.cmake
-else
+    #sed -i.bak "s#FIND_LIBRARY.*#set(OpenBLAS_LIB ${PREFIX}/lib/liblapack${SHLIB_EXT} ${PREFIX}/lib/libcblas${SHLIB_EXT} ${PREFIX}/lib/libblas${SHLIB_EXT})#g" cmake/Modules/FindOpenBLAS.cmake
+elif [[ "$blas_impl" == "mkl" ]]; then
     export BLAS=MKL
+else
+    echo "[ERROR] Unsupported BLAS implementation '${blas_impl}'" >&2
+    exit 1
 fi
 
 if [[ "$PKG_NAME" == "pytorch" ]]; then
@@ -131,7 +189,14 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
         # was added. Revisit later
         export USE_MKLDNN=0
     fi
-elif [[ ${cuda_compiler_version} != "None" ]]; then
+
+    if [[ ${gpu_variant} == "metal" ]]; then
+        export USE_MPS=1
+    else
+        export USE_MPS=0
+    fi
+
+elif [[ ${gpu_variant} == "cuda"* ]]; then
     if [[ "$target_platform" == "linux-aarch64" ]]; then
         # https://github.com/pytorch/pytorch/pull/121975
         # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/264
@@ -149,29 +214,39 @@ elif [[ ${cuda_compiler_version} != "None" ]]; then
     if [[ "${target_platform}" != "${build_platform}" ]]; then
         export CUDA_TOOLKIT_ROOT=${CUDA_HOME}
     fi
+    # Warning from pytorch v1.12.1: In the future we will require one to
+    # explicitly pass TORCH_CUDA_ARCH_LIST to cmake instead of implicitly
+    # setting it as an env variable.
+    #
+    # +PTX should go to the oldest arch. There's a modest runtime performance
+    # hit for (unlisted) newer arches on doing this, but that must be set
+    # when wide compatibility is a concern.
+    #
+    # https://pytorch.org/docs/stable/cpp_extension.html (Compute capabilities)
+    # https://github.com/pytorch/builder/blob/c85da84005b44041b75e1eb3221ea7dcbd1b28aa/conda/pytorch-nightly/build.sh#L53-L89
     if [[ ${cuda_compiler_version} == 9.0* ]]; then
-        export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;7.0+PTX"
+        export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;7.0"
         export CUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME
     elif [[ ${cuda_compiler_version} == 9.2* ]]; then
-        export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0+PTX"
+        export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0"
         export CUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME
     elif [[ ${cuda_compiler_version} == 10.* ]]; then
-        export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5+PTX"
+        export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5"
         export CUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME
     elif [[ ${cuda_compiler_version} == 11.0* ]]; then
-        export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0+PTX"
+        export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5;8.0"
         export CUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME
     elif [[ ${cuda_compiler_version} == 11.1 ]]; then
-        export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX"
+        export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5;8.0;8.6"
         export CUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME
     elif [[ ${cuda_compiler_version} == 11.2 ]]; then
-        export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX"
+        export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5;8.0;8.6"
         export CUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME
     elif [[ ${cuda_compiler_version} == 11.8 ]]; then
-        export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6;8.9+PTX"
+        export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5;8.0;8.6;8.9"
         export CUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME
     elif [[ ${cuda_compiler_version} == 12.0 ]]; then
-        export TORCH_CUDA_ARCH_LIST="5.0;6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0+PTX"
+        export TORCH_CUDA_ARCH_LIST="5.0+PTX;6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0"
         # $CUDA_HOME not set in CUDA 12.0. Using $PREFIX
         export CUDA_TOOLKIT_ROOT_DIR="${PREFIX}"
         if [[ "${target_platform}" != "${build_platform}" ]]; then
@@ -185,7 +260,8 @@ elif [[ ${cuda_compiler_version} != "None" ]]; then
             export CUDA_TOOLKIT_ROOT=${PREFIX}
         fi
     else
-        echo "unsupported cuda version. edit build_pytorch.sh"
+        echo "No CUDA architecture list exists for CUDA v${cuda_compiler_version}"
+        echo "in build.sh. Use https://en.wikipedia.org/wiki/CUDA#GPUs_supported to make one."
         exit 1
     fi
     export TORCH_NVCC_FLAGS="-Xfatbin -compress-all"
@@ -195,12 +271,8 @@ elif [[ ${cuda_compiler_version} != "None" ]]; then
     export USE_STATIC_NCCL=0
     export USE_STATIC_CUDNN=0
     export MAGMA_HOME="${PREFIX}"
+    export CUDA_INC_PATH="${PREFIX}/targets/x86_64-linux/include/"  # Point cmake to the header files
 else
-    if [[ "$target_platform" != *-64 ]]; then
-      # Breakpad seems to not work on aarch64 or ppc64le
-      # https://github.com/pytorch/pytorch/issues/67083
-      export USE_BREAKPAD=0
-    fi
     # MKLDNN is an Apache-2.0 licensed library for DNNs and is used
     # for CPU builds. Not to be confused with MKL.
     export USE_MKLDNN=1
@@ -210,7 +282,7 @@ fi
 
 echo '${CXX}'=${CXX}
 echo '${PREFIX}'=${PREFIX}
-$PREFIX/bin/python -m pip $PIP_ACTION . --no-deps -vvv --no-clean \
+$PREFIX/bin/python -m pip $PIP_ACTION . --no-deps --no-build-isolation -vvv --no-clean \
     | sed "s,${CXX},\$\{CXX\},g" \
     | sed "s,${PREFIX},\$\{PREFIX\},g"
 
@@ -221,7 +293,8 @@ if [[ "$PKG_NAME" == "libtorch" ]]; then
   pushd torch-*
   mv torch/bin/* ${PREFIX}/bin
   mv torch/lib/* ${PREFIX}/lib
-  mv torch/share/* ${PREFIX}/share
+  # need to merge these now because we're using system pybind11
+  rsync -a torch/share/* ${PREFIX}/share
   for f in ATen caffe2 tensorpipe torch c10; do
     mv torch/include/$f ${PREFIX}/include/$f
   done

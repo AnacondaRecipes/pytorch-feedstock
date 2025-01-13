@@ -7,11 +7,11 @@ Subject: [PATCH] Force usage of python 3 and error without numpy
  cmake/Dependencies.cmake | 6 +++---
  1 file changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/cmake/Dependencies.cmake b/cmake/Dependencies.cmake
-index c4661e39e18..97206b10ca2 100644
---- a/cmake/Dependencies.cmake
-+++ b/cmake/Dependencies.cmake
-@@ -854,9 +854,9 @@ if(BUILD_PYTHON)
+Index: pytorch/cmake/Dependencies.cmake
+===================================================================
+--- pytorch.orig/cmake/Dependencies.cmake	2024-11-12 20:18:55.008695666 -0600
++++ pytorch/cmake/Dependencies.cmake	2024-11-19 16:18:44.359469010 -0600
+@@ -861,9 +861,9 @@
    if(USE_NUMPY)
      list(APPEND PYTHON_COMPONENTS NumPy)
    endif()
@@ -23,7 +23,7 @@ index c4661e39e18..97206b10ca2 100644
  endif()
  
  if(NOT Python_Interpreter_FOUND)
-@@ -873,7 +873,7 @@ if(BUILD_PYTHON)
+@@ -880,7 +880,7 @@
    if(Python_Development.Module_FOUND)
      if(USE_NUMPY)
        if(NOT Python_NumPy_FOUND)
@@ -32,6 +32,3 @@ index c4661e39e18..97206b10ca2 100644
          caffe2_update_option(USE_NUMPY OFF)
        else()
          caffe2_update_option(USE_NUMPY ON)
--- 
-2.46.0
-
