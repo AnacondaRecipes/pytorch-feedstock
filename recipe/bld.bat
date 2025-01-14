@@ -57,7 +57,8 @@ set DISTUTILS_USE_SDK=1
 set BUILD_TEST=0
 set INSTALL_TEST=0
 :: Don't increase MAX_JOBS to NUMBER_OF_PROCESSORS, as it will run out of heap
-set CPU_COUNT=1
+:: TODO
+set CPU_COUNT=4
 set MAX_JOBS=%CPU_COUNT%
 :: Use our Pybind11, Eigen
 set USE_SYSTEM_PYBIND11=1
@@ -105,6 +106,9 @@ set "USE_SYSTEM_SLEEF=ON"
 set "BUILD_CUSTOM_PROTOBUF=OFF"
 set "USE_LITE_PROTO=ON"
 
+set BUILD_SHARED_LIBS=ON
+set BUILD_STATIC_LIBS=OFF
+
 :: Here we split the build into two parts.
 :: 
 :: Both the packages libtorch and pytorch use this same build script.
@@ -128,6 +132,10 @@ if "%PKG_NAME%" == "libtorch" (
   :: building libtorch generates an empty __init__.py file. We don't want to package that, it should come from pytorch.
   rm %SP_DIR%\torch\__init__.py
   %PYTHON% setup.py clean
+  
+  :: TODO
+  copy "%SP_DIR%\torch\lib\*" "%LIBRARY_LIB%"
+  copy "%SP_DIR%\torch\bin\*" "%LIBRARY_BIN%"
 ) else (
   set BUILD_LIBTORCH_WHL=0
   set BUILD_PYTHON_ONLY=1
