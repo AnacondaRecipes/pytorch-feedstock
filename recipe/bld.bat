@@ -117,20 +117,53 @@ if "%PKG_NAME%" == "libtorch" (
   set BUILD_PYTHON_ONLY=0
 
   %PYTHON% setup.py bdist_wheel
-  %PYTHON% -m pip install --find-links=dist torch_no_python --no-build-isolation --no-deps
+  :: Extract the compiled wheel into a temporary directory
+  if not exist "%SRC_DIR%/dist" mkdir %SRC_DIR%/dist
+  pushd %SRC_DIR%/dist
+  for %%f in (../torch-*.whl) do (
+      wheel unpack %%f
+  )
 
-  :: building libtorch generates an empty __init__.py file. We don't want to package that, it should come from pytorch.
-  rm %SP_DIR%\torch\__init__.py
+  :: Navigate into the unpacked wheel
+  pushd torch-*
+
+  :: Move the binaries into the packages site-package directory
+  robocopy /NP /NFL /NDL /NJH /E torch\bin %SP_DIR%\torch\bin\
+  robocopy /NP /NFL /NDL /NJH /E torch\lib %SP_DIR%\torch\lib\
+  robocopy /NP /NFL /NDL /NJH /E torch\share %SP_DIR%\torch\share\
+  for %%f in (ATen caffe2 torch c10) do (
+      robocopy /NP /NFL /NDL /NJH /E torch\include\%%f %SP_DIR%\torch\include\%%f\
+  )
+
+  :: Remove the python binary file, that is placed in the site-packages
+  :: directory by the specific python specific pytorch package.
+  del %SP_DIR%\torch\lib\torch_python.*
+
+  popd
+  popd
 ) else (
-  set BUILD_LIBTORCH_WHL=0
+  set BUILD_LIBTORCH_WHL=
   :: In theory we want BUILD_PYTHON_ONLY=1 but that ends up causing lots of linking problems.
   :: set BUILD_PYTHON_ONLY=1
 
   :: NOTE: Passing --cmake is necessary here since the torch frontend has its
   :: own cmake files that it needs to generate
-  cmake -DPython_EXECUTABLE="%PYTHON%" --build build --target clean
+  cmake --build build --target clean
   %PYTHON% setup.py bdist_wheel --cmake
   %PYTHON% -m pip install --find-links=dist torch --no-build-isolation --no-deps
+  rmdir /s /q %SP_DIR%\torch\bin
+  rmdir /s /q %SP_DIR%\torch\share
+  for %%f in (ATen caffe2 torch c10) do (
+      rmdir /s /q %SP_DIR%\torch\include\%%f
+  )
+
+  :: Delete all files from the lib directory that do not start with torch_python
+  for %%f in (%SP_DIR%\torch\lib\*) do (
+      set "FILENAME=%%~nf"
+      if "!FILENAME:~0,12!" neq "torch_python" (
+          del %%f
+      )
+  )
 )
 
 if errorlevel 1 exit /b 1
