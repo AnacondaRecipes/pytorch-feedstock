@@ -1,25 +1,3 @@
-diff --git a/aten/CMakeLists.txt b/aten/CMakeLists.txt
-index bda6aea3270..e93d32d6bc8 100644
---- a/aten/CMakeLists.txt
-+++ b/aten/CMakeLists.txt
-@@ -103,7 +103,16 @@ endif()
- 
- list(APPEND ATen_CPU_INCLUDE
-   ${CMAKE_CURRENT_SOURCE_DIR}/src)
--add_subdirectory(src/ATen)
-+
-+if(NOT BUILD_LIBTORCHLESS)
-+  add_subdirectory(src/ATen)
-+else()
-+  # Add logic here to generate headers without building the full library
-+  add_custom_target(ATen_headers
-+      COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/aten/include
-+      COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/src/ATen ${CMAKE_BINARY_DIR}/aten/include
-+  )
-+endif()
- 
- # Pass source, includes, and libs to parent
- set(ATen_CPU_SRCS ${ATen_CPU_SRCS} PARENT_SCOPE)
 diff --git a/functorch/CMakeLists.txt b/functorch/CMakeLists.txt
 index bdfa4bfe455..2baae3b2dee 100644
 --- a/functorch/CMakeLists.txt
