@@ -1,38 +1,61 @@
-From 70fc29138019a125d391ba9171ee8c5e82249a00 Mon Sep 17 00:00:00 2001
-From: Eric Lundby <Eric.Lundby@gmail.com>
-Date: Mon, 13 Jan 2025 16:11:21 -0700
-Subject: [PATCH 3/3] Add some debug
-
----
- c10/CMakeLists.txt    | 1 +
- caffe2/CMakeLists.txt | 2 ++
- 2 files changed, 3 insertions(+)
-
-diff --git a/c10/CMakeLists.txt b/c10/CMakeLists.txt
-index b794b528991..3e7d2b3c618 100644
---- a/c10/CMakeLists.txt
-+++ b/c10/CMakeLists.txt
-@@ -14,6 +14,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+diff --git a/aten/CMakeLists.txt b/aten/CMakeLists.txt
+index bda6aea3270..e93d32d6bc8 100644
+--- a/aten/CMakeLists.txt
++++ b/aten/CMakeLists.txt
+@@ -103,7 +103,16 @@ endif()
  
+ list(APPEND ATen_CPU_INCLUDE
+   ${CMAKE_CURRENT_SOURCE_DIR}/src)
+-add_subdirectory(src/ATen)
++
++if(NOT BUILD_LIBTORCHLESS)
++  add_subdirectory(src/ATen)
++else()
++  # Add logic here to generate headers without building the full library
++  add_custom_target(ATen_headers
++      COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/aten/include
++      COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/src/ATen ${CMAKE_BINARY_DIR}/aten/include
++  )
++endif()
+ 
+ # Pass source, includes, and libs to parent
+ set(ATen_CPU_SRCS ${ATen_CPU_SRCS} PARENT_SCOPE)
+diff --git a/functorch/CMakeLists.txt b/functorch/CMakeLists.txt
+index bdfa4bfe455..2baae3b2dee 100644
+--- a/functorch/CMakeLists.txt
++++ b/functorch/CMakeLists.txt
+@@ -17,7 +17,7 @@ target_compile_options(${PROJECT_NAME} PRIVATE ${TORCH_PYTHON_COMPILE_OPTIONS})
+ target_compile_options_if_supported(${PROJECT_NAME} "-Wmissing-prototypes")
+ target_compile_options_if_supported(${PROJECT_NAME} "-Werror=missing-prototypes")
  if(BUILD_LIBTORCHLESS)
-   find_library(C10_LIB c10 PATHS $ENV{LIBTORCH_LIB_PATH} NO_DEFAULT_PATH)
-+  message("C10_LIB found at: ${C10_LIB}")
+-  target_link_libraries(${PROJECT_NAME} PRIVATE ${TORCH_LIB} torch_python)
++  target_link_libraries(${PROJECT_NAME} PRIVATE ${TORCH_LIB} torch_cpu c10 torch_python)
  else()
-   set(C10_LIB c10)
- endif()
-diff --git a/caffe2/CMakeLists.txt b/caffe2/CMakeLists.txt
-index 9be7f3732f3..14365003c3b 100644
---- a/caffe2/CMakeLists.txt
-+++ b/caffe2/CMakeLists.txt
-@@ -729,6 +729,8 @@ set(Caffe2_CPU_SRCS ${Caffe2_CPU_SRCS_NON_AVX} ${Caffe2_CPU_SRCS_AVX2} ${Caffe2_
- if(BUILD_LIBTORCHLESS)
-   find_library(TORCH_LIB torch PATHS $ENV{LIBTORCH_LIB_PATH} NO_DEFAULT_PATH)
-   find_library(TORCH_CPU_LIB torch_cpu PATHS $ENV{LIBTORCH_LIB_PATH} NO_DEFAULT_PATH)
-+  message(STATUS "TORCH_LIB: ${TORCH_LIB}")
-+  message(STATUS "TORCH_CPU_LIB: ${TORCH_CPU_LIB}")
+   # functorch cannot use the alias to build on windows
+   target_link_libraries(${PROJECT_NAME} PRIVATE torch torch_python)
+diff --git a/torch/CMakeLists.txt b/torch/CMakeLists.txt
+index c74b45431c9..05b1f44502a 100644
+--- a/torch/CMakeLists.txt
++++ b/torch/CMakeLists.txt
+@@ -483,7 +483,7 @@ if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+           )
+   # Pybind11 requires explicit linking of the torch_python library
+   if(BUILD_LIBTORCHLESS)
+-    target_link_libraries(nnapi_backend PRIVATE ${TORCH_LIB} torch_python pybind::pybind11)
++    target_link_libraries(nnapi_backend PRIVATE ${TORCH_LIB} torch_cpu c10 torch_python pybind::pybind11)
+   else()
+     target_link_libraries(nnapi_backend PRIVATE torch torch_python pybind::pybind11)
+   endif()
+diff --git a/torch/lib/libshm_windows/CMakeLists.txt b/torch/lib/libshm_windows/CMakeLists.txt
+index df2a1064938..1d0c90e36a5 100644
+--- a/torch/lib/libshm_windows/CMakeLists.txt
++++ b/torch/lib/libshm_windows/CMakeLists.txt
+@@ -16,7 +16,7 @@ target_include_directories(shm PRIVATE
+   ${CMAKE_CURRENT_SOURCE_DIR}
+   )
  
-   if(USE_CUDA)
-     find_library(TORCH_CUDA_LIB torch_cuda PATHS $ENV{LIBTORCH_LIB_PATH} NO_DEFAULT_PATH)
--- 
-2.39.5 (Apple Git-154)
-
+-target_link_libraries(shm torch c10)
++target_link_libraries(shm torch c10 torch_cpu)
+ 
+ 
+ install(TARGETS shm DESTINATION "${LIBSHM_INSTALL_LIB_SUBDIR}")

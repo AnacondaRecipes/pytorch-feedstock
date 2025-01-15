@@ -136,6 +136,7 @@ if "%PKG_NAME%" == "libtorch" (
   :: TODO
   copy "%SP_DIR%\torch\lib\*" "%LIBRARY_LIB%"
   copy "%SP_DIR%\torch\bin\*" "%LIBRARY_BIN%"
+  xcopy "%SP_DIR%\torch\include" "%LIBRARY_INC%" /E /I /Y
 ) else (
   set BUILD_LIBTORCH_WHL=0
   set BUILD_PYTHON_ONLY=1
