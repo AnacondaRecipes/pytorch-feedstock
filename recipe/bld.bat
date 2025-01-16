@@ -113,8 +113,6 @@ set "USE_LITE_PROTO=ON"
 if "%PKG_NAME%" == "libtorch" (
   :: For the main script we just build a wheel for libtorch so that the C++/CUDA
   :: parts are built. Then they are reused in each python version.
-  set BUILD_LIBTORCH_WHL=1
-  set BUILD_PYTHON_ONLY=0
 
   %PYTHON% setup.py bdist_wheel
   :: Extract the compiled wheel into a temporary directory
@@ -142,10 +140,6 @@ if "%PKG_NAME%" == "libtorch" (
   popd
   popd
 ) else (
-  set BUILD_LIBTORCH_WHL=
-  :: In theory we want BUILD_PYTHON_ONLY=1 but that ends up causing lots of linking problems.
-  :: set BUILD_PYTHON_ONLY=1
-
   :: NOTE: Passing --cmake is necessary here since the torch frontend has its
   :: own cmake files that it needs to generate
   cmake --build build --target clean
