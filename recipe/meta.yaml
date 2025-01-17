@@ -57,7 +57,8 @@ source:
 {% endif %}
   - url: https://raw.githubusercontent.com/pytorch/builder/{{ smoke_test_commit }}/test/smoke_test/smoke_test.py
     folder: smoke_test
-
+  # The .gitignore is needed in order to run upstreams `setup.py clean`
+  - url: https://raw.githubusercontent.com/pytorch/pytorch/refs/tags/v{{ version }}/.gitignore
 
 build:
   number: {{ build }}
