@@ -36,6 +36,7 @@ source:
   # The "pytorch-v" tarballs contain submodules; the "pytorch-" ones don't.
   - url: https://github.com/pytorch/pytorch/releases/download/v{{ version }}/pytorch-v{{ version }}.tar.gz
     sha256: {{ sha256 }}
+{% endif %}
     patches:
       - patches/0001-windows-FindMKL-add-library-suffix.patch                  # [win]
       - patches/0002-swap-openmp-search-precedence.patch                       # [blas_impl == "mkl"]
@@ -54,7 +55,6 @@ source:
       # See https://github.com/pytorch/pytorch/pull/137331
       # for status
       - patches/137331.patch
-{% endif %}
   - url: https://raw.githubusercontent.com/pytorch/builder/{{ smoke_test_commit }}/test/smoke_test/smoke_test.py
     folder: smoke_test
 
@@ -452,7 +452,6 @@ about:
   license_file:
     - LICENSE
     - NOTICE
-    - third_party/pybind11/LICENSE
   summary: PyTorch is an optimized tensor library for deep learning using GPUs and CPUs.
   description: |
     PyTorch is a Python package that provides two high-level features:
