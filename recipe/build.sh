@@ -62,11 +62,6 @@ fi
 LDFLAGS="${LDFLAGS//-Wl,-z,now/-Wl,-z,lazy}"
 
 ################ CONFIGURE CMAKE FOR CONDA ENVIRONMENT ###################
-if [[ "$OSTYPE" != "darwin"* ]]; then
-    export CMAKE_SYSROOT=$CONDA_BUILD_SYSROOT
-else
-    export CMAKE_OSX_SYSROOT=$CONDA_BUILD_SYSROOT
-fi
 # Required to make the right SDK found on Anaconda's CI system. Ideally should be fixed in the CI or conda-build
 if [[ "${build_platform}" = "osx-arm64" ]]; then
     export DEVELOPER_DIR=/Library/Developer/CommandLineTools
@@ -75,16 +70,6 @@ export CMAKE_GENERATOR=Ninja
 export CMAKE_LIBRARY_PATH=$PREFIX/lib:$PREFIX/include:$CMAKE_LIBRARY_PATH
 export CMAKE_PREFIX_PATH=$PREFIX
 export CMAKE_BUILD_TYPE=Release
-
-# Apparently, the PATH that conda generates when stacking environments, does not
-# have a logical order, potentially leading to CMake looking for (and finding)
-# things in the wrong (e.g. parent) environment. In particular, we want to avoid
-# finding the wrong Python interpreter.
-# Additionally, we explicitly tell CMake where the correct Python interpreter is,
-# because simply setting the PATH doesn't work completely.
-export PATH=$PREFIX/bin:$PREFIX:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH
-export Python3_ROOT_DIR=${PREFIX}
-export Python3_EXECUTABLE="${PYTHON}"
 
 # Uncomment to use ccache; development only
 # export CMAKE_C_COMPILER_LAUNCHER=ccache
@@ -102,7 +87,7 @@ for ARG in $CMAKE_ARGS; do
   fi
 done
 unset CMAKE_INSTALL_PREFIX
-#export TH_BINARY_BUILD=1
+export TH_BINARY_BUILD=1
 # Use our build version and number for inserting into binaries
 export PYTORCH_BUILD_VERSION=$PKG_VERSION
 export PYTORCH_BUILD_NUMBER=$PKG_BUILDNUM
