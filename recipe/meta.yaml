@@ -431,10 +431,7 @@ outputs:
         # Note that the `|| true` expression will make the build continue even if the whole script falls over completely
         # (for example, in the case of missing imports). There doesn't seem to be a way of making a script exception return
         # non-zero but failing tests return zero.
-        - python ./test/run_test.py --core --continue-through-error || true  # [not win]
-        # Hack to fix test_autograd.py so it can find pybind11
-        - mv %PREFIX%/include/pybind11_global/pybind11 %PREFIX%/include  # [win]
-        - cmd.exe /c "python ./test/run_test.py --core --continue-through-error" || ver > nul 2> nul  # [win]
+        - python ./test/run_test.py --core --continue-through-error || true
         # The inductor tests test the torch.compile backend. Using the options below avoids running distributed tests,
         # which would be run if we used the --inductor option. (Distributed tests would only be correctly run on a multi-gpu test platform,
         # which we don't have.)
