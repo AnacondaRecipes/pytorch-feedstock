@@ -76,6 +76,7 @@ build:
     - python *                               # [megabuild]
     - numpy *                                # [megabuild]
   skip: True  # [py<39]
+  skip: True  # [not win]
 
 requirements:
   # Keep this list synchronized (except for python*, numpy*) in outputs
