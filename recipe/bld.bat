@@ -99,6 +99,15 @@ set "USE_SYSTEM_SLEEF=ON"
 set "BUILD_CUSTOM_PROTOBUF=OFF"
 set "USE_LITE_PROTO=ON"
 
+set "CMAKE_C_COMPILER_LAUNCHER=sccache"
+set "CMAKE_CXX_COMPILER_LAUNCHER=sccache"
+set "CMAKE_CUDA_COMPILER_LAUNCHER=sccache"
+set "SCCACHE_DIR=%BUILD_PREFIX%/.sccache"
+
+sccache --stop-server
+sccache --start-server
+sccache --zero-stats
+
 :: Here we split the build into two parts.
 :: 
 :: Both the packages libtorch and pytorch use this same build script.
@@ -160,5 +169,6 @@ if "%PKG_NAME%" == "libtorch" (
   )
 )
 
-if errorlevel 1 exit /b 1
+sccache --show-stats
 
+if errorlevel 1 exit /b 1
