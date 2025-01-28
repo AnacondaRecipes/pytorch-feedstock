@@ -57,7 +57,8 @@ source:
 {% endif %}
   - url: https://raw.githubusercontent.com/pytorch/builder/{{ smoke_test_commit }}/test/smoke_test/smoke_test.py
     folder: smoke_test
-
+  # The .gitignore is needed in order to run upstreams `setup.py clean`
+  - url: https://raw.githubusercontent.com/pytorch/pytorch/refs/tags/v{{ version }}/.gitignore
 
 build:
   number: {{ build }}
@@ -75,7 +76,6 @@ build:
     - python *                               # [megabuild]
     - numpy *                                # [megabuild]
   skip: True  # [py<39]
-  skip: True  # [win]
 
 requirements:
   # Keep this list synchronized (except for python*, numpy*) in outputs
@@ -114,12 +114,13 @@ requirements:
     # This has a strong run_export so we don't need to put it in `host` or `run`
     # We use llvm-openmp for openblas variants on osx.
     - llvm-openmp 14.0.6              # [osx and not (blas_impl == "mkl")]
+    - libuv     # [win]
     - cmake
     - ninja-base
     # Keep libprotobuf here so that a compatibile version
     # of protobuf is installed between build and host
-    - libprotobuf    # [not win]
-    - protobuf       # [not win]
+    - libprotobuf
+    - protobuf
     - make      # [linux]
     # Uncomment to use ccache, see README and build_pytorch.sh
     # - ccache
@@ -147,15 +148,16 @@ requirements:
     # other requirements
     - python 3.12  # [megabuild]
     - python       # [not megabuild]
-    - numpy 2.*
+    - numpy 2
     - pip
-    - setuptools
+    # Upper bound due to https://github.com/pytorch/pytorch/issues/136541
+    - setuptools <=72.1.0
     - wheel
     - pyyaml
     - requests
     - future
     - six
-    - mkl-devel {{ mkl }}.*           # [blas_impl == "mkl"]
+    - mkl-devel {{ mkl }}           # [blas_impl == "mkl"]
     - openblas-devel {{ openblas }}   # [blas_impl == "openblas"]
     # - libcblas * *_mkl      # [blas_impl == "mkl"]
     # - libcblas              # [blas_impl != "mkl"]
@@ -167,8 +169,8 @@ requirements:
     - intel-openmp   {{ mkl }}        # [blas_impl == "mkl"]
     - llvm-openmp 14.0.6              # [osx and not (blas_impl == "mkl")]
     - libabseil
-    - libprotobuf {{ libprotobuf }}   # [not win]
-    - sleef 3.5.1                     # [not win]
+    - libprotobuf {{ libprotobuf }}
+    - sleef 3.5.1
     - typing
     - libuv
     - pkg-config  # [unix]
@@ -180,6 +182,7 @@ requirements:
   # satisfy overlinking checks
   run:
     - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
+    - libuv  # [win]
 
 # these tests are for the libtorch output below, but due to
 # a particularity of conda-build, that output is defined in
@@ -199,6 +202,13 @@ outputs:
   - name: libtorch
     build:
       missing_dso_whitelist:
+        # The are dynamically loaded from %SP_DIR%\torch\lib\
+        - "**/asmjit.dll"             # [win]
+        - "**/c10.dll"                # [win]
+        - "**/fbgemm.dll"             # [win]
+        - "**/shm.dll"                # [win]
+        - "**/torch_cpu.dll"          # [win]
+        - "**/torch_python.dll"       # [win]
         - $RPATH/ld64.so.1  # [s390x]
   - name: pytorch
     build:
@@ -210,13 +220,19 @@ outputs:
       ignore_run_exports:             # [osx]
         - libuv                       # [osx]
       missing_dso_whitelist:
+        # The are dynamically loaded from %SP_DIR%\torch\lib\
+        - "**/asmjit.dll"             # [win]
+        - "**/c10.dll"                # [win]
+        - "**/fbgemm.dll"             # [win]
+        - "**/shm.dll"                # [win]
+        - "**/torch_cpu.dll"          # [win]
+        - "**/torch_python.dll"       # [win]
         - $RPATH/ld64.so.1  # [s390x]
       detect_binary_files_with_prefix: false
       run_exports:
         - {{ pin_subpackage('pytorch', max_pin='x.x') }}
         - {{ pin_subpackage('libtorch', max_pin='x.x') }}
       skip: True  # [py<39]
-      skip: True  # [win]
 
     script: build_pytorch.sh   # [unix]
     script: build_pytorch.bat  # [win]
@@ -256,8 +272,8 @@ outputs:
         - ninja-base
         # Keep libprotobuf here so that a compatibile version
         # of protobuf is installed between build and host
-        - libprotobuf  # [not win]
-        - protobuf     # [not win]
+        - libprotobuf
+        - protobuf
         - make      # [linux]
         # Uncomment to use ccache, see README and build_pytorch.sh
         # - ccache
@@ -283,15 +299,15 @@ outputs:
         {% endif %}
         # other requirements
         - python
-        - numpy 2.*
+        - numpy 2
         - pip
-        - setuptools
+        - setuptools <=72.1.0
         - wheel
         - pyyaml
         - requests
         - future
         - six
-        - mkl-devel {{ mkl }}.*           # [blas_impl == "mkl"]
+        - mkl-devel {{ mkl }}           # [blas_impl == "mkl"]
         - openblas-devel {{ openblas }}   # [blas_impl == "openblas"]
         # - libcblas * *_mkl      # [blas_impl == "mkl"]
         # - libcblas              # [blas_impl != "mkl"]
@@ -303,8 +319,8 @@ outputs:
         - intel-openmp   {{ mkl }}        # [blas_impl == "mkl"]
         - llvm-openmp 14.0.6              # [osx and not (blas_impl == "mkl")]
         - libabseil
-        - libprotobuf {{ libprotobuf }}   # [not win]
-        - sleef 3.5.1                     # [not win]
+        - libprotobuf {{ libprotobuf }}
+        - sleef 3.5.1
         - typing
         - libuv
         - pkg-config  # [unix]
@@ -371,6 +387,8 @@ outputs:
         - pytest-rerunfailures
         - pytest-flakefinder
         - pytest-xdist
+        # Needed for test_autograd.py
+        - pybind11
       imports:
         - torch
       source_files:
@@ -379,6 +397,8 @@ outputs:
         # as of pytorch=2.0.0, there is a bug when trying to run tests without the tools
         - tools
         - smoke_test
+        # See files needed: https://github.com/pytorch/pytorch/blob/main/test/test_ops.py#L271-L274
+        - aten/src/ATen/native
       commands:
         # the smoke test script takes a bunch of env variables, defined below
         - set MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cudatoolkit.split('.')[:2]) }}"              # [(gpu_variant == "cuda-11") and (win)]

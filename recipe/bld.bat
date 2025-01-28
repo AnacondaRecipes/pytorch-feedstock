@@ -1,4 +1,5 @@
 @echo On
+setlocal enabledelayedexpansion
 
 :: The PyTorch test suite includes some symlinks, which aren't resolved on Windows, leading to packaging errors.
 :: ATTN! These change and have to be updated manually, often with each release. 
@@ -6,9 +7,10 @@
 :: for a failure with error message: "conda_package_handling.exceptions.ArchiveCreationError: <somefile> Cannot stat
 :: while writing file")
 
-set TH_BINARY_BUILD=1
 set PYTORCH_BUILD_VERSION=%PKG_VERSION%
-set PYTORCH_BUILD_NUMBER=%PKG_BUILDNUM%
+:: Always pass 0 to avoid appending ".post" to version string.
+:: https://github.com/conda-forge/pytorch-cpu-feedstock/issues/315
+set PYTORCH_BUILD_NUMBER=0
 
 :: uncomment to debug cmake build
 :: set CMAKE_VERBOSE_MAKEFILE=1
@@ -20,6 +22,12 @@ if "%pytorch_variant%" == "gpu" (
     set build_with_cuda=
     set USE_CUDA=0
 )
+
+:: KINETO seems to require CUPTI and will look quite hard for it.
+:: CUPTI seems to cause trouble when users install a version of
+:: cudatoolkit different than the one specified at compile time.
+:: https://github.com/conda-forge/pytorch-cpu-feedstock/issues/135
+set "USE_KINETO=OFF"
 
 :: =============================== CUDA FLAGS> ======================================
 if "%build_with_cuda%" == "" goto cuda_flags_end
@@ -41,6 +49,7 @@ set USE_MKLDNN=1
 set USE_TENSORPIPE=0
 set DISTUTILS_USE_SDK=1
 set BUILD_TEST=0
+set INSTALL_TEST=0
 :: Don't increase MAX_JOBS to NUMBER_OF_PROCESSORS, as it will run out of heap
 set CPU_COUNT=1
 set MAX_JOBS=%CPU_COUNT%
@@ -64,9 +73,12 @@ set CUDNN_INCLUDE_DIR=%LIBRARY_PREFIX%\include
 :: =============================== CUDA< ======================================
 
 set CMAKE_GENERATOR=Ninja
+set "CMAKE_GENERATOR_TOOLSET="
 set "CMAKE_GENERATOR_PLATFORM="
 set "CMAKE_PREFIX_PATH=%LIBRARY_PREFIX%"
-set CMAKE_BUILD_TYPE=Release
+set "CMAKE_INCLUDE_PATH=%LIBRARY_INC%"
+set "CMAKE_LIBRARY_PATH=%LIBRARY_LIB%"
+set "CMAKE_BUILD_TYPE=Release"
 :: This is so that CMake finds the environment's Python, not another one
 set Python_EXECUTABLE=%PYTHON%
 set Python3_EXECUTABLE=%PYTHON%
@@ -81,10 +93,72 @@ set BLAS=MKL
 set INTEL_MKL_DIR=%LIBRARY_PREFIX%
 
 set "libuv_ROOT=%LIBRARY_PREFIX%"
-set "USE_SYSTEM_SLEEF=OFF"
-:: Note that BUILD_CUSTOM_PROTOBUF=OFF (which would use our protobuf) doesn't work properly as of last testing, and results in
-:: duplicate symbols at link time.
-:: set "BUILD_CUSTOM_PROTOBUF=OFF"
+set "USE_SYSTEM_SLEEF=ON"
 
-%PYTHON% -m pip install . --no-deps --no-build-isolation -vv
+:: Use our protobuf
+set "BUILD_CUSTOM_PROTOBUF=OFF"
+set "USE_LITE_PROTO=ON"
+
+:: Here we split the build into two parts.
+:: 
+:: Both the packages libtorch and pytorch use this same build script.
+:: - The output of the libtorch package should just contain the binaries that are 
+::   not related to Python.
+:: - The output of the pytorch package contains everything except for the 
+::   non-python specific binaries.
+::
+:: This ensures that a user can quickly switch between python versions without the
+:: need to redownload all the large CUDA binaries.
+
+if "%PKG_NAME%" == "libtorch" (
+  :: For the main script we just build a wheel for libtorch so that the C++/CUDA
+  :: parts are built. Then they are reused in each python version.
+
+  %PYTHON% setup.py bdist_wheel
+  :: Extract the compiled wheel into a temporary directory
+  if not exist "%SRC_DIR%/dist" mkdir %SRC_DIR%/dist
+  pushd %SRC_DIR%/dist
+  for %%f in (../torch-*.whl) do (
+      wheel unpack %%f
+  )
+
+  :: Navigate into the unpacked wheel
+  pushd torch-*
+
+  :: Move the binaries into the packages site-package directory
+  robocopy /NP /NFL /NDL /NJH /E torch\bin %SP_DIR%\torch\bin\
+  robocopy /NP /NFL /NDL /NJH /E torch\lib %SP_DIR%\torch\lib\
+  robocopy /NP /NFL /NDL /NJH /E torch\share %SP_DIR%\torch\share\
+  for %%f in (ATen caffe2 torch c10) do (
+      robocopy /NP /NFL /NDL /NJH /E torch\include\%%f %SP_DIR%\torch\include\%%f\
+  )
+
+  :: Remove the python binary file, that is placed in the site-packages
+  :: directory by the specific python specific pytorch package.
+  del %SP_DIR%\torch\lib\torch_python.*
+
+  popd
+  popd
+) else (
+  :: NOTE: Passing --cmake is necessary here since the torch frontend has its
+  :: own cmake files that it needs to generate
+  %PYTHON% setup.py clean
+  %PYTHON% setup.py bdist_wheel --cmake
+  %PYTHON% -m pip install --find-links=dist torch --no-build-isolation --no-deps
+  rmdir /s /q %SP_DIR%\torch\bin
+  rmdir /s /q %SP_DIR%\torch\share
+  for %%f in (ATen caffe2 torch c10) do (
+      rmdir /s /q %SP_DIR%\torch\include\%%f
+  )
+
+  :: Delete all files from the lib directory that do not start with torch_python
+  for %%f in (%SP_DIR%\torch\lib\*) do (
+      set "FILENAME=%%~nf"
+      if "!FILENAME:~0,12!" neq "torch_python" (
+          del %%f
+      )
+  )
+)
+
 if errorlevel 1 exit /b 1
+

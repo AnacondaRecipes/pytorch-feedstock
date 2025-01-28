@@ -2,7 +2,3 @@
 # variant, so it's specified for both.
 extra_labels_for_os:
   osx-arm64: [ventura]
-aggregate_check: false
-
-channels:
-  - https://staging.continuum.io/prefect/fs/sympy-feedstock/pr10/3afd78c
