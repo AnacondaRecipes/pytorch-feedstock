@@ -2,3 +2,5 @@
 # variant, so it's specified for both.
 extra_labels_for_os:
   osx-arm64: [ventura]
+channels:
+  - https://staging.continuum.io/prefect/fs/sccache-feedstock/pr1/e8a9324
