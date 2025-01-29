@@ -144,6 +144,9 @@ if "%PKG_NAME%" == "libtorch" (
   for %%f in (ATen caffe2 torch c10) do (
       robocopy /NP /NFL /NDL /NJH /E torch\include\%%f %LIBRARY_INC%\%%f\
   )
+  :: See return codes of robocopy:
+  ::https://learn.microsoft.com/en-us/troubleshoot/windows-server/backup-and-storage/return-codes-used-robocopy-utility#introduction
+  if %ERRORLEVEL% leq 6 set ERRORLEVEL=0
 
   :: Remove the python binary file, that is placed in the site-packages
   :: directory by the specific python specific pytorch package.
@@ -163,6 +166,8 @@ if "%PKG_NAME%" == "libtorch" (
   robocopy /NP /NFL /NDL /NJH /E %SP_DIR%\torch\bin\ %LIBRARY_BIN%\ torch_python.dll
   robocopy /NP /NFL /NDL /NJH /E %SP_DIR%\torch\lib\ %LIBRARY_LIB%\ torch_python.lib
   robocopy /NP /NFL /NDL /NJH /E %SP_DIR%\torch\lib\ %LIBRARY_LIB%\ _C.lib
+  if %ERRORLEVEL% leq 6 set ERRORLEVEL=0
+
   rmdir /s /q %SP_DIR%\torch\lib
   rmdir /s /q %SP_DIR%\torch\bin
   rmdir /s /q %SP_DIR%\torch\share
@@ -174,7 +179,7 @@ if "%PKG_NAME%" == "libtorch" (
   :: needed to remove everything else.
   robocopy /NP /NFL /NDL /NJH /E %LIBRARY_LIB%\ torch\lib\ torch_python.lib
   robocopy /NP /NFL /NDL /NJH /E %LIBRARY_LIB%\ torch\lib\ _C.lib
+  if %ERRORLEVEL% leq 6 set ERRORLEVEL=0
 )
 
-if errorlevel 1 exit /b 1
-
+if %ERRORLEVEL% neq 0 exit 1
