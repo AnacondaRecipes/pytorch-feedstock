@@ -117,8 +117,8 @@ if "%PKG_NAME%" == "libtorch" (
   %PYTHON% setup.py bdist_wheel
   :: Extract the compiled wheel into a temporary directory
   if not exist "%SRC_DIR%/dist" mkdir %SRC_DIR%/dist
-  pushd %SRC_DIR%/dist
-  for %%f in (../torch-*.whl) do (
+  pushd %SRC_DIR%\dist
+  for %%f in (torch-*.whl) do (
       wheel unpack %%f
   )
 
@@ -129,14 +129,12 @@ if "%PKG_NAME%" == "libtorch" (
 
   :: Do not package `fmt.lib` (and its metadata); delete it before the move into
   :: %LIBRARY_BIN% because it may exist in host before installation already
-  del torch\lib\fmt.lib torch\lib\pkgconfig\fmt.pc
+  del torch\lib\fmt.lib
   if %ERRORLEVEL% neq 0 exit 1
-  :: also delete rest of fmt metadata
-  rmdir /s /q torch\lib\cmake\fmt
 
   :: Move the binaries into the packages site-package directory
   :: the only content of torch\bin, {asmjit,fbgemm}.dll, also exists in torch\lib
-  robocopy /NP /NFL /NDL /NJH /E torch\lib\ %LIBRARY_BIN%\ torch*.dll c10.dll shm.dll asmjit.dll fbgemm.dll
+  robocopy /NP /NFL /NDL /NJH /E torch\bin\ %LIBRARY_BIN%\ torch*.dll c10.dll shm.dll asmjit.dll fbgemm.dll
   robocopy /NP /NFL /NDL /NJH /E torch\lib\ %LIBRARY_LIB%\ torch*.lib c10.lib shm.lib asmjit.lib fbgemm.lib
   if not "%cuda_compiler_version%" == "None" (
       robocopy /NP /NFL /NDL /NJH /E torch\lib\ %LIBRARY_BIN%\ c10_cuda.dll caffe2_nvrtc.dll
@@ -162,7 +160,7 @@ if "%PKG_NAME%" == "libtorch" (
   %PYTHON% -m pip install --find-links=dist torch --no-build-isolation --no-deps
 
   :: Move libtorch_python and remove the other directories afterwards.
-  robocopy /NP /NFL /NDL /NJH /E %SP_DIR%\torch\lib\ %LIBRARY_BIN%\ torch_python.dll
+  robocopy /NP /NFL /NDL /NJH /E %SP_DIR%\torch\bin\ %LIBRARY_BIN%\ torch_python.dll
   robocopy /NP /NFL /NDL /NJH /E %SP_DIR%\torch\lib\ %LIBRARY_LIB%\ torch_python.lib
   robocopy /NP /NFL /NDL /NJH /E %SP_DIR%\torch\lib\ %LIBRARY_LIB%\ _C.lib
   rmdir /s /q %SP_DIR%\torch\lib
