@@ -117,25 +117,41 @@ if "%PKG_NAME%" == "libtorch" (
   %PYTHON% setup.py bdist_wheel
   :: Extract the compiled wheel into a temporary directory
   if not exist "%SRC_DIR%/dist" mkdir %SRC_DIR%/dist
-  pushd %SRC_DIR%/dist
-  for %%f in (../torch-*.whl) do (
+  pushd %SRC_DIR%\dist
+  for %%f in (torch-*.whl) do (
       wheel unpack %%f
   )
 
-  :: Navigate into the unpacked wheel
-  pushd torch-*
+  :: Navigate into the unpacked wheel; naming pattern of the folder is documented:
+  :: https://github.com/pypa/wheel/blob/0.45.1/src/wheel/cli/unpack.py#L11-L12
+  pushd torch-%PKG_VERSION%
+  if %ERRORLEVEL% neq 0 exit 1
+
+  :: Do not package `fmt.lib` (and its metadata); delete it before the move into
+  :: %LIBRARY_BIN% because it may exist in host before installation already
+  del torch\lib\fmt.lib
+  if %ERRORLEVEL% neq 0 exit 1
 
   :: Move the binaries into the packages site-package directory
-  robocopy /NP /NFL /NDL /NJH /E torch\bin %SP_DIR%\torch\bin\
-  robocopy /NP /NFL /NDL /NJH /E torch\lib %SP_DIR%\torch\lib\
-  robocopy /NP /NFL /NDL /NJH /E torch\share %SP_DIR%\torch\share\
-  for %%f in (ATen caffe2 torch c10) do (
-      robocopy /NP /NFL /NDL /NJH /E torch\include\%%f %SP_DIR%\torch\include\%%f\
+  :: the only content of torch\bin, {asmjit,fbgemm}.dll, also exists in torch\lib
+  robocopy /NP /NFL /NDL /NJH /E torch\bin\ %LIBRARY_BIN%\ torch*.dll c10.dll shm.dll asmjit.dll fbgemm.dll
+  robocopy /NP /NFL /NDL /NJH /E torch\lib\ %LIBRARY_LIB%\ torch*.lib c10.lib shm.lib asmjit.lib fbgemm.lib
+  if not "%cuda_compiler_version%" == "None" (
+      robocopy /NP /NFL /NDL /NJH /E torch\lib\ %LIBRARY_BIN%\ c10_cuda.dll caffe2_nvrtc.dll
+      robocopy /NP /NFL /NDL /NJH /E torch\lib\ %LIBRARY_LIB%\ c10_cuda.lib caffe2_nvrtc.lib
   )
+  robocopy /NP /NFL /NDL /NJH /E torch\share\ %LIBRARY_PREFIX%\share
+  for %%f in (ATen caffe2 torch c10) do (
+      robocopy /NP /NFL /NDL /NJH /E torch\include\%%f %LIBRARY_INC%\%%f\
+  )
+  :: See return codes of robocopy:
+  ::https://learn.microsoft.com/en-us/troubleshoot/windows-server/backup-and-storage/return-codes-used-robocopy-utility#introduction
+  if %ERRORLEVEL% leq 6 set ERRORLEVEL=0
 
   :: Remove the python binary file, that is placed in the site-packages
   :: directory by the specific python specific pytorch package.
-  del %SP_DIR%\torch\lib\torch_python.*
+  del %LIBRARY_BIN%\torch_python.* %LIBRARY_LIB%\torch_python.* %LIBRARY_LIB%\_C.lib
+  if %ERRORLEVEL% neq 0 exit 1
 
   popd
   popd
@@ -145,20 +161,26 @@ if "%PKG_NAME%" == "libtorch" (
   %PYTHON% setup.py clean
   %PYTHON% setup.py bdist_wheel --cmake
   %PYTHON% -m pip install --find-links=dist torch --no-build-isolation --no-deps
+
+  :: Move libtorch_python and remove the other directories afterwards.
+  robocopy /NP /NFL /NDL /NJH /E %SP_DIR%\torch\bin\ %LIBRARY_BIN%\ torch_python.dll
+  robocopy /NP /NFL /NDL /NJH /E %SP_DIR%\torch\lib\ %LIBRARY_LIB%\ torch_python.lib
+  robocopy /NP /NFL /NDL /NJH /E %SP_DIR%\torch\lib\ %LIBRARY_LIB%\ _C.lib
+  if %ERRORLEVEL% leq 6 set ERRORLEVEL=0
+
+  rmdir /s /q %SP_DIR%\torch\lib
   rmdir /s /q %SP_DIR%\torch\bin
   rmdir /s /q %SP_DIR%\torch\share
   for %%f in (ATen caffe2 torch c10) do (
       rmdir /s /q %SP_DIR%\torch\include\%%f
   )
 
-  :: Delete all files from the lib directory that do not start with torch_python
-  for %%f in (%SP_DIR%\torch\lib\*) do (
-      set "FILENAME=%%~nf"
-      if "!FILENAME:~0,12!" neq "torch_python" (
-          del %%f
-      )
-  )
+  :: Copy libtorch_python.lib back -- that's much easier than the for loop
+  :: needed to remove everything else.
+  robocopy /NP /NFL /NDL /NJH /E %LIBRARY_LIB%\ torch\lib\ torch_python.lib
+  robocopy /NP /NFL /NDL /NJH /E %LIBRARY_LIB%\ torch\lib\ _C.lib
+  if %ERRORLEVEL% leq 6 set ERRORLEVEL=0
 )
 
-if errorlevel 1 exit /b 1
-
+if %ERRORLEVEL% neq 0 exit 1
+exit /b 0
