@@ -183,3 +183,4 @@ if "%PKG_NAME%" == "libtorch" (
 )
 
 if %ERRORLEVEL% neq 0 exit 1
+exit /b 0
