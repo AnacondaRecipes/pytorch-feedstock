@@ -105,7 +105,9 @@ unset CMAKE_INSTALL_PREFIX
 #export TH_BINARY_BUILD=1
 # Use our build version and number for inserting into binaries
 export PYTORCH_BUILD_VERSION=$PKG_VERSION
-export PYTORCH_BUILD_NUMBER=$PKG_BUILDNUM
+# Always pass 0 to avoid appending ".post" to version string.
+# https://github.com/conda-forge/pytorch-cpu-feedstock/issues/315
+export PYTORCH_BUILD_NUMBER=0
 
 export INSTALL_TEST=0
 export BUILD_TEST=0
