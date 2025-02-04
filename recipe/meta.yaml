@@ -126,7 +126,7 @@ requirements:
     - protobuf
     - make      # [linux]
     # Uncomment to use sccache, see README and build_pytorch.sh
-    - sccache
+    - sccache  # [win]
   host:
     # GPU requirements
     - cudnn 9.1.1.17                  # [(gpu_variant or "").startswith("cuda")]
