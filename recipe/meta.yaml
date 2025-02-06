@@ -80,7 +80,7 @@ build:
     - numpy *                                # [megabuild]
   skip: True  # [py<39]
   # TODO
-  skip: True  # [py<313]
+  skip: True  # [py<312]
 
 requirements:
   # Keep this list synchronized (except for python*, numpy*) in outputs
@@ -160,7 +160,7 @@ requirements:
     - wheel
     - pyyaml
     - requests
-    - future
+    - future  # [py<313]
     - six
     - mkl-devel {{ mkl }}           # [blas_impl == "mkl"]
     - openblas-devel {{ openblas }}   # [blas_impl == "openblas"]
@@ -323,7 +323,7 @@ outputs:
         - wheel
         - pyyaml
         - requests
-        - future
+        - future  # [py<313]
         - six
         - mkl-devel {{ mkl }}           # [blas_impl == "mkl"]
         - openblas-devel {{ openblas }}   # [blas_impl == "openblas"]
