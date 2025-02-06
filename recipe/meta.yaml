@@ -248,7 +248,7 @@ outputs:
       run_exports:
         - {{ pin_subpackage('pytorch', max_pin='x.x') }}
         - {{ pin_subpackage('libtorch', max_pin='x.x') }}
-      skip: True  # [py<39]
+      skip: True  # [py<313]
 
     script: build_pytorch.sh   # [unix]
     script: build_pytorch.bat  # [win]
