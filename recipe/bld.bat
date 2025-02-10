@@ -161,6 +161,7 @@ if "%PKG_NAME%" == "libtorch" (
   %PYTHON% setup.py clean
   %PYTHON% setup.py bdist_wheel --cmake
   %PYTHON% -m pip install --find-links=dist torch --no-build-isolation --no-deps
+  if %ERRORLEVEL% neq 0 exit 1
 
   :: Move libtorch_python and remove the other directories afterwards.
   robocopy /NP /NFL /NDL /NJH /E %SP_DIR%\torch\bin\ %LIBRARY_BIN%\ torch_python.dll

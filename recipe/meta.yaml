@@ -52,6 +52,7 @@ source:
       - patches/0009-use-prefix-include-for-inductor.patch
       - patches/0010-make-ATEN_INCLUDE_DIR-relative-to-TORCH_INSTALL_PREF.patch 
       - patches/0011-remove-DESTINATION-lib-from-CMake-install-TARGETS-di.patch             # [win]
+      - patches/0012-CD-Enable-Python-3.13-on-windows-138095.patch                          # [win]
       - patches_submodules/0001-remove-DESTINATION-lib-from-CMake-install-directives.patch  # [win]
 
       # See https://github.com/pytorch/pytorch/pull/137331
@@ -158,7 +159,7 @@ requirements:
     - wheel
     - pyyaml
     - requests
-    - future
+    - future  # [py<313]
     - six
     - mkl-devel {{ mkl }}           # [blas_impl == "mkl"]
     - openblas-devel {{ openblas }}   # [blas_impl == "openblas"]
@@ -321,7 +322,7 @@ outputs:
         - wheel
         - pyyaml
         - requests
-        - future
+        - future  # [py<313]
         - six
         - mkl-devel {{ mkl }}           # [blas_impl == "mkl"]
         - openblas-devel {{ openblas }}   # [blas_impl == "openblas"]
