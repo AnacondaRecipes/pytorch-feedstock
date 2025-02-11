@@ -127,10 +127,6 @@ if "%PKG_NAME%" == "libtorch" (
   pushd torch-%PKG_VERSION%
   if %ERRORLEVEL% neq 0 exit 1
 
-  :: Do not package `fmt.lib` (and its metadata); delete it before the move into
-  :: %LIBRARY_BIN% because it may exist in host before installation already
-  del torch\lib\fmt.lib
-  if %ERRORLEVEL% neq 0 exit 1
 
   :: Move the binaries into the packages site-package directory
   :: the only content of torch\bin, {asmjit,fbgemm}.dll, also exists in torch\lib
@@ -150,7 +146,7 @@ if "%PKG_NAME%" == "libtorch" (
 
   :: Remove the python binary file, that is placed in the site-packages
   :: directory by the specific python specific pytorch package.
-  del %LIBRARY_BIN%\torch_python.* %LIBRARY_LIB%\torch_python.* %LIBRARY_LIB%\_C.lib
+  del %LIBRARY_BIN%\torch_python.* %LIBRARY_LIB%\torch_python.*
   if %ERRORLEVEL% neq 0 exit 1
 
   popd
@@ -178,8 +174,8 @@ if "%PKG_NAME%" == "libtorch" (
 
   :: Copy libtorch_python.lib back -- that's much easier than the for loop
   :: needed to remove everything else.
-  robocopy /NP /NFL /NDL /NJH /E %LIBRARY_LIB%\ torch\lib\ torch_python.lib
-  robocopy /NP /NFL /NDL /NJH /E %LIBRARY_LIB%\ torch\lib\ _C.lib
+  mkdir %SP_DIR%\torch\lib
+  robocopy /NP /NFL /NDL /NJH /E /MOV %LIBRARY_LIB%\ %SP_DIR%\torch\lib\ torch_python.lib _C.lib
   if %ERRORLEVEL% leq 6 set ERRORLEVEL=0
 )
 
