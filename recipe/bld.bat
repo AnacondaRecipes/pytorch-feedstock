@@ -99,27 +99,16 @@ set "USE_SYSTEM_SLEEF=ON"
 set "BUILD_CUSTOM_PROTOBUF=OFF"
 set "USE_LITE_PROTO=ON"
 
-set "CMAKE_C_COMPILER_LAUNCHER=sccache"
-set "CMAKE_CXX_COMPILER_LAUNCHER=sccache"
-set "CMAKE_CUDA_COMPILER_LAUNCHER=sccache"
-set "SCCACHE_DIR=%BUILD_PREFIX%/.sccache"
-set "SCCACHE_CONF=%BUILD_PREFIX%\sccache_config.toml"
-set "SCCACHE_CACHE_SIZE=16G"
+set "CCACHE_DIR=%BUILD_PREFIX%/.ccache"
+set CMAKE_C_COMPILER_LAUNCHER=ccache
+set CMAKE_CXX_COMPILER_LAUNCHER=ccache
+set CMAKE_CUDA_COMPILER_LAUNCHER=ccache
+set CCACHE_BASEDIR="%PREFIX%\..\"
 
-:: Write the config file
-(
-echo [cache.disk]
-echo size = 17179869184
-echo [server]
-echo # Maximum idle time before shutting down (in seconds)
-echo idle_timeout = 3600  # 1 hour
-) > "%SCCACHE_CONF%"
-
-
-set SCCACHE_LOG=debug
-sccache --stop-server
-sccache --start-server
-sccache --zero-stats
+set CCACHE_DEBUG=1
+ccache --stop-server
+ccache --start-server
+ccache --zero-stats
 
 :: Here we split the build into two parts.
 :: 
@@ -131,34 +120,6 @@ sccache --zero-stats
 ::
 :: This ensures that a user can quickly switch between python versions without the
 :: need to redownload all the large CUDA binaries.
-
-if "%PKG_NAME%" == "pytorch" (
-  :: We build libtorch for a specific python version.
-  :: This ensures its only build once. However, when that version changes
-  :: we need to make sure to update that here.
-  :: Get the full python version string
-  for /f "tokens=2" %%a in ('python --version 2^>^&1') do set PY_VERSION_FULL=%%a
-
-  :: Replace Python312 or python312 with ie Python311 or python311
-  sed "s/\([Pp]ython\)312/\1%CONDA_PY%/g" build/CMakeCache.txt.orig > build/CMakeCache.txt
-  if %ERRORLEVEL% neq 0 exit 1
-
-  :: Replace version string v3.12.8() with ie v3.11.11()
-  sed -i.bak -E "s/v3\.12\.[0-9]+/v%PY_VERSION_FULL%/g" build/CMakeCache.txt
-  if %ERRORLEVEL% neq 0 exit 1
-
-  :: Replace interpreter properties Python;3;12;8;64 with ie Python;3;11;11;64
-  sed -i.bak -E "s/Python;3;12;[0-9]+;64/Python;%PY_VERSION_FULL:.=;%;64/g" build/CMakeCache.txt
-  if %ERRORLEVEL% neq 0 exit 1
-
-  :: Replace cp312-win_amd64 with ie cp311-win_amd64
-  sed -i.bak "s/cp312/cp%CONDA_PY%/g" build/CMakeCache.txt
-  if %ERRORLEVEL% neq 0 exit 1
-
-  sed -i.bak "s#numpy\\\\core\\\\include#numpy\\\\_core\\\\include#g" build/CMakeCache.txt
-  if %ERRORLEVEL% neq 0 exit 1
-
-)
 
 if "%PKG_NAME%" == "libtorch" (
   :: For the main script we just build a wheel for libtorch so that the C++/CUDA
@@ -206,8 +167,6 @@ if "%PKG_NAME%" == "libtorch" (
   popd
   popd
   
-  :: Keep the original backed up to sed later
-  copy build\CMakeCache.txt build\CMakeCache.txt.orig
 ) else (
   :: NOTE: Passing --cmake is necessary here since the torch frontend has its
   :: own cmake files that it needs to generate
@@ -235,7 +194,7 @@ if "%PKG_NAME%" == "libtorch" (
   if %ERRORLEVEL% leq 6 set ERRORLEVEL=0
 )
 
-sccache --show-stats
+ccache --show-stats
 
 if %ERRORLEVEL% neq 0 exit 1
 exit /b 0
