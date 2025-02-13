@@ -39,3 +39,7 @@ zip_keys:                    # [(osx and arm64)]
 megabuild:
 - true
 #- false     # [osx]
+
+# The version of python to use when building libtorch in a "megabuild"
+megabuild_python:
+  - 3.12

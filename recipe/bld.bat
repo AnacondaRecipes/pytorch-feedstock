@@ -118,6 +118,12 @@ if "%PKG_NAME%" == "libtorch" (
   :: Extract the compiled wheel into a temporary directory
   if not exist "%SRC_DIR%/dist" mkdir %SRC_DIR%/dist
   pushd %SRC_DIR%\dist
+  
+  :: Keep a copy of this wheel so we don't have to rebuild it later.
+  mkdir %SRC_DIR%\mega_dist
+  copy torch-*.whl %SRC_DIR%\mega_dist
+
+  :: Unpack the wheel
   for %%f in (torch-*.whl) do (
       wheel unpack %%f
   )
@@ -156,12 +162,22 @@ if "%PKG_NAME%" == "libtorch" (
   popd
   popd
 ) else (
-  :: NOTE: Passing --cmake is necessary here since the torch frontend has its
-  :: own cmake files that it needs to generate
-  %PYTHON% setup.py clean
-  %PYTHON% setup.py bdist_wheel --cmake
-  %PYTHON% -m pip install --find-links=dist torch --no-build-isolation --no-deps
-  if %ERRORLEVEL% neq 0 exit 1
+  
+
+  if "%PY_VER%"=="%megabuild_python%" (
+    :: We previously built the wheel when building libtorch, just install that. 
+    pushd %SRC_DIR%
+      %PYTHON% -m pip install --find-links=mega_dist torch --no-build-isolation --no-deps
+      :: Cleanup this wheel so we don't accidentally use it again.
+      rm -rf mega_dist
+    popd
+  ) else (
+    :: NOTE: Passing --cmake is necessary here since the torch frontend has its
+    :: own cmake files that it needs to generate
+    %PYTHON% setup.py bdist_wheel --cmake
+    %PYTHON% -m pip install --find-links=dist torch --no-build-isolation --no-deps
+    if %ERRORLEVEL% neq 0 exit 1
+  )
 
   :: Move libtorch_python and remove the other directories afterwards.
   robocopy /NP /NFL /NDL /NJH /E %SP_DIR%\torch\bin\ %LIBRARY_BIN%\ torch_python.dll
