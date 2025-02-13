@@ -165,8 +165,11 @@ if "%PKG_NAME%" == "libtorch" (
   
 
   if "%PY_VER%"=="%megabuild_python%" (
+    :: We previously built the wheel when building libtorch, just install that. 
     pushd %SRC_DIR%
       %PYTHON% -m pip install --find-links=mega_dist torch --no-build-isolation --no-deps
+      :: Cleanup this wheel so we don't accidentally use it again.
+      rm -rf mega_dist
     popd
   ) else (
     :: NOTE: Passing --cmake is necessary here since the torch frontend has its
