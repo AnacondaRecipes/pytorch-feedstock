@@ -247,14 +247,7 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
     elif [[ ${cuda_compiler_version} == 11.8 ]]; then
         export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5;8.0;8.6;8.9"
         export CUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME
-    elif [[ ${cuda_compiler_version} == 12.0 ]]; then
-        export TORCH_CUDA_ARCH_LIST="5.0+PTX;6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0"
-        # $CUDA_HOME not set in CUDA 12.0. Using $PREFIX
-        export CUDA_TOOLKIT_ROOT_DIR="${PREFIX}"
-        if [[ "${target_platform}" != "${build_platform}" ]]; then
-            export CUDA_TOOLKIT_ROOT=${PREFIX}
-        fi
-    elif [[ ${cuda_compiler_version} == 12.6 ]]; then
+    elif [[ ${cuda_compiler_version} == 12.[0-6] ]]; then
         export TORCH_CUDA_ARCH_LIST="5.0;6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0+PTX"
         # $CUDA_HOME not set in CUDA 12.0. Using $PREFIX
         export CUDA_TOOLKIT_ROOT_DIR="${PREFIX}"
