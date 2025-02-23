@@ -228,7 +228,7 @@ outputs:
         - "**/torch_cpu.dll"          # [win]
         - "**/torch_python.dll"       # [win]
         - $RPATH/ld64.so.1  # [s390x]
-        - # libcuda.so is the cuda driver API library and is a system library.
+        # libcuda.so is the cuda driver API library and is a system library.
         - "**/libcuda.so*"            # [(gpu_variant or "").startswith("cuda")]
   - name: pytorch
     build:

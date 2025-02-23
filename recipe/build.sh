@@ -87,10 +87,14 @@ export Python3_ROOT_DIR=${PREFIX}
 export Python3_EXECUTABLE="${PYTHON}"
 
 # Uncomment to use ccache; development only
+# ccache -M 25Gi && ccache -F 0
 # export CMAKE_C_COMPILER_LAUNCHER=ccache
 # export CMAKE_CXX_COMPILER_LAUNCHER=ccache
 # export CMAKE_CUDA_COMPILER_LAUNCHER=ccache
+# first removes the timestamp directory, second ignores directories entirely when considering cache hits.
+# Neither verified; try both.
 # export CCACHE_BASEDIR=${PREFIX}/../
+# export CCACHE_NOHASHDIR=true
 
 for ARG in $CMAKE_ARGS; do
   if [[ "$ARG" == "-DCMAKE_"* ]]; then
