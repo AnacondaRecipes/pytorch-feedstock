@@ -1,0 +1,43 @@
+From 740d1eb0306f1f9d0ce81ea81f287a6b52738fab Mon Sep 17 00:00:00 2001
+From: Jake Harmon <jakeharmon@google.com>
+Date: Thu, 21 Nov 2024 23:10:04 +0000
+Subject: [PATCH] Fix test_out when run on CPU with CUDA available (#137140)
+
+Ever since #135140, this test will fail if run with CPU parameterization (e.g. test_out__refs_logical_or_cpu_float32) and CUDA available - as far as I can tell, the PyTorch CI isn't currently checking for this.
+
+Pull Request resolved: https://github.com/pytorch/pytorch/pull/137140
+Approved by: https://github.com/ezyang
+---
+ test/test_ops.py | 12 +++++-------
+ 1 file changed, 5 insertions(+), 7 deletions(-)
+
+diff --git a/test/test_ops.py b/test/test_ops.py
+index 1aee4b30678..c62c56b56d7 100644
+--- a/test/test_ops.py
++++ b/test/test_ops.py
+@@ -1082,17 +1082,15 @@ class TestCommon(TestCase):
+                     )
+ 
+             # Case 3: out= with correct shape and dtype, but wrong device.
+-            wrong_device = None
+-            if torch.device(device).type != "cpu":
+-                wrong_device = "cpu"
+-            elif torch.cuda.is_available():
+-                wrong_device = "cuda"
+-
++            #   Expected behavior: throws an error.
++            #   This case is ignored on CPU to allow some scalar operations to succeed.
+             factory_fn_msg = (
+                 "\n\nNOTE: If your op is a factory function (i.e., it accepts TensorOptions) you should mark its "
+                 "OpInfo with `is_factory_function=True`."
+             )
+-            if wrong_device is not None:
++
++            if torch.device(device).type != "cpu":
++                wrong_device = "cpu"
+ 
+                 def _case_three_transform(t):
+                     return make_tensor(t.shape, dtype=t.dtype, device=wrong_device)
+-- 
+2.39.5 (Apple Git-154)
+

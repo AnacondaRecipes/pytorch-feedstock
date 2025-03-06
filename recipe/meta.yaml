@@ -59,6 +59,8 @@ source:
       - patches/0013-simplify-torch.utils.cpp_extension.include_paths-use.patch             # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
       - patches/0014-point-include-paths-to-PREFIX-include.patch                            # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
       - patches/0015-point-lib-paths-to-PREFIX-lib.patch                                    # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
+      # https://github.com/pytorch/pytorch/pull/137140
+      - patches/0016-Fix-test_out-when-run-on-CPU-with-CUDA-available-137.patch
 
       # See https://github.com/pytorch/pytorch/pull/137331
       # for status
@@ -416,6 +418,8 @@ outputs:
         - pytest-xdist
         # Needed for test_autograd.py
         - pybind11
+        # the inductor "test_aoti_eager..." tests require objcopy
+        - binutils
       imports:
         - torch
       source_files:
