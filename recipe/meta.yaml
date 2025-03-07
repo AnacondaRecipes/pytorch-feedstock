@@ -478,7 +478,8 @@ outputs:
         - python -c "import numpy; import torch"
         # distributed support is enabled by default on linux; for mac, we enable it manually in build.sh
         - python -c "import torch; assert torch.distributed.is_available()"        # [linux or osx]
-        - python -c "import torch; assert torch.backends.mkldnn.m.is_available()"  # [blas_impl == "mkl"]
+        # mkldnn is set in build.sh for linux/non-cuda variants
+        - python -c "import torch; assert torch.backends.mkldnn.m.is_available()"  # [linux and not (gpu_variant or "").startswith("cuda")]
         - python -c "import torch; assert torch.backends.cuda.is_built()"          # [(gpu_variant or "").startswith("cuda")]
         - python -c "import torch; assert torch.backends.cudnn.is_available()"     # [(gpu_variant or "").startswith("cuda")]
         - python -c "import torch; assert torch.cuda.is_available()"               # [(gpu_variant or "").startswith("cuda")]
