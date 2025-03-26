@@ -1,0 +1,32 @@
+From: "danpetry" <dpetry@anaconda.com>
+Date: Thu, 6 Mar 2025
+Subject: Point lib paths to $PREFIX/lib
+
+Point cpp_extension, which is used in cpp_builder to compile at runtime,
+towards the lib directory rather than the site-packages directory, because
+that's where are sos/dlls are.
+
+Index: pytorch/torch/utils/cpp_extension.py
+===================================================================
+--- pytorch.orig/torch/utils/cpp_extension.py	2025-03-06 16:01:26.600202667 -0600
++++ pytorch/torch/utils/cpp_extension.py	2025-03-06 16:02:39.676025365 -0600
+@@ -38,7 +38,18 @@
+ 
+ _HERE = os.path.abspath(__file__)
+ _TORCH_PATH = os.path.dirname(os.path.dirname(_HERE))
+-TORCH_LIB_PATH = os.path.join(_TORCH_PATH, 'lib')
++if os.environ.get("CONDA_BUILD", None) is not None:
++    # regular build (& testing) phase --> PREFIX is set
++    # linux: PREFIX + lib
++    # windows: PREFIX + Library/bin/
++    pieces = [os.environ["PREFIX"]] + ["Library/bin" if IS_WINDOWS else "lib"]
++    TORCH_LIB_PATH = os.path.join(*pieces)
++elif os.environ.get("CONDA_PREFIX", None) is not None:
++    # final environment
++    pieces = [os.environ["CONDA_PREFIX"]] + ["Library/bin" if IS_WINDOWS else "lib"]
++    TORCH_LIB_PATH = os.path.join(*pieces)
++else:
++    TORCH_LIB_PATH = os.path.join(_TORCH_PATH, 'lib')
+ 
+ 
+ SUBPROCESS_DECODE_ARGS = ('oem',) if IS_WINDOWS else ()

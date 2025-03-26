@@ -54,6 +54,13 @@ source:
       - patches/0011-remove-DESTINATION-lib-from-CMake-install-TARGETS-di.patch             # [win]
       - patches/0012-CD-Enable-Python-3.13-on-windows-138095.patch                          # [win]
       - patches_submodules/0001-remove-DESTINATION-lib-from-CMake-install-directives.patch  # [win]
+      # These patches have only been tested on linux/cuda, but should solve problems on other platforms.
+      # test on other plats before applying there to make sure they solve rather than cause problems.
+      - patches/0013-simplify-torch.utils.cpp_extension.include_paths-use.patch             # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
+      - patches/0014-point-include-paths-to-PREFIX-include.patch                            # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
+      - patches/0015-point-lib-paths-to-PREFIX-lib.patch                                    # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
+      # https://github.com/pytorch/pytorch/pull/137140
+      - patches/0016-Fix-test_out-when-run-on-CPU-with-CUDA-available-137.patch
 
       # See https://github.com/pytorch/pytorch/pull/137331
       # for status
@@ -187,6 +194,7 @@ requirements:
   run:
     - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
     - libuv  # [win]
+    - {{ pin_compatible('magma') }}                       # [(gpu_variant or "").startswith("cuda")]
 
 # these tests are for the libtorch output below, but due to
 # a particularity of conda-build, that output is defined in
@@ -196,6 +204,9 @@ test:
     # cmake needs a compiler to run package detection, see
     # https://discourse.cmake.org/t/questions-about-find-package-cli-msvc/6194
     - {{ compiler('cxx') }}
+    # for CMake config to find cuda & nvrtc
+    - {{ compiler('cuda') }}    # [(gpu_variant or "").startswith("cuda")]
+    - cuda-nvrtc-dev            # [(gpu_variant or "").startswith("cuda")]
     - cmake
     - ninja
     - pkg-config
@@ -227,6 +238,8 @@ outputs:
         - "**/torch_cpu.dll"          # [win]
         - "**/torch_python.dll"       # [win]
         - $RPATH/ld64.so.1  # [s390x]
+        # libcuda.so is the cuda driver API library and is a system library.
+        - "**/libcuda.so*"            # [(gpu_variant or "").startswith("cuda")]
   - name: pytorch
     build:
       string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda-12"]
@@ -371,8 +384,7 @@ outputs:
         - nomkl                 # [blas_impl != "mkl"]
         - fsspec
         # Required to support torch.compile. This is tested in smoke_test.py, which is required to pass
-        # torch.compile isn't supported on python 3.12 and we only build cuda for linux-64 at the moment
-        - torchtriton {{ '.'.join(version.split('.')[:2]) }}.*       # [(gpu_variant or "").startswith("cuda") and (linux and x86_64) and (py!=312)]
+        - triton 3.1.0       # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
         # avoid that people without GPUs needlessly download ~0.5-1GB
         # The CUDA version constraint is handled in cuda-version as a run_constrained.
         # However, that doesn't enforce that the package requires a GPU; that needs to be done here.
@@ -406,6 +418,8 @@ outputs:
         - pytest-xdist
         # Needed for test_autograd.py
         - pybind11
+        # the inductor "test_aoti_eager..." tests require objcopy
+        - binutils
       imports:
         - torch
       source_files:
@@ -464,7 +478,8 @@ outputs:
         - python -c "import numpy; import torch"
         # distributed support is enabled by default on linux; for mac, we enable it manually in build.sh
         - python -c "import torch; assert torch.distributed.is_available()"        # [linux or osx]
-        - python -c "import torch; assert torch.backends.mkldnn.m.is_available()"  # [blas_impl == "mkl"]
+        # mkldnn is set in build.sh for linux/non-cuda variants
+        - python -c "import torch; assert torch.backends.mkldnn.m.is_available()"  # [linux and not (gpu_variant or "").startswith("cuda")]
         - python -c "import torch; assert torch.backends.cuda.is_built()"          # [(gpu_variant or "").startswith("cuda")]
         - python -c "import torch; assert torch.backends.cudnn.is_available()"     # [(gpu_variant or "").startswith("cuda")]
         - python -c "import torch; assert torch.cuda.is_available()"               # [(gpu_variant or "").startswith("cuda")]
