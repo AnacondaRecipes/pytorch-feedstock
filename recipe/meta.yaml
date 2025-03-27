@@ -92,8 +92,8 @@ requirements:
   # Keep this list synchronized (except for python*, numpy*) in outputs
   # We use python to build libtorch as well because it is easier
   build:
-    # When you change 3.12 here, change it in build.sh as well
-    - python 3.12                            # [megabuild and build_platform != target_platform]
+    # When you change megabuild_python, change it in build.sh as well
+    - python {{ megabuild_python }}          # [megabuild and build_platform != target_platform]
     - python                                 # [not megabuild and build_platform != target_platform]
     - cross-python_{{ target_platform }}     # [build_platform != target_platform]
     - numpy  *                               # [megabuild and build_platform != target_platform]
@@ -157,7 +157,7 @@ requirements:
     - cuda-cupti
     {% endif %}
     # other requirements
-    - python 3.12  # [megabuild]
+    - python {{megabuild_python}}  # [megabuild]
     - python       # [not megabuild]
     - numpy 2
     - pip
