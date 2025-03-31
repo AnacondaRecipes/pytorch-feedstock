@@ -87,6 +87,7 @@ build:
     - python *                               # [megabuild]
     - numpy *                                # [megabuild]
   skip: True  # [py<39]
+  skip: True  # [s390x]
 
 requirements:
   # Keep this list synchronized (except for python*, numpy*) in outputs
