@@ -99,6 +99,10 @@ set "USE_SYSTEM_SLEEF=ON"
 set "BUILD_CUSTOM_PROTOBUF=OFF"
 set "USE_LITE_PROTO=ON"
 
+:: Try giving the compiler some more heap space.
+set "CFLAGS=/Zm800 %CFLAGS%"
+set "CXXFLAGS=/Zm800 %CXXFLAGS%"
+
 :: Here we split the build into two parts.
 :: 
 :: Both the packages libtorch and pytorch use this same build script.
