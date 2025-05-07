@@ -2,7 +2,7 @@
 {% set sha256 = "740eb5fff95e33cfe699bad43be83523f569c7cc7f9c285c2a255416443dd266" %}
 # Set the RC number to build release candidates. Set to None otherwise
 {% set rc = None %}
-{% set build = 3 %}
+{% set build = 4 %}
 
 # Keep this in sync with the release
 {% set smoke_test_commit = "8757658a36dfc1d7c85da543bd424ce1cc546f74" %}
@@ -54,11 +54,9 @@ source:
       - patches/0011-remove-DESTINATION-lib-from-CMake-install-TARGETS-di.patch             # [win]
       - patches/0012-CD-Enable-Python-3.13-on-windows-138095.patch                          # [win]
       - patches_submodules/0001-remove-DESTINATION-lib-from-CMake-install-directives.patch  # [win]
-      # These patches have only been tested on linux/cuda, but should solve problems on other platforms.
-      # test on other plats before applying there to make sure they solve rather than cause problems.
-      - patches/0013-simplify-torch.utils.cpp_extension.include_paths-use.patch             # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
-      - patches/0014-point-include-paths-to-PREFIX-include.patch                            # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
-      - patches/0015-point-lib-paths-to-PREFIX-lib.patch                                    # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
+      - patches/0013-simplify-torch.utils.cpp_extension.include_paths-use.patch
+      - patches/0014-point-include-paths-to-PREFIX-include.patch
+      - patches/0015-point-lib-paths-to-PREFIX-lib.patch
       # https://github.com/pytorch/pytorch/pull/137140
       - patches/0016-Fix-test_out-when-run-on-CPU-with-CUDA-available-137.patch
 
