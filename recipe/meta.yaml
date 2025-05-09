@@ -424,7 +424,7 @@ outputs:
         # tools/ is needed to optimise test run
         # as of pytorch=2.0.0, there is a bug when trying to run tests without the tools
         - tools
-        - smoke_test
+        - .ci/pytorch/smoke_test
         # See files needed: https://github.com/pytorch/pytorch/blob/main/test/test_ops.py#L271-L274
         - aten/src/ATen/native
       commands:
@@ -453,7 +453,7 @@ outputs:
         - export TARGET_OS="macos-arm64"                                                        # [(osx and arm64)]
         - export TARGET_OS="macos-x86_64"                                                       # [(osx and x86_64)]
         - export OMP_NUM_THREADS=4                                                              # [not win]
-        - python ./pytorch/smoke_test.py --package torcholy
+        - python ./.ci/pytorch/smoke_test/smoke_test.py --package pytorch
         # We seem to have individual platform-specific test failures or flaky
         # tests, but the majority of tests pass.
         # Note that the `|| true` expression will make the build continue even if the whole script falls over completely
