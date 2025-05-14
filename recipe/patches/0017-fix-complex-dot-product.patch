@@ -8,10 +8,10 @@
 +           
 +  // Handle conjugated and negated views properly
 +  auto self_tensor = self.is_conj() ? self.conj_physical() : self;
-+  self_tensor = self_tensor.is_neg() ? at::neg(self_tensor) : self_tensor;
++  self_tensor = self_tensor.is_neg() ? self_tensor.neg(self_tensor) : self_tensor;
 +  
 +  auto other_tensor = other.is_conj() ? other.conj_physical() : other;
-+  other_tensor = other_tensor.is_neg() ? at::neg(other_tensor) : other_tensor;
++  other_tensor = other_tensor.is_neg() ? self_tensor.neg(other_tensor) : other_tensor;
 +  
 +  return result.fill_(self_tensor.dot(other_tensor));
  }
@@ -26,10 +26,10 @@
 +  // For vdot, which already conjugates the first argument,
 +  // we need to be careful about double conjugation
 +  auto self_tensor = self.is_conj() ? self.resolve_conj() : self.conj_physical();
-+  self_tensor = self_tensor.is_neg() ? at::neg(self_tensor) : self_tensor;
++  self_tensor = self_tensor.is_neg() ? self_tensor.neg(self_tensor) : self_tensor;
 +  
 +  auto other_tensor = other.is_conj() ? other.conj_physical() : other;
-+  other_tensor = other_tensor.is_neg() ? at::neg(other_tensor) : other_tensor;
++  other_tensor = other_tensor.is_neg() ? other_tensor.neg(other_tensor) : other_tensor;
 +  
 +  return result.fill_(self_tensor.dot(other_tensor));
  }
