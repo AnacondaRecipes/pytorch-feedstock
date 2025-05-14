@@ -1,0 +1,37 @@
+--- aten/src/ATen/native/LinearAlgebra.cpp	2025-05-14 10:03:31.346418371 +0100
++++ "aten/src/ATen/native/LinearAlgebra copy.cpp"	2025-05-14 10:04:47.931959605 +0100
+@@ -1905,7 +1905,15 @@
+   at::native::resize_output(result, {});
+   TORCH_CHECK(result.scalar_type() == self.scalar_type(),
+            "result dtype ", result.scalar_type(), " does not match input dtype ", self.scalar_type());
+-  return result.fill_(self.dot(other));
++           
++  // Handle conjugated and negated views properly
++  auto self_tensor = self.is_conj() ? self.conj_physical() : self;
++  self_tensor = self_tensor.is_neg() ? at::neg(self_tensor) : self_tensor;
++  
++  auto other_tensor = other.is_conj() ? other.conj_physical() : other;
++  other_tensor = other_tensor.is_neg() ? at::neg(other_tensor) : other_tensor;
++  
++  return result.fill_(self_tensor.dot(other_tensor));
+ }
+ 
+ Tensor& vdot_out(const Tensor& self, const Tensor& other, Tensor& result) {
+@@ -1921,7 +1929,16 @@
+   at::native::resize_output(result, {});
+   TORCH_CHECK(result.scalar_type() == self.scalar_type(),
+            "result dtype ", result.scalar_type(), " does not match input dtype ", self.scalar_type());
+-  return result.fill_(self.vdot(other));
++           
++  // For vdot, which already conjugates the first argument,
++  // we need to be careful about double conjugation
++  auto self_tensor = self.is_conj() ? self.resolve_conj() : self.conj_physical();
++  self_tensor = self_tensor.is_neg() ? at::neg(self_tensor) : self_tensor;
++  
++  auto other_tensor = other.is_conj() ? other.conj_physical() : other;
++  other_tensor = other_tensor.is_neg() ? at::neg(other_tensor) : other_tensor;
++  
++  return result.fill_(self_tensor.dot(other_tensor));
+ }
+ 
+ static bool should_fold(const Tensor& tensor1, const Tensor& tensor2, bool has_out) {

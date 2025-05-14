@@ -63,6 +63,7 @@ source:
       # See https://github.com/pytorch/pytorch/pull/137331
       # for status
       # - patches/137331.patch
+      - patches/0017-fix-complex-dot-product.patch
 {% endif %}
   - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.ci/pytorch/smoke_test/smoke_test.py
     folder: smoke_test
