@@ -52,7 +52,7 @@ source:
       - patches/0009-use-prefix-include-for-inductor.patch
       - patches/0010-make-ATEN_INCLUDE_DIR-relative-to-TORCH_INSTALL_PREF.patch 
       - patches/0011-remove-DESTINATION-lib-from-CMake-install-TARGETS-di.patch             # [win]
-      - patches/0012-CD-Enable-Python-3.13-on-windows-138095.patch                          # [win]
+      # - patches/0012-CD-Enable-Python-3.13-on-windows-138095.patch                          # [win]
       - patches_submodules/0001-remove-DESTINATION-lib-from-CMake-install-directives.patch  # [win]
       - patches/0013-simplify-torch.utils.cpp_extension.include_paths-use.patch
       - patches/0014-point-include-paths-to-PREFIX-include.patch
@@ -86,8 +86,13 @@ build:
   ignore_run_exports:
     - python *                               # [megabuild]
     - numpy *                                # [megabuild]
+  # Skip all platforms except Windows and macOS ARM64
   skip: True  # [py<39]
   skip: True  # [s390x]
+  skip: True  # [linux]
+  skip: True  # [osx and x86_64]
+  # Keep only Windows and macOS ARM64
+  skip: False  # [win or (osx and arm64)]
 
 requirements:
   # Keep this list synchronized (except for python*, numpy*) in outputs
