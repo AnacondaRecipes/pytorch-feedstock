@@ -63,6 +63,7 @@ source:
       # See https://github.com/pytorch/pytorch/pull/137331
       # for status
       # - patches/137331.patch
+      # https://github.com/pytorch/pytorch/issues/150918
       - patches/0017-fix-complex-dot-product.patch # [not win]
       - patches/0018-batch_linalg_fix.patch # [not win]
 {% endif %}
@@ -86,13 +87,7 @@ build:
   ignore_run_exports:
     - python *                               # [megabuild]
     - numpy *                                # [megabuild]
-  # Skip all platforms except Windows
   skip: True  # [py<39]
-  skip: True  # [s390x]
-  skip: True  # [linux]
-  skip: True  # [osx]
-  # Keep only Windows
-  skip: False  # [win]
 
 requirements:
   # Keep this list synchronized (except for python*, numpy*) in outputs
