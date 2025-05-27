@@ -1,3 +1,7 @@
+From: James Robertson 
+Date: Tue, 27 May 2025 10:30:45 +0100
+Subject: [PATCH] Fix conjugated and negated views not handled
+Issue: https://github.com/pytorch/pytorch/issues/150918
 --- aten/src/ATen/native/BatchLinearAlgebra.cpp	2025-05-08 10:44:15.309238836 +0100
 +++ "aten/src/ATen/native/BatchLinearAlgebra copy.cpp"	2025-05-21 10:08:48.175572320 +0100
 @@ -3860,7 +3860,14 @@
