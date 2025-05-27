@@ -42,8 +42,6 @@ source:
       - patches/0003-Force-usage-of-python-3-and-error-without-numpy.patch
       # https://github.com/pytorch/pytorch/pull/137084
       - patches/0004-Help-find-numpy.patch
-      # https://github.com/pytorch/pytorch/pull/138287
-      # - patches/0005-Use-system-nvtx3.patch
       # sympy 1.13.2 was reported to result in test failures on Windows and mac
       # https://github.com/pytorch/pytorch/pull/133235
       - patches/0006-Update-sympy-version.patch
@@ -52,17 +50,10 @@ source:
       - patches/0009-use-prefix-include-for-inductor.patch
       - patches/0010-make-ATEN_INCLUDE_DIR-relative-to-TORCH_INSTALL_PREF.patch 
       - patches/0011-remove-DESTINATION-lib-from-CMake-install-TARGETS-di.patch             # [win]
-      # - patches/0012-CD-Enable-Python-3.13-on-windows-138095.patch                          # [win]
       - patches_submodules/0001-remove-DESTINATION-lib-from-CMake-install-directives.patch  # [win]
       - patches/0013-simplify-torch.utils.cpp_extension.include_paths-use.patch
       - patches/0014-point-include-paths-to-PREFIX-include.patch
       - patches/0015-point-lib-paths-to-PREFIX-lib.patch
-      # https://github.com/pytorch/pytorch/pull/137140
-      # - patches/0016-Fix-test_out-when-run-on-CPU-with-CUDA-available-137.patch
-
-      # See https://github.com/pytorch/pytorch/pull/137331
-      # for status
-      # - patches/137331.patch
       # https://github.com/pytorch/pytorch/issues/150918
       - patches/0017-fix-complex-dot-product.patch # [not win]
       - patches/0018-batch_linalg_fix.patch # [not win]
