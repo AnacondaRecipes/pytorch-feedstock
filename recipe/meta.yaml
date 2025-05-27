@@ -131,6 +131,7 @@ requirements:
     - ninja-base
     # Keep libprotobuf here so that a compatibile version
     # of protobuf is installed between build and host
+    - libabseil
     - libprotobuf
     - protobuf
     - make      # [linux]
