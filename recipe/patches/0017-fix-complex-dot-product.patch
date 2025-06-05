@@ -29,7 +29,7 @@ Issue: https://github.com/pytorch/pytorch/issues/150918
 +           
 +  // For vdot, which already conjugates the first argument,
 +  // we need to be careful about double conjugation
-+  auto self_tensor = self.is_conj() ? self.resolve_conj() : self.conj_physical();
++  auto self_tensor = self.is_conj() ? self.resolve_conj() : self;
 +  self_tensor = self_tensor.is_neg() ? self_tensor.neg() : self_tensor;
 +  
 +  auto other_tensor = other.is_conj() ? other.conj_physical() : other;
