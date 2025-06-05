@@ -15,7 +15,7 @@ Issue: https://github.com/pytorch/pytorch/issues/150918
 +  self_tensor = self_tensor.is_neg() ? self_tensor.neg() : self_tensor;
 +  
 +  auto other_tensor = other.is_conj() ? other.conj_physical() : other;
-+  other_tensor = other_tensor.is_neg() ? self_tensor.neg() : other_tensor;
++  other_tensor = other_tensor.is_neg() ? other_tensor.neg() : other_tensor;
 +  
 +  return result.fill_(self_tensor.dot(other_tensor));
  }

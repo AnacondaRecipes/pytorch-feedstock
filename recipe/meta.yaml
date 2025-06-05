@@ -120,9 +120,9 @@ requirements:
     - libuv     # [win]
     - cmake
     - ninja-base
+    - libabseil
     # Keep libprotobuf here so that a compatibile version
     # of protobuf is installed between build and host
-    - libabseil
     - libprotobuf
     - protobuf
     - make      # [linux]
@@ -368,9 +368,9 @@ outputs:
         # To stop the compiler pulling in an openmp implementation itself (although I'm not sure this mutex works anyway)
         - _openmp_mutex                                       # [linux]
         - {{ pin_compatible('magma') }}                       # [(gpu_variant or "").startswith("cuda")]
-        # sympy 1.13.2 was reported to result in test failures on Windows and mac
+        # skip to 1.13.3 to avoid test failures on Windows and mac - align with 2.7.0 release requirement
         # https://github.com/pytorch/pytorch/pull/133235
-        - sympy >=1.13.1,!=1.13.2
+        - sympy>=1.13.3
         - filelock
         - jinja2
         - networkx
