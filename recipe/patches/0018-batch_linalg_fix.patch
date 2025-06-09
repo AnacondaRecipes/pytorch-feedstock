@@ -10,11 +10,12 @@ Issue: https://github.com/pytorch/pytorch/issues/150918
    if (x.dim() == 1 && y.dim() == 1) {
 -    return at::vdot(x, y);
 +    // Handle conjugated and negated views properly instead of using at::vdot
-+    auto x_tensor = x.is_conj() ? x.resolve_conj() : x.conj_physical();
-+    x_tensor = x_tensor.is_neg() ? x_tensor.neg() : x_tensor;
++    auto x_tensor = x.resolve_conj().conj();  // Always resolve first, then conjugate for Hermitian
++    auto y_tensor = y.resolve_conj();         // Always resolve to get actual tensor data
 +    
-+    auto y_tensor = y.is_conj() ? y.conj_physical() : y;
-+    y_tensor = y_tensor.is_neg() ? y_tensor.neg() : y_tensor;
++    // Handle negation views
++    x_tensor = x_tensor.is_neg() ? x_tensor.resolve_neg() : x_tensor;
++    y_tensor = y_tensor.is_neg() ? y_tensor.resolve_neg() : y_tensor;
 +    
 +    return x_tensor.dot(y_tensor);
    } else {

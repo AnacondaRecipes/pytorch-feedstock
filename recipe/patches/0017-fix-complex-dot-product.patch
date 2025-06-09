@@ -11,11 +11,12 @@ Issue: https://github.com/pytorch/pytorch/issues/150918
 -  return result.fill_(self.dot(other));
 +           
 +  // Handle conjugated and negated views properly
-+  auto self_tensor = self.is_conj() ? self.conj_physical() : self;
-+  self_tensor = self_tensor.is_neg() ? self_tensor.neg() : self_tensor;
++  auto self_tensor = self.resolve_conj();         // Always resolve to get actual tensor data
++  auto other_tensor = other.resolve_conj();       // Always resolve to get actual tensor data
 +  
-+  auto other_tensor = other.is_conj() ? other.conj_physical() : other;
-+  other_tensor = other_tensor.is_neg() ? other_tensor.neg() : other_tensor;
++  // Handle negation views
++  self_tensor = self_tensor.is_neg() ? self_tensor.resolve_neg() : self_tensor;
++  other_tensor = other_tensor.is_neg() ? other_tensor.resolve_neg() : other_tensor;
 +  
 +  return result.fill_(self_tensor.dot(other_tensor));
  }
@@ -27,15 +28,14 @@ Issue: https://github.com/pytorch/pytorch/issues/150918
             "result dtype ", result.scalar_type(), " does not match input dtype ", self.scalar_type());
 -  return result.fill_(self.vdot(other));
 +           
-+  // For vdot, which already conjugates the first argument,
-+  // we need to be careful about double conjugation
-+  auto self_tensor = self.is_conj() ? self.resolve_conj() : self;
-+  self_tensor = self_tensor.is_neg() ? self_tensor.neg() : self_tensor;
++  // For vdot, we need to conjugate the first argument (Hermitian operation)
++  auto self_tensor = self.conj().resolve_conj();  // Conjugate first, then resolve to get actual data
++  auto other_tensor = other.resolve_conj();       // Always resolve to get actual tensor data
 +  
-+  auto other_tensor = other.is_conj() ? other.conj_physical() : other;
-+  other_tensor = other_tensor.is_neg() ? other_tensor.neg() : other_tensor;
++  // Handle negation views
++  self_tensor = self_tensor.is_neg() ? self_tensor.resolve_neg() : self_tensor;
++  other_tensor = other_tensor.is_neg() ? other_tensor.resolve_neg() : other_tensor;
 +  
 +  return result.fill_(self_tensor.dot(other_tensor));
- }
  
  static bool should_fold(const Tensor& tensor1, const Tensor& tensor2, bool has_out) {
