@@ -54,9 +54,6 @@ source:
       - patches/0013-simplify-torch.utils.cpp_extension.include_paths-use.patch
       - patches/0014-point-include-paths-to-PREFIX-include.patch
       - patches/0015-point-lib-paths-to-PREFIX-lib.patch
-      # https://github.com/pytorch/pytorch/issues/150918
-      - patches/0017-fix-complex-dot-product.patch # [not win]
-      - patches/0018-batch_linalg_fix.patch # [not win]
 {% endif %}
   - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.ci/pytorch/smoke_test/smoke_test.py
     folder: smoke_test
