@@ -42,7 +42,7 @@ source:
       - patches/0003-Force-usage-of-python-3-and-error-without-numpy.patch
       # https://github.com/pytorch/pytorch/pull/137084
       - patches/0004-Help-find-numpy.patch
-      # sympy 1.13.2 was reported to result in test failures on Windows and mac
+      # sympy 1.13.2 was reported to result in test failures on Windows and mac - skipping to 1.13.3 for stability
       # https://github.com/pytorch/pytorch/pull/133235
       - patches/0006-Update-sympy-version.patch
       - patches/0007-continue-tests-on-failure.patch
