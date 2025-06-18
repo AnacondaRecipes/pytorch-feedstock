@@ -1,11 +1,11 @@
-{% set version = "2.5.1" %}
-{% set sha256 = "740eb5fff95e33cfe699bad43be83523f569c7cc7f9c285c2a255416443dd266" %}
+{% set version = "2.6.0" %}
+{% set sha256 = "3005690eb7b083c443a38c7657938af63902f524ad87a6c83f1aca38c77e3b57" %}
 # Set the RC number to build release candidates. Set to None otherwise
 {% set rc = None %}
 {% set build = 4 %}
 
 # Keep this in sync with the release
-{% set smoke_test_commit = "8757658a36dfc1d7c85da543bd424ce1cc546f74" %}
+{% set smoke_test_commit = "1eba9b3aa3c43f86f4a2c807ac8e12c4a7767340" %}
 
 # Use a higher build number for the CUDA variant, to ensure that it's
 # preferred by conda's solver, and it's preferentially
@@ -42,9 +42,7 @@ source:
       - patches/0003-Force-usage-of-python-3-and-error-without-numpy.patch
       # https://github.com/pytorch/pytorch/pull/137084
       - patches/0004-Help-find-numpy.patch
-      # https://github.com/pytorch/pytorch/pull/138287
-      - patches/0005-Use-system-nvtx3.patch
-      # sympy 1.13.2 was reported to result in test failures on Windows and mac
+      # sympy 1.13.2 was reported to result in test failures on Windows and mac - skipping to 1.13.3 for stability
       # https://github.com/pytorch/pytorch/pull/133235
       - patches/0006-Update-sympy-version.patch
       - patches/0007-continue-tests-on-failure.patch
@@ -52,19 +50,12 @@ source:
       - patches/0009-use-prefix-include-for-inductor.patch
       - patches/0010-make-ATEN_INCLUDE_DIR-relative-to-TORCH_INSTALL_PREF.patch 
       - patches/0011-remove-DESTINATION-lib-from-CMake-install-TARGETS-di.patch             # [win]
-      - patches/0012-CD-Enable-Python-3.13-on-windows-138095.patch                          # [win]
       - patches_submodules/0001-remove-DESTINATION-lib-from-CMake-install-directives.patch  # [win]
       - patches/0013-simplify-torch.utils.cpp_extension.include_paths-use.patch
       - patches/0014-point-include-paths-to-PREFIX-include.patch
       - patches/0015-point-lib-paths-to-PREFIX-lib.patch
-      # https://github.com/pytorch/pytorch/pull/137140
-      - patches/0016-Fix-test_out-when-run-on-CPU-with-CUDA-available-137.patch
-
-      # See https://github.com/pytorch/pytorch/pull/137331
-      # for status
-      - patches/137331.patch
 {% endif %}
-  - url: https://raw.githubusercontent.com/pytorch/builder/{{ smoke_test_commit }}/test/smoke_test/smoke_test.py
+  - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.ci/pytorch/smoke_test/smoke_test.py
     folder: smoke_test
   # The .gitignore is needed in order to run upstreams `setup.py clean`
   - url: https://raw.githubusercontent.com/pytorch/pytorch/refs/tags/v{{ version }}/.gitignore
@@ -85,7 +76,6 @@ build:
     - python *                               # [megabuild]
     - numpy *                                # [megabuild]
   skip: True  # [py<39]
-  skip: True  # [s390x]
 
 requirements:
   # Keep this list synchronized (except for python*, numpy*) in outputs
@@ -127,6 +117,7 @@ requirements:
     - libuv     # [win]
     - cmake
     - ninja-base
+    - libabseil
     # Keep libprotobuf here so that a compatibile version
     # of protobuf is installed between build and host
     - libprotobuf
@@ -374,9 +365,9 @@ outputs:
         # To stop the compiler pulling in an openmp implementation itself (although I'm not sure this mutex works anyway)
         - _openmp_mutex                                       # [linux]
         - {{ pin_compatible('magma') }}                       # [(gpu_variant or "").startswith("cuda")]
-        # sympy 1.13.2 was reported to result in test failures on Windows and mac
+        # skip to 1.13.3 to avoid test failures on Windows and mac - align with 2.7.0 release requirement
         # https://github.com/pytorch/pytorch/pull/133235
-        - sympy >=1.13.1,!=1.13.2
+        - sympy>=1.13.3
         - filelock
         - jinja2
         - networkx
