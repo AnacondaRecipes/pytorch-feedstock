@@ -2,7 +2,7 @@
 {% set sha256 = "3005690eb7b083c443a38c7657938af63902f524ad87a6c83f1aca38c77e3b57" %}
 # Set the RC number to build release candidates. Set to None otherwise
 {% set rc = None %}
-{% set build = 5 %}
+{% set build = 6 %}
 
 # Keep this in sync with the release
 {% set smoke_test_commit = "1eba9b3aa3c43f86f4a2c807ac8e12c4a7767340" %}
@@ -113,7 +113,7 @@ requirements:
     - libgomp        # [linux]
     # This has a strong run_export so we don't need to put it in `host` or `run`
     # We use llvm-openmp for openblas variants on osx.
-    - llvm-openmp 14.0.6              # [osx and not (blas_impl == "mkl")]
+    - llvm-openmp 17              # [osx and not (blas_impl == "mkl")]
     - libuv     # [win]
     - cmake
     - ninja-base
@@ -168,7 +168,7 @@ requirements:
     # We use intel-openmp for all mkl variants.
     # For openblas on win and linux, we don't specify any openmp implementation; it comes from the compiler.
     - intel-openmp   {{ mkl }}        # [blas_impl == "mkl"]
-    - llvm-openmp 14.0.6              # [osx and not (blas_impl == "mkl")]
+    - llvm-openmp 17              # [osx and not (blas_impl == "mkl")]
     - libabseil
     - libprotobuf {{ libprotobuf }}
     - sleef 3.5.1
@@ -287,7 +287,7 @@ outputs:
         - libgomp   # [linux]
         # This has a strong run_export so we don't need to put it in `host` or `run`
         # We use llvm-openmp for openblas variants on osx.
-        - llvm-openmp 14.0.6              # [osx and not (blas_impl == "mkl")]
+        - llvm-openmp 17              # [osx and not (blas_impl == "mkl")]
         - cmake
         - ninja-base
         # Keep libprotobuf here so that a compatibile version
@@ -337,7 +337,7 @@ outputs:
         # We use intel-openmp for all mkl variants.
         # For openblas on win and linux, we don't specify any openmp implementation; it comes from the compiler.
         - intel-openmp   {{ mkl }}        # [blas_impl == "mkl"]
-        - llvm-openmp 14.0.6              # [osx and not (blas_impl == "mkl")]
+        - llvm-openmp 17              # [osx and not (blas_impl == "mkl")]
         - libabseil
         - libprotobuf {{ libprotobuf }}
         - sleef 3.5.1

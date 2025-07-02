@@ -2,20 +2,10 @@ gpu_variant:
   - cpu
   #- metal                    # [(osx and arm64)]
   #- cuda-12                  # [(linux and x86_64)]
-# If we don't pin the compiler on windows, we get compiler syntax errors. This could be because conda-build pulls in a
-# different runtime version from the compiler version, for some reason. Upstream uses 2019 on their CI, and it's our
-# most recent, so let's use that.
-c_compiler:                  # [win]
-  - vs2019                   # [win]
-cxx_compiler:                # [win]
-  - vs2019                   # [win]
-# This version of macOS SDK is required for certain macros used in the source code
-MACOSX_SDK_VERSION:          # [(osx and x86_64)]
-  - 10.15                    # [(osx and x86_64)]
-MACOSX_DEPLOYMENT_TARGET:    # [(osx and x86_64)]
-  - 10.15                    # [(osx and x86_64)]
-CONDA_BUILD_SYSROOT:         # [(osx and x86_64)]
-  - /opt/MacOSX10.15.sdk     # [(osx and x86_64)]
+c_compiler_version:      # [osx]
+  - 17                   # [osx]
+cxx_compiler_version:    # [osx]
+  - 17                   # [osx]
 # CONDA_BUILD_SYSROOT is defined in the base cbc.yaml, but it's reflected here so we can zip the keys and
 # build GPU and CPU at the same time for osx-arm64. It'll need to be manually updated here if the base cbc is changed.
 # This could be done using extend_keys instead, with a change to the base cbc.yaml.
