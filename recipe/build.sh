@@ -269,6 +269,7 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
     export USE_SYSTEM_NCCL=1
     export USE_STATIC_NCCL=0
     export USE_STATIC_CUDNN=0
+    export USE_SYSTEM_NVTX=1
     export MAGMA_HOME="${PREFIX}"
     export CUDA_INC_PATH="${PREFIX}/targets/x86_64-linux/include/"  # Point cmake to the header files
 else
