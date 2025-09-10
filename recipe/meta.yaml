@@ -1,5 +1,5 @@
 {% set version = "2.7.0" %}
-{% set sha256 = "3005690eb7b083c443a38c7657938af63902f524ad87a6c83f1aca38c77e3b57" %}
+{% set sha256 = "ecca266fa2de4235a9fd5a18a33299a9de55ab3babb87f8c297c1c9ab8d436bd" %}
 # Set the RC number to build release candidates. Set to None otherwise
 {% set rc = None %}
 {% set build = 0 %}
@@ -48,16 +48,12 @@ source:
       - patches/0003-Force-usage-of-python-3-and-error-without-numpy.patch
       # https://github.com/pytorch/pytorch/pull/137084
       - patches/0004-Help-find-numpy.patch
-      # sympy 1.13.2 was reported to result in test failures on Windows and mac - skipping to 1.13.3 for stability
-      # https://github.com/pytorch/pytorch/pull/133235
-      - patches/0006-Update-sympy-version.patch
       - patches/0007-continue-tests-on-failure.patch
       - patches/0008-add-missing-includes.patch
       - patches/0009-use-prefix-include-for-inductor.patch
       - patches/0010-make-ATEN_INCLUDE_DIR-relative-to-TORCH_INSTALL_PREF.patch 
       - patches/0011-remove-DESTINATION-lib-from-CMake-install-TARGETS-di.patch             # [win]
       - patches_submodules/0001-remove-DESTINATION-lib-from-CMake-install-directives.patch  # [win]
-      - patches/0013-simplify-torch.utils.cpp_extension.include_paths-use.patch
       - patches/0014-point-include-paths-to-PREFIX-include.patch
       - patches/0015-point-lib-paths-to-PREFIX-lib.patch
 {% endif %}
