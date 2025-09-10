@@ -8,9 +8,11 @@ This is required because our mdl-devel package contains libraries named like
 
 Index: pytorch/cmake/Modules/FindMKL.cmake
 ===================================================================
---- pytorch.orig/cmake/Modules/FindMKL.cmake	2024-11-19 16:11:16.666292111 -0600
-+++ pytorch/cmake/Modules/FindMKL.cmake	2024-11-19 16:14:15.719045239 -0600
-@@ -119,6 +119,9 @@
+diff --git cmake/Modules/FindMKL.cmake cmake/Modules/FindMKL.cmake
+index a9276de..d340c41 100644
+--- a/cmake/Modules/FindMKL.cmake
++++ b/cmake/Modules/FindMKL.cmake
+@@ -119,6 +119,9 @@ ELSE(WIN32)
      ELSE()
        SET(mklthreads "mkl_intel_thread")
        SET(mklrtls "iomp5" "guide")
@@ -20,7 +22,7 @@ Index: pytorch/cmake/Modules/FindMKL.cmake
      ENDIF()
      SET(mklifaces  "intel")
    ENDIF (CMAKE_COMPILER_IS_GNUCC)
-@@ -268,7 +271,7 @@
+@@ -268,7 +271,7 @@ MACRO(CHECK_ALL_LIBRARIES LIBRARIES OPENMP_TYPE OPENMP_LIBRARY _name _list _flag
            ENDIF(OPENMP_FOUND)
          ELSEIF(${_library} MATCHES "iomp")
            SET(_openmp_type "Intel")
@@ -29,7 +31,7 @@ Index: pytorch/cmake/Modules/FindMKL.cmake
            SET(_openmp_library "${${_prefix}_${_library}_LIBRARY}")
          ELSE()
            MESSAGE(FATAL_ERROR "Unknown OpenMP flavor: ${_library}")
-@@ -421,23 +424,23 @@
+@@ -421,23 +424,23 @@ IF (MKL_LIBRARIES)
    FOREACH(mkl64 ${mkl64s} "_core" "")
      FOREACH(mkls ${mklseq} "")
        IF (NOT MKL_LAPACK_LIBRARIES)

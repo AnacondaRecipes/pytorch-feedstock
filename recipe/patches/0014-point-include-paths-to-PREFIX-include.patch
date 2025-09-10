@@ -9,9 +9,11 @@ Subject: [PATCH 10/15] point include paths to $PREFIX/include
 
 Index: pytorch/torch/utils/cpp_extension.py
 ===================================================================
---- pytorch.orig/torch/utils/cpp_extension.py	2025-03-06 16:00:42.457678160 -0600
-+++ pytorch/torch/utils/cpp_extension.py	2025-03-06 16:00:42.489486590 -0600
-@@ -1155,10 +1155,28 @@
+diff --git torch/utils/cpp_extension.py torch/utils/cpp_extension.py
+index 23e2499..a8caba3 100644
+--- a/torch/utils/cpp_extension.py
++++ b/torch/utils/cpp_extension.py
+@@ -1208,10 +1208,28 @@ def include_paths(device_type: str = "cpu") -> List[str]:
          A list of include path strings.
      """
      lib_include = os.path.join(_TORCH_PATH, 'include')
@@ -38,5 +40,5 @@ Index: pytorch/torch/utils/cpp_extension.py
 +        # $PREFIX/include), as some torch-internal headers are still in this directory
 +        os.path.join(_TORCH_PATH, 'include'),
      ]
-     if cuda and IS_HIP_EXTENSION:
+     if device_type == "cuda" and IS_HIP_EXTENSION:
          paths.append(os.path.join(lib_include, 'THH'))

@@ -1,8 +1,8 @@
-{% set version = "2.6.0" %}
+{% set version = "2.7.0" %}
 {% set sha256 = "3005690eb7b083c443a38c7657938af63902f524ad87a6c83f1aca38c77e3b57" %}
 # Set the RC number to build release candidates. Set to None otherwise
 {% set rc = None %}
-{% set build = 6 %}
+{% set build = 0 %}
 
 # Keep this in sync with the release
 {% set smoke_test_commit = "1eba9b3aa3c43f86f4a2c807ac8e12c4a7767340" %}
@@ -30,8 +30,14 @@ package:
 
 source:
 {% if rc != None %}
-  - git_url: https://github.com/pytorch/pytorch.git
-    git_rev: v{{ version }}-rc{{ rc }}
+  # - git_url: https://github.com/pytorch/pytorch.git
+  #   git_rev: v{{ version.replace(".rc", "-rc") }}
+  # we cannot apply patches to submodules when checking out with git_url, because
+  # then conda switches the patch-application to use git, which cannot construct
+  # a usable ancestor from outside the submodule; the only option then is to
+  # pull in the submodules separately.
+  - url: https://github.com/pytorch/pytorch/archive/refs/tags/v{{ version }}.tar.gz
+    sha256: 04ae0a8babdc9cb9dfc4f8746b2b8aa0f8ed0f9e92835cc4af0bcb01e3969e51
 {% else %}
   # The "pytorch-v" tarballs contain submodules; the "pytorch-" ones don't.
   - url: https://github.com/pytorch/pytorch/releases/download/v{{ version }}/pytorch-v{{ version }}.tar.gz
@@ -374,7 +380,7 @@ outputs:
         - nomkl                 # [blas_impl != "mkl"]
         - fsspec
         # Required to support torch.compile. This is tested in smoke_test.py, which is required to pass
-        - triton 3.1.0       # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
+        - triton 3.3.0       # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
         # avoid that people without GPUs needlessly download ~0.5-1GB
         # The CUDA version constraint is handled in cuda-version as a run_constrained.
         # However, that doesn't enforce that the package requires a GPU; that needs to be done here.
