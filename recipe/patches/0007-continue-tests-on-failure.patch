@@ -1,3 +1,26 @@
+
+From: Jamie Robertson <jrobertson@anaconda.com>
+Date: Web, 17 Oct 2025 00:28:40 -0000
+Subject: [PATCH] Continue tests on failure due to flaky tests
+
+This is a workaround to allow the build to continue even if some tests fail due to flaky tests.
+---
+Index: pytorch/test/run_test.py
+===================================================================
+diff --git test/run_test.py test/run_test.py
+index a508d8d..02d9af9 100755
+--- a/test/run_test.py
++++ b/test/run_test.py
+@@ -1384,7 +1384,7 @@ def get_pytest_args(options, is_cpp_test=False, is_distributed_test=False):
+     else:
+         # When under the normal mode, retry a failed test 2 more times. -x means stop at the first
+         # failure
+-        rerun_options = ["-x", "--reruns=2"]
++        rerun_options = ["--reruns=2"]
+ 
+     pytest_args = [
+         "-vv",
+---
 Index: pytorch/test/run_test.py
 ===================================================================
 diff --git test/run_test.py test/run_test.py

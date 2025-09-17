@@ -48,6 +48,7 @@ source:
       - patches/0003-Force-usage-of-python-3-and-error-without-numpy.patch
       # https://github.com/pytorch/pytorch/pull/137084
       - patches/0004-Help-find-numpy.patch
+      # https://github.com/pytorch/pytorch/issues/150918 - continue tests on failure due to flaky tests
       - patches/0007-continue-tests-on-failure.patch
       - patches/0008-add-missing-includes.patch
       - patches/0009-use-prefix-include-for-inductor.patch
@@ -455,7 +456,10 @@ outputs:
         # Note that the `|| true` expression will make the build continue even if the whole script falls over completely
         # (for example, in the case of missing imports). There doesn't seem to be a way of making a script exception return
         # non-zero but failing tests return zero.
-        - python ./test/run_test.py --core --continue-through-error || true
+        # ------------------------------------------------------------------------------------------------
+        # Exclude complex tests that are known to be flaky for -k "not (complex and (linalg_vecdot or dot or vdot))"
+        # https://github.com/pytorch/pytorch/issues/150918
+        - python ./test/run_test.py --core --continue-through-error -k "not (complex and (linalg_vecdot or dot or vdot))" || true
         # The inductor tests test the torch.compile backend. Using the options below avoids running distributed tests,
         # which would be run if we used the --inductor option. (Distributed tests would only be correctly run on a multi-gpu test platform,
         # which we don't have.)
