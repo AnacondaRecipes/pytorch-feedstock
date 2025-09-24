@@ -87,7 +87,7 @@ requirements:
     - cross-python_{{ target_platform }}     # [build_platform != target_platform]
     - numpy  *                               # [megabuild and build_platform != target_platform]
     - numpy                                  # [not megabuild and build_platform != target_platform]
-    # - {{ stdlib('c') }}
+    - {{ stdlib('c') }}
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
     - {{ compiler('cuda') }}                 # [(gpu_variant or "").startswith("cuda")]
@@ -159,7 +159,7 @@ requirements:
     - future  # [py<313]
     - six
     - mkl-devel {{ mkl }}           # [blas_impl == "mkl"]
-    - openblas-devel  # [blas_impl == "openblas"]
+    - openblas-devel {{ openblas }}  # [blas_impl == "openblas"]
     # - libcblas * *_mkl      # [blas_impl == "mkl"]
     # - libcblas              # [blas_impl != "mkl"]
     # - liblapack             # [blas_impl != "mkl"]
@@ -334,7 +334,7 @@ outputs:
         - future  # [py<313]
         - six
         - mkl-devel {{ mkl }}           # [blas_impl == "mkl"]
-        - openblas-devel          # [blas_impl == "openblas"]
+        - openblas-devel {{ openblas }}   # [blas_impl == "openblas"]
         # - libcblas * *_mkl      # [blas_impl == "mkl"]
         # - libcblas              # [blas_impl != "mkl"]
         # - liblapack             # [blas_impl != "mkl"]
