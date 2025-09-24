@@ -159,7 +159,7 @@ requirements:
     - future  # [py<313]
     - six
     - mkl-devel {{ mkl }}           # [blas_impl == "mkl"]
-    - openblas-devel {{ openblas }}   # [blas_impl == "openblas"]
+    - openblas-devel  # [blas_impl == "openblas"]
     # - libcblas * *_mkl      # [blas_impl == "mkl"]
     # - libcblas              # [blas_impl != "mkl"]
     # - liblapack             # [blas_impl != "mkl"]
@@ -334,7 +334,7 @@ outputs:
         - future  # [py<313]
         - six
         - mkl-devel {{ mkl }}           # [blas_impl == "mkl"]
-        - openblas-devel {{ openblas }}   # [blas_impl == "openblas"]
+        - openblas-devel          # [blas_impl == "openblas"]
         # - libcblas * *_mkl      # [blas_impl == "mkl"]
         # - libcblas              # [blas_impl != "mkl"]
         # - liblapack             # [blas_impl != "mkl"]
