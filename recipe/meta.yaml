@@ -438,6 +438,7 @@ outputs:
         - set MATRIX_PACKAGE_TYPE="conda"                                                       # [win]
         - set TARGET_OS="windows"                                                               # [win]
         - set OMP_NUM_THREADS=1                                                                 # [win]
+        - set MKL_NUM_THREADS=1                                                                 # [win]
         - export MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cudatoolkit.split('.')[:2]) }}"           # [(gpu_variant == "cuda-11") and (linux and x86_64)]
         - export MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cuda_compiler_version.split('.')[:2]) }}" # [(gpu_variant == "cuda-12") and (linux and x86_64)]
         - export MATRIX_GPU_ARCH_VERSION="{{ MACOSX_SDK_VERSION }}"                             # [(gpu_variant == "metal")]
