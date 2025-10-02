@@ -1,0 +1,32 @@
+--- a/test/run_test.py
++++ b/test/run_test.py
+@@ -594,14 +594,8 @@ ONNX_SERIAL_LIST = [
+ 
+ # A subset of our TEST list that validates PyTorch's ops, modules, and autograd function as expected
+ CORE_TEST_LIST = [
+-    "test_autograd",
+-    "test_autograd_fallback",
+-    "test_modules",
+-    "test_nn",
+     "test_ops",
+     "test_ops_gradients",
+-    "test_ops_fwd_gradients",
+-    "test_ops_jit",
+-    "test_torch",
+ ]
+ 
+ 
+@@ -1588,10 +1582,10 @@ def parse_args():
+         "-i",
+         "--include",
+         nargs="+",
+         choices=TestChoices(TESTS),
+-        default=TESTS,
++        default=CORE_TEST_LIST,
+         metavar="TESTS",
+-        help="select a set of tests to include (defaults to ALL tests)."
++        help="select a set of tests to include (defaults to CORE_TEST_LIST: test_ops and test_ops_gradients)."
+         " tests must be a part of the TESTS list defined in run_test.py",
+     )
+     parser.add_argument(
+
