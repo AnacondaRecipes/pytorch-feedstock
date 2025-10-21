@@ -330,7 +330,7 @@ outputs:
         - requests
         - future  # [py<313]
         - six
-        - mkl-devel 2023.*           # [blas_impl == "mkl"]
+        - mkl-devel 2025.*           # [blas_impl == "mkl"]
         - openblas-devel {{ openblas }}   # [blas_impl == "openblas"]
         # - libcblas * *_mkl      # [blas_impl == "mkl"]
         # - libcblas              # [blas_impl != "mkl"]
