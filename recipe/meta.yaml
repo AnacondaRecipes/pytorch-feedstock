@@ -330,7 +330,7 @@ outputs:
         - requests
         - future  # [py<313]
         - six
-        - mkl-devel 2025.*           # [blas_impl == "mkl"]
+        - mkl-devel 2023.*           # [blas_impl == "mkl"]
         - openblas-devel {{ openblas }}   # [blas_impl == "openblas"]
         # - libcblas * *_mkl      # [blas_impl == "mkl"]
         # - libcblas              # [blas_impl != "mkl"]
@@ -339,7 +339,7 @@ outputs:
         # We pull in the same versions of mkl and intel-openmp: intel aligns the versions
         # We use intel-openmp for all mkl variants.
         # For openblas on win and linux, we don't specify any openmp implementation; it comes from the compiler.
-        - intel-openmp 2025.*         # [blas_impl == "mkl"]
+        - intel-openmp 2023.*         # [blas_impl == "mkl"]
         - llvm-openmp 17              # [osx and not (blas_impl == "mkl")]
         - libabseil
         - libprotobuf {{ libprotobuf }}
