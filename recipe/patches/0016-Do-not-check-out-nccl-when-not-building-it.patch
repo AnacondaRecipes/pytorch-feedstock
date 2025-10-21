@@ -35,7 +35,7 @@ index 5dd5a2219..2b8b868ea 100644
      my_env = _create_build_env()
 -    checkout_nccl()
 +    if (
-+        not check_negative_env_flag("USE_CUDA")
++        check_env_flag("USE_CUDA")
 +        and not check_negative_env_flag("USE_NCCL")
 +        and not check_env_flag("USE_SYSTEM_NCCL")
 +    ):
