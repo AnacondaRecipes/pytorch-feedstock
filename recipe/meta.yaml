@@ -415,6 +415,7 @@ outputs:
         - pybind11
         # the inductor "test_aoti_eager..." tests require objcopy
         - binutils  # [linux]
+        - libcxx 17 # [osx]
       imports:
         - torch
       source_files:
