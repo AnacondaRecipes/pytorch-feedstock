@@ -2,3 +2,5 @@
 # variant, so it's specified for both.
 extra_labels_for_os:
   osx-arm64: [ventura]
+
+task_timeout: 72000
