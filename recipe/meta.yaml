@@ -189,8 +189,8 @@ requirements:
   # satisfy overlinking checks
   run:
     - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
-    - libuv  # [win]
-    - {{ pin_compatible('magma') }}                       # [(gpu_variant or "").startswith("cuda")]
+    - libuv                                  # [win]
+    - {{ pin_compatible('magma') }}          # [(gpu_variant or "").startswith("cuda")]
 
 # these tests are for the libtorch output below, but due to
 # a particularity of conda-build, that output is defined in
