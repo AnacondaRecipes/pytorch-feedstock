@@ -51,8 +51,8 @@ source:
       - patches/0010-make-ATEN_INCLUDE_DIR-relative-to-TORCH_INSTALL_PREF.patch 
       - patches/0011-remove-DESTINATION-lib-from-CMake-install-TARGETS-di.patch             # [win]
       - patches_submodules/0001-remove-DESTINATION-lib-from-CMake-install-directives.patch  # [win]
-      - patches_submodules/0002-psimd-cmake.patch
-      - patches_submodules/0003-fp16-cmake.patch
+      # - patches_submodules/0002-psimd-cmake.patch
+      # - patches_submodules/0003-fp16-cmake.patch
       - patches/0013-simplify-torch.utils.cpp_extension.include_paths-use.patch
       - patches/0014-point-include-paths-to-PREFIX-include.patch
       - patches/0015-point-lib-paths-to-PREFIX-lib.patch
@@ -214,7 +214,7 @@ test:
     {% for each_lib in ['libc10_cuda', 'libcaffe2_nvrtc', 'libtorch_cuda', 'libtorch_cuda_linalg'] %}
     - test -f $PREFIX/lib/{{ each_lib }}.so     # [linux and (gpu_variant or "").startswith("cuda")]
     {% endfor %}
-        # test integrity of CMake metadata
+    # test integrity of CMake metadata
     - cd cmake_test
     - cmake -GNinja -DCMAKE_CXX_STANDARD=17 $CMAKE_ARGS .   # [unix]
     - cmake -GNinja -DCMAKE_CXX_STANDARD=17 %CMAKE_ARGS% .  # [win]

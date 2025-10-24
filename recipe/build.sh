@@ -96,6 +96,9 @@ export Python3_EXECUTABLE="${PYTHON}"
 # export CCACHE_BASEDIR=${PREFIX}/../
 # export CCACHE_NOHASHDIR=true
 
+# Tell CMake to treat all old version requirements as 3.5+
+export CMAKE_ARGS="${CMAKE_ARGS} -DCMAKE_POLICY_VERSION_MINIMUM=3.5"
+
 for ARG in $CMAKE_ARGS; do
   if [[ "$ARG" == "-DCMAKE_"* ]]; then
     cmake_arg=$(echo $ARG | cut -d= -f1)
