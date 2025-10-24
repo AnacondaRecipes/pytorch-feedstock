@@ -1,6 +1,6 @@
 
---- a/third_party/psimd/CMakeLists.txt 2025-10-24 08:18:04.068156864 +0100
-+++ b/third_party/psimd/CMakeLists.txt 2025-10-24 08:19:33.418566193 +0100
+--- third_party/psimd/CMakeLists.txt
++++ third_party/psimd/CMakeLists.txt
 @@ -1,4 +1,4 @@
 -CMAKE_MINIMUM_REQUIRED(VERSION 2.8.12 FATAL_ERROR)
 +CMAKE_MINIMUM_REQUIRED(VERSION 3.5 FATAL_ERROR)
