@@ -295,6 +295,7 @@ outputs:
         # This has a strong run_export so we don't need to put it in `host` or `run`
         # We use llvm-openmp for openblas variants on osx.
         - llvm-openmp 17              # [osx and not (blas_impl == "mkl")]
+        - libcxx 17 # [osx]
         - cmake
         - ninja-base
         # Keep libprotobuf here so that a compatibile version
@@ -345,6 +346,7 @@ outputs:
         # For openblas on win and linux, we don't specify any openmp implementation; it comes from the compiler.
         - intel-openmp   {{ mkl }}        # [blas_impl == "mkl"]
         - llvm-openmp 17              # [osx and not (blas_impl == "mkl")]
+        - libcxx 17 # [osx]
         - libabseil
         - libprotobuf {{ libprotobuf }}
         - sleef 3.5.1
@@ -360,6 +362,7 @@ outputs:
       run:
         - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
         - llvm-openmp                            # [osx and not (blas_impl == "mkl")]
+        - libcxx 17 # [osx]
         # GPU requirements without run_exports
         - {{ pin_compatible('cudnn') }}          # [(gpu_variant or "").startswith("cuda")]
         # Required for GPU profiler
@@ -417,6 +420,7 @@ outputs:
         - pybind11
         # the inductor "test_aoti_eager..." tests require objcopy
         - binutils  # [linux]
+        - libcxx 17 # [osx]
       imports:
         - torch
       source_files:
@@ -459,7 +463,14 @@ outputs:
         # Note that the `|| true` expression will make the build continue even if the whole script falls over completely
         # (for example, in the case of missing imports). There doesn't seem to be a way of making a script exception return
         # non-zero but failing tests return zero.
-        - python ./test/run_test.py --core --continue-through-error || true
+        # ------------------------------------------------------------------------------------------------
+        # Exclude complex tests that are known to be flaky for -k "not (complex and (linalg_vecdot or dot or vdot))"
+        # https://github.com/pytorch/pytorch/issues/150918
+        - python ./test/run_test.py --core --continue-through-error -k "not (complex and (linalg_vecdot or dot or vdot))" || true # [not win]
+        # lgamma or mvlgamma or multigammaln or gammaln all have these issues on a combination of Intel Xeon processors and Windows Server differences.
+        # enabling these tests on windows will cause numerical differences in the test suite.
+        # This is a non-deterministic issue where between 80-110 tests fail. This has been observed between Pytorch 2.5 and above.
+        - python ./test/run_test.py --core --continue-through-error -k "not ((complex and (linalg_vecdot or dot or vdot)) or lgamma or mvlgamma or multigammaln or gammaln)" || exit 0 # [win]
         # The inductor tests test the torch.compile backend. Using the options below avoids running distributed tests,
         # which would be run if we used the --inductor option. (Distributed tests would only be correctly run on a multi-gpu test platform,
         # which we don't have.)
