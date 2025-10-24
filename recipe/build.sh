@@ -193,6 +193,9 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     # we can override the default and set USE_DISTRIBUTED=1.
     export USE_DISTRIBUTED=1
 
+    # c++ includes are not found in the build prefix by default on osx
+    export CXXFLAGS="$CXXFLAGS -I${BUILD_PREFIX}/include/c++/v1"
+
     if [[ "$target_platform" == "osx-arm64" ]]; then
         # MKLDNN did not support on Apple M1 at the time support Apple M1
         # was added. Revisit later
