@@ -58,6 +58,8 @@ set USE_SYSTEM_PYBIND11=1
 set USE_SYSTEM_EIGEN_INSTALL=1
 
 set CMAKE_INCLUDE_PATH=%LIBRARY_PREFIX%\include
+set "CMAKE_ARGS=%CMAKE_ARGS% -DCMAKE_POLICY_VERSION_MINIMUM=3.5"
+
 set LIB=%LIBRARY_PREFIX%\lib;%LIB%
 
 :: =============================== CUDA> ======================================
