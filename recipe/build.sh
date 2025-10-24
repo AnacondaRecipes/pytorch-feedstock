@@ -186,6 +186,8 @@ fi
 
 # MacOS build is simple, and will not be for CUDA
 if [[ "$OSTYPE" == "darwin"* ]]; then
+    # XNNPACK causing issues at build time on osx with libcxx 17
+    export USE_XNNPACK=0
     # Produce macOS builds with torch.distributed support.
     # This is enabled by default on Linux, but disabled by default on macOS,
     # because it requires an non-bundled compile-time dependency (libuv
