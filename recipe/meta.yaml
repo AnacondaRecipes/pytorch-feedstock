@@ -120,7 +120,7 @@ requirements:
     - libcxx 17 # [osx] 
     - libuv     # [win]
     - cmake # [not win]
-    - cmake <3.27 # [win]
+    - cmake 3.31.2 # [win]
     - ninja-base
     - libabseil
     # Keep libprotobuf here so that a compatibile version
@@ -203,7 +203,7 @@ test:
     - {{ compiler('cuda') }}    # [(gpu_variant or "").startswith("cuda")]
     - cuda-nvrtc-dev            # [(gpu_variant or "").startswith("cuda")]
     - cmake # [not win]
-    - cmake <3.27 # [win]
+    - cmake 3.31.2 # [win]
     - ninja
     - pkg-config
   files:
@@ -302,7 +302,7 @@ outputs:
         - llvm-openmp 17              # [osx and not (blas_impl == "mkl")]
         - libcxx 17 # [osx]
         - cmake # [not win]
-        - cmake <3.27 # [win]
+        - cmake 3.31.2 # [win]
         - ninja-base
         # Keep libprotobuf here so that a compatibile version
         # of protobuf is installed between build and host
