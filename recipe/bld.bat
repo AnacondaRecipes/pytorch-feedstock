@@ -30,6 +30,7 @@ if "%pytorch_variant%" == "gpu" (
 set "USE_KINETO=OFF"
 :: ITT fails on submodules due to a stricter cmake policy version requirement
 set "USE_ITT=0"
+set "USE_XNNPACK=0"
 
 :: =============================== CUDA FLAGS> ======================================
 if "%build_with_cuda%" == "" goto cuda_flags_end
