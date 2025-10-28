@@ -119,7 +119,8 @@ requirements:
     - llvm-openmp 17              # [osx and not (blas_impl == "mkl")]
     - libcxx 17 # [osx] 
     - libuv     # [win]
-    - cmake
+    - cmake # [not win]
+    - cmake <3.27 # [win]
     - ninja-base
     - libabseil
     # Keep libprotobuf here so that a compatibile version
@@ -201,7 +202,8 @@ test:
     # for CMake config to find cuda & nvrtc
     - {{ compiler('cuda') }}    # [(gpu_variant or "").startswith("cuda")]
     - cuda-nvrtc-dev            # [(gpu_variant or "").startswith("cuda")]
-    - cmake
+    - cmake # [not win]
+    - cmake <3.27 # [win]
     - ninja
     - pkg-config
   files:
@@ -299,7 +301,8 @@ outputs:
         # We use llvm-openmp for openblas variants on osx.
         - llvm-openmp 17              # [osx and not (blas_impl == "mkl")]
         - libcxx 17 # [osx]
-        - cmake
+        - cmake # [not win]
+        - cmake <3.27 # [win]
         - ninja-base
         # Keep libprotobuf here so that a compatibile version
         # of protobuf is installed between build and host
