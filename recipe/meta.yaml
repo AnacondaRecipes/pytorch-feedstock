@@ -117,7 +117,6 @@ requirements:
     # This has a strong run_export so we don't need to put it in `host` or `run`
     # We use llvm-openmp for openblas variants on osx.
     - llvm-openmp 17              # [osx and not (blas_impl == "mkl")]
-    - libcxx 17 # [osx] 
     - libuv     # [win]
     - cmake # [not win]
     - cmake 3.31.2 # [win]
@@ -300,7 +299,6 @@ outputs:
         # This has a strong run_export so we don't need to put it in `host` or `run`
         # We use llvm-openmp for openblas variants on osx.
         - llvm-openmp 17              # [osx and not (blas_impl == "mkl")]
-        - libcxx 17 # [osx]
         - cmake # [not win]
         - cmake 3.31.2 # [win]
         - ninja-base
@@ -352,7 +350,6 @@ outputs:
         # For openblas on win and linux, we don't specify any openmp implementation; it comes from the compiler.
         - intel-openmp   {{ mkl }}        # [blas_impl == "mkl"]
         - llvm-openmp 17              # [osx and not (blas_impl == "mkl")]
-        - libcxx 17 # [osx]
         - libabseil
         - libprotobuf {{ libprotobuf }}
         - sleef 3.5.1
@@ -368,7 +365,6 @@ outputs:
       run:
         - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
         - llvm-openmp                            # [osx and not (blas_impl == "mkl")]
-        - libcxx 17 # [osx]
         # GPU requirements without run_exports
         - {{ pin_compatible('cudnn') }}          # [(gpu_variant or "").startswith("cuda")]
         # Required for GPU profiler
