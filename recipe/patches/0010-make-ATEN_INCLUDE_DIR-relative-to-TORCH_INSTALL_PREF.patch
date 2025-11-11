@@ -10,11 +10,11 @@ https://github.com/pytorch/pytorch/blob/v2.5.1/cmake/TorchConfig.cmake.in#L47
  aten/src/ATen/CMakeLists.txt | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/aten/src/ATen/CMakeLists.txt b/aten/src/ATen/CMakeLists.txt
-index 6d9152a4d07..aa4dd7b05cc 100644
---- a/aten/src/ATen/CMakeLists.txt
-+++ b/aten/src/ATen/CMakeLists.txt
-@@ -563,7 +563,7 @@ if(USE_ROCM)
+diff --git aten/src/ATen/CMakeLists.txt aten/src/ATen/CMakeLists.txt
+index f0868ea..c20ea20 100644
+--- a/aten/src/ATen/aten/src/ATen/CMakeLists.txt
++++ b/aten/src/ATen/aten/src/ATen/CMakeLists.txt
+@@ -604,7 +604,7 @@ if(USE_ROCM)
    # list(APPEND ATen_HIP_DEPENDENCY_LIBS ATEN_CUDA_FILES_GEN_LIB)
  endif()
  

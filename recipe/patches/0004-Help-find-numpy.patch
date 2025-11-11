@@ -9,9 +9,11 @@ Subject: [PATCH] Help find numpy
 
 Index: pytorch/tools/setup_helpers/cmake.py
 ===================================================================
---- pytorch.orig/tools/setup_helpers/cmake.py	2024-11-12 20:18:55.448001614 -0600
-+++ pytorch/tools/setup_helpers/cmake.py	2024-11-19 16:18:54.574972542 -0600
-@@ -305,9 +305,15 @@
+diff --git tools/setup_helpers/cmake.py tools/setup_helpers/cmake.py
+index 84e4dad..8ce7272 100644
+--- a/tools/setup_helpers/cmake.py
++++ b/tools/setup_helpers/cmake.py
+@@ -306,9 +306,15 @@ class CMake:
              sys.exit(1)
          build_options.update(cmake__options)
  
