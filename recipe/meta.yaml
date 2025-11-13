@@ -197,6 +197,7 @@ test:
   requires:
     # cmake needs a compiler to run package detection, see
     # https://discourse.cmake.org/t/questions-about-find-package-cli-msvc/6194
+    - {{ stdlib('c') }}
     - {{ compiler('cxx') }}
     # for CMake config to find cuda & nvrtc
     - {{ compiler('cuda') }}    # [(gpu_variant or "").startswith("cuda")]
@@ -403,6 +404,7 @@ outputs:
 
     test:
       requires:
+        - {{ stdlib('c') }}
         - {{ compiler('c') }}
         - {{ compiler('cxx') }}
         - boto3
@@ -422,7 +424,6 @@ outputs:
         - pybind11
         # the inductor "test_aoti_eager..." tests require objcopy
         - binutils  # [linux]
-        - libcxx 17 # [osx]
       imports:
         - torch
       source_files:

@@ -28,8 +28,6 @@ if "%pytorch_variant%" == "gpu" (
 :: cudatoolkit different than the one specified at compile time.
 :: https://github.com/conda-forge/pytorch-cpu-feedstock/issues/135
 set "USE_KINETO=OFF"
-:: ITT fails on submodules due to a stricter cmake policy version requirement
-set "USE_ITT=0"
 
 :: =============================== CUDA FLAGS> ======================================
 if "%build_with_cuda%" == "" goto cuda_flags_end
