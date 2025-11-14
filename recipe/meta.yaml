@@ -110,7 +110,6 @@ requirements:
     {% endif %}
     # Dec 2020: it seems that git is broken on windows, so we use m2-git
     - m2-patch  # [win]
-    - m2-git    # [win]
     - patch     # [not win]
     - git       # [not win]
     - libgomp        # [linux]
