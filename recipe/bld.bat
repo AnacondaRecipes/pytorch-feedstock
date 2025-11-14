@@ -51,13 +51,15 @@ set DISTUTILS_USE_SDK=1
 set BUILD_TEST=0
 set INSTALL_TEST=0
 :: Don't increase MAX_JOBS to NUMBER_OF_PROCESSORS, as it will run out of heap
-set CPU_COUNT=1
+set CPU_COUNT=2
 set MAX_JOBS=%CPU_COUNT%
 :: Use our Pybind11, Eigen
 set USE_SYSTEM_PYBIND11=1
 set USE_SYSTEM_EIGEN_INSTALL=1
 
 set CMAKE_INCLUDE_PATH=%LIBRARY_PREFIX%\include
+set "CMAKE_ARGS=%CMAKE_ARGS% -DCMAKE_POLICY_VERSION_MINIMUM=3.5"
+
 set LIB=%LIBRARY_PREFIX%\lib;%LIB%
 
 :: =============================== CUDA> ======================================

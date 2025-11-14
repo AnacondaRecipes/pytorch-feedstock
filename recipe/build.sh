@@ -96,6 +96,9 @@ export Python3_EXECUTABLE="${PYTHON}"
 # export CCACHE_BASEDIR=${PREFIX}/../
 # export CCACHE_NOHASHDIR=true
 
+# Tell CMake to treat all old version requirements as 3.5+
+export CMAKE_ARGS="${CMAKE_ARGS} -DCMAKE_POLICY_VERSION_MINIMUM=3.5"
+
 for ARG in $CMAKE_ARGS; do
   if [[ "$ARG" == "-DCMAKE_"* ]]; then
     cmake_arg=$(echo $ARG | cut -d= -f1)
@@ -183,12 +186,17 @@ fi
 
 # MacOS build is simple, and will not be for CUDA
 if [[ "$OSTYPE" == "darwin"* ]]; then
+    # XNNPACK causing issues at build time on osx with libcxx 17
+    export USE_XNNPACK=0
     # Produce macOS builds with torch.distributed support.
     # This is enabled by default on Linux, but disabled by default on macOS,
     # because it requires an non-bundled compile-time dependency (libuv
     # through gloo). This dependency is made available through meta.yaml, so
     # we can override the default and set USE_DISTRIBUTED=1.
     export USE_DISTRIBUTED=1
+
+    # c++ includes are not found in the build prefix by default on osx
+    export CXXFLAGS="$CXXFLAGS -I${BUILD_PREFIX}/include/c++/v1"
 
     if [[ "$target_platform" == "osx-arm64" ]]; then
         # MKLDNN did not support on Apple M1 at the time support Apple M1
