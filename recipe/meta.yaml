@@ -292,9 +292,7 @@ outputs:
         {% endif %}
         # Dec 2020: it seems that git is broken on windows, so we use m2-git
         - patch     # [not win]
-        - m2-patch  # [win]
         - git       # [not win]
-        - m2-git    # [win]
         - libgomp   # [linux]
         # This has a strong run_export so we don't need to put it in `host` or `run`
         # We use llvm-openmp for openblas variants on osx.
