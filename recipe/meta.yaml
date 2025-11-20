@@ -224,12 +224,6 @@ test:
 outputs:
   - name: libtorch
     build:
-      overlinking_ignore_patterns: # [linux and aarch64]
-        - lib/libc10.so            # [linux and aarch64]
-        - lib/libtorch_cpu.so      # [linux and aarch64]
-        - lib/libshm.so            # [linux and aarch64]
-        - lib/libtorch.so          # [linux and aarch64]
-        - bin/torch_shm_manager    # [linux and aarch64]
       missing_dso_whitelist:
         # The are dynamically loaded from %SP_DIR%\torch\lib\
         - "**/asmjit.dll"             # [win]
