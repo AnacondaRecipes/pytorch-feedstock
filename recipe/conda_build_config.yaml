@@ -1,21 +1,26 @@
 gpu_variant:
   - cpu
   - metal                    # [(osx and arm64)]
-  - cuda-12                  # [(linux and x86_64)]
+  # - cuda-12                  # [(linux and x86_64)]
+c_compiler_version:      # [linux]
+  - 11                   # [linux]
+cxx_compiler_version:    # [linux]
+  - 11                   # [linux]
 c_compiler_version:      # [osx]
   - 17                   # [osx]
 cxx_compiler_version:    # [osx]
   - 17                   # [osx]
+
 # CONDA_BUILD_SYSROOT is defined in the base cbc.yaml, but it's reflected here so we can zip the keys and
 # build GPU and CPU at the same time for osx-arm64. It'll need to be manually updated here if the base cbc is changed.
 # This could be done using extend_keys instead, with a change to the base cbc.yaml.
 # However there's currently a conda-forge bug that prevents this: https://github.com/conda/conda-build/issues/5048
 MACOSX_SDK_VERSION:          # [(osx and arm64)]
   - 11.1                     # [(osx and arm64)]
-  #- 13.3                     # [(osx and arm64)]
+  - 13.3                     # [(osx and arm64)]
 CONDA_BUILD_SYSROOT:         # [(osx and arm64)]
   - /Library/Developer/CommandLineTools/SDKs/MacOSX11.1.sdk  # [(osx and arm64)]
-  #- /Library/Developer/CommandLineTools/SDKs/MacOSX13.3.sdk  # [(osx and arm64)]
+  - /Library/Developer/CommandLineTools/SDKs/MacOSX13.3.sdk  # [(osx and arm64)]
 zip_keys:                    # [(osx and arm64)]
   - gpu_variant              # [(osx and arm64)]
   - MACOSX_SDK_VERSION       # [(osx and arm64)]
@@ -27,8 +32,8 @@ zip_keys:                    # [(osx and arm64)]
 # Conda-forge didn't do a "megabuild" on osx because it pushed their CI runners over their 6-hour limit. We don't have
 # such a limit.
 megabuild:
-- true
-#- false     # [osx]
+#- true
+- false
 
 # The version of python to use when building libtorch in a "megabuild"
 megabuild_python:

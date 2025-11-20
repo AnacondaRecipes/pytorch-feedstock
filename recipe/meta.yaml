@@ -2,7 +2,7 @@
 {% set sha256 = "3005690eb7b083c443a38c7657938af63902f524ad87a6c83f1aca38c77e3b57" %}
 # Set the RC number to build release candidates. Set to None otherwise
 {% set rc = None %}
-{% set build = 6 %}
+{% set build = 7 %}
 
 # Keep this in sync with the release
 {% set smoke_test_commit = "1eba9b3aa3c43f86f4a2c807ac8e12c4a7767340" %}
@@ -51,9 +51,12 @@ source:
       - patches/0010-make-ATEN_INCLUDE_DIR-relative-to-TORCH_INSTALL_PREF.patch 
       - patches/0011-remove-DESTINATION-lib-from-CMake-install-TARGETS-di.patch             # [win]
       - patches_submodules/0001-remove-DESTINATION-lib-from-CMake-install-directives.patch  # [win]
+      # - patches_submodules/0002-psimd-cmake.patch
+      # - patches_submodules/0003-fp16-cmake.patch
       - patches/0013-simplify-torch.utils.cpp_extension.include_paths-use.patch
       - patches/0014-point-include-paths-to-PREFIX-include.patch
       - patches/0015-point-lib-paths-to-PREFIX-lib.patch
+      - patches/0016-fix-issue-142484.patch # [blas_impl == "mkl" and win]
 {% endif %}
   - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.ci/pytorch/smoke_test/smoke_test.py
     folder: smoke_test
@@ -87,7 +90,7 @@ requirements:
     - cross-python_{{ target_platform }}     # [build_platform != target_platform]
     - numpy  *                               # [megabuild and build_platform != target_platform]
     - numpy                                  # [not megabuild and build_platform != target_platform]
-    #- {{ stdlib('c') }}
+    - {{ stdlib('c') }}
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
     - {{ compiler('cuda') }}                 # [(gpu_variant or "").startswith("cuda")]
@@ -107,7 +110,6 @@ requirements:
     {% endif %}
     # Dec 2020: it seems that git is broken on windows, so we use m2-git
     - m2-patch  # [win]
-    - m2-git    # [win]
     - patch     # [not win]
     - git       # [not win]
     - libgomp        # [linux]
@@ -115,7 +117,8 @@ requirements:
     # We use llvm-openmp for openblas variants on osx.
     - llvm-openmp 17              # [osx and not (blas_impl == "mkl")]
     - libuv     # [win]
-    - cmake
+    - cmake # [not win]
+    - cmake 3.31.2 # [win]
     - ninja-base
     - libabseil
     # Keep libprotobuf here so that a compatibile version
@@ -159,7 +162,7 @@ requirements:
     - future  # [py<313]
     - six
     - mkl-devel {{ mkl }}           # [blas_impl == "mkl"]
-    - openblas-devel {{ openblas }}   # [blas_impl == "openblas"]
+    - openblas-devel {{ openblas }}  # [blas_impl == "openblas"]
     # - libcblas * *_mkl      # [blas_impl == "mkl"]
     # - libcblas              # [blas_impl != "mkl"]
     # - liblapack             # [blas_impl != "mkl"]
@@ -193,11 +196,13 @@ test:
   requires:
     # cmake needs a compiler to run package detection, see
     # https://discourse.cmake.org/t/questions-about-find-package-cli-msvc/6194
+    - {{ stdlib('c') }}
     - {{ compiler('cxx') }}
     # for CMake config to find cuda & nvrtc
     - {{ compiler('cuda') }}    # [(gpu_variant or "").startswith("cuda")]
     - cuda-nvrtc-dev            # [(gpu_variant or "").startswith("cuda")]
-    - cmake
+    - cmake # [not win]
+    - cmake 3.31.2 # [win]
     - ninja
     - pkg-config
   files:
@@ -211,7 +216,7 @@ test:
     {% for each_lib in ['libc10_cuda', 'libcaffe2_nvrtc', 'libtorch_cuda', 'libtorch_cuda_linalg'] %}
     - test -f $PREFIX/lib/{{ each_lib }}.so     # [linux and (gpu_variant or "").startswith("cuda")]
     {% endfor %}
-        # test integrity of CMake metadata
+    # test integrity of CMake metadata
     - cd cmake_test
     - cmake -GNinja -DCMAKE_CXX_STANDARD=17 $CMAKE_ARGS .   # [unix]
     - cmake -GNinja -DCMAKE_CXX_STANDARD=17 %CMAKE_ARGS% .  # [win]
@@ -261,7 +266,7 @@ outputs:
         - python                                 # [build_platform != target_platform]
         - cross-python_{{ target_platform }}     # [build_platform != target_platform]
         - numpy                                  # [build_platform != target_platform]
-        #- {{ stdlib('c') }}
+        - {{ stdlib('c') }}
         - {{ compiler('c') }}
         - {{ compiler('cxx') }}
         - {{ compiler('cuda') }}                 # [(gpu_variant or "").startswith("cuda")]
@@ -281,14 +286,13 @@ outputs:
         {% endif %}
         # Dec 2020: it seems that git is broken on windows, so we use m2-git
         - patch     # [not win]
-        - m2-patch  # [win]
         - git       # [not win]
-        - m2-git    # [win]
         - libgomp   # [linux]
         # This has a strong run_export so we don't need to put it in `host` or `run`
         # We use llvm-openmp for openblas variants on osx.
         - llvm-openmp 17              # [osx and not (blas_impl == "mkl")]
-        - cmake
+        - cmake # [not win]
+        - cmake 3.31.2 # [win]
         - ninja-base
         # Keep libprotobuf here so that a compatibile version
         # of protobuf is installed between build and host
@@ -391,6 +395,7 @@ outputs:
 
     test:
       requires:
+        - {{ stdlib('c') }}
         - {{ compiler('c') }}
         - {{ compiler('cxx') }}
         - boto3
@@ -452,7 +457,14 @@ outputs:
         # Note that the `|| true` expression will make the build continue even if the whole script falls over completely
         # (for example, in the case of missing imports). There doesn't seem to be a way of making a script exception return
         # non-zero but failing tests return zero.
-        - python ./test/run_test.py --core --continue-through-error || true
+        # ------------------------------------------------------------------------------------------------
+        # Exclude complex tests that are known to be flaky for -k "not (complex and (linalg_vecdot or dot or vdot))"
+        # https://github.com/pytorch/pytorch/issues/150918
+        - python ./test/run_test.py --core --continue-through-error -k "not (complex and (linalg_vecdot or dot or vdot))" || true # [not win]
+        # lgamma or mvlgamma or multigammaln or gammaln all have these issues on a combination of Intel Xeon processors and Windows Server differences.
+        # enabling these tests on windows will cause numerical differences in the test suite.
+        # This is a non-deterministic issue where between 80-110 tests fail. This has been observed between Pytorch 2.5 and above.
+        - python ./test/run_test.py --core --continue-through-error -k "not ((complex and (linalg_vecdot or dot or vdot)) or lgamma or mvlgamma or multigammaln or gammaln)" || exit 0 # [win]
         # The inductor tests test the torch.compile backend. Using the options below avoids running distributed tests,
         # which would be run if we used the --inductor option. (Distributed tests would only be correctly run on a multi-gpu test platform,
         # which we don't have.)
