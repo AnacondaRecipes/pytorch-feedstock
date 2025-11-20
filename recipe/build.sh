@@ -289,6 +289,7 @@ $PREFIX/bin/python -m pip $PIP_ACTION . --no-deps --no-build-isolation -vvv --no
 if [[ "$PKG_NAME" == "libtorch" ]]; then
   mkdir -p $SRC_DIR/dist
   pushd $SRC_DIR/dist
+  sleep 5
   wheel unpack ../torch-*.whl
   pushd torch-*
   mv torch/bin/* ${PREFIX}/bin
