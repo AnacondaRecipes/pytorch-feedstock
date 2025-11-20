@@ -98,7 +98,7 @@ requirements:
     - {{ compiler('cuda') }}                # [(gpu_variant or "").startswith("cuda")]
     - nvtx-c                                 # [cuda_compiler_version != "None" and build_platform != target_platform]
     {% if cuda_major >= 12 %}
-    - cuda-driver-dev                        # [build_platform != target_platform]
+    # - cuda-driver-dev                        # [build_platform != target_platform]
     - cuda-cudart-dev                        # [build_platform != target_platform]
     - cuda-nvrtc-dev                         # [build_platform != target_platform]
     - cuda-nvtx-dev                          # [build_platform != target_platform]
@@ -111,8 +111,6 @@ requirements:
     - libcusparse-dev                        # [build_platform != target_platform]
     {% endif %}
     # Dec 2020: it seems that git is broken on windows, so we use m2-git
-    - m2-patch  # [win]
-    - m2-git    # [win]
     - patch     # [not win]
     - git       # [not win]
     - libgomp        # [linux]
@@ -132,13 +130,13 @@ requirements:
     # - ccache
   host:
     # GPU requirements
-    - cudnn 9.1.1.17                  # [(gpu_variant or "").startswith("cuda")]
-    - nccl 2.21.5.1                   # [(gpu_variant or "").startswith("cuda")]
-    - magma 2.7.1                     # [(gpu_variant or "").startswith("cuda")]
-    - cuda-version {{ cuda_compiler_version }}  # [(gpu_variant or "").startswith("cuda")]
+    - cudnn 9.1.1.17                  # [(gpu_variant or "").startswith("cuda") and linux]
+    - nccl 2.21.5.1                   # [(gpu_variant or "").startswith("cuda") and linux]
+    - magma 2.9                       # [(gpu_variant or "").startswith("cuda")]
+    - cuda-version 12.8  # [(gpu_variant or "").startswith("cuda")]
     - nvtx-c                          # [(gpu_variant or "").startswith("cuda")]
     {% if cuda_major >= 12 %}
-    - cuda-driver-dev
+    # - cuda-driver-dev
     - cuda-cudart-dev
     - cuda-nvrtc-dev
     - cuda-nvtx-dev
@@ -201,6 +199,7 @@ test:
     - {{ compiler('cxx') }}
     # for CMake config to find cuda & nvrtc
     - {{ compiler('cuda') }}    # [(gpu_variant or "").startswith("cuda")]
+    - cuda-nvcc ={{ cuda_compiler_version }}     # [(gpu_variant or "").startswith("cuda")]
     - cuda-nvrtc-dev            # [(gpu_variant or "").startswith("cuda")]
     - cmake
     - ninja
@@ -284,9 +283,7 @@ outputs:
         {% endif %}
         # Dec 2020: it seems that git is broken on windows, so we use m2-git
         - patch     # [not win]
-        - m2-patch  # [win]
         - git       # [not win]
-        - m2-git    # [win]
         - libgomp   # [linux]
         # This has a strong run_export so we don't need to put it in `host` or `run`
         # We use llvm-openmp for openblas variants on osx.
@@ -302,16 +299,16 @@ outputs:
         # - ccache
       host:
         # GPU requirements
-        - cudnn 9.1.1.17                  # [(gpu_variant or "").startswith("cuda")]
-        - nccl 2.21.5.1                   # [(gpu_variant or "").startswith("cuda")]
-        - magma 2.7.1                     # [(gpu_variant or "").startswith("cuda")]
+        - cudnn 9.1.1.17                  # [(gpu_variant or "").startswith("cuda") and linux]
+        - nccl 2.21.5.1                   # [(gpu_variant or "").startswith("cuda") and linux]
+        - magma 2.9                       # [(gpu_variant or "").startswith("cuda")]
         - nvtx-c                          # [(gpu_variant or "").startswith("cuda")]
         {% if cuda_major >= 12 %}
-        - cuda-driver-dev
+        - cuda-driver-dev # [linux]
         - cuda-cudart-dev
         - cuda-nvrtc-dev
         - cuda-nvtx-dev
-        - cuda-nvml-dev
+        - cuda-nvml-dev # [linux]
         - cuda-profiler-api
         - libcublas-dev
         - libcufft-dev
