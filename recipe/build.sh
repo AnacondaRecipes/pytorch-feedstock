@@ -86,6 +86,20 @@ export PATH=$PREFIX/bin:$PREFIX:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PA
 export Python3_ROOT_DIR=${PREFIX}
 export Python3_EXECUTABLE="${PYTHON}"
 
+# Force extraction of build tools from package cache to avoid race conditions
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    echo "Pre-extracting build dependencies to avoid race conditions..."
+    which cmake > /dev/null 2>&1 || conda install --force-reinstall cmake -y
+    which ninja > /dev/null 2>&1 || conda install --force-reinstall ninja-base -y
+    
+    # Verify cmake can actually run
+    cmake --version || {
+        echo "cmake cannot execute, reinstalling..."
+        conda install --force-reinstall cmake -y
+        cmake --version
+    }
+fi
+
 # Uncomment to use ccache; development only
 # ccache -M 25Gi && ccache -F 0
 # export CMAKE_C_COMPILER_LAUNCHER=ccache
@@ -289,7 +303,24 @@ $PREFIX/bin/python -m pip $PIP_ACTION . --no-deps --no-build-isolation -vvv --no
 if [[ "$PKG_NAME" == "libtorch" ]]; then
   mkdir -p $SRC_DIR/dist
   pushd $SRC_DIR/dist
-  sleep 5
+  
+  # Wait for wheel file with timeout
+  WHEEL_WAIT=0
+  MAX_WHEEL_WAIT=30
+  while [ $WHEEL_WAIT -lt $MAX_WHEEL_WAIT ]; do
+      if ls ../torch-*.whl 1> /dev/null 2>&1; then
+          echo "Wheel file found after ${WHEEL_WAIT}s"
+          break
+      fi
+      sleep 1
+      WHEEL_WAIT=$((WHEEL_WAIT + 1))
+  done
+  
+  if ! ls ../torch-*.whl 1> /dev/null 2>&1; then
+      echo "ERROR: No wheel file found after ${MAX_WHEEL_WAIT}s"
+      exit 1
+  fi
+  
   wheel unpack ../torch-*.whl
   pushd torch-*
   mv torch/bin/* ${PREFIX}/bin
