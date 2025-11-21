@@ -30,6 +30,11 @@ export CXXFLAGS="$(echo $CXXFLAGS | sed 's/-std=c++[0-9][0-9]//g')"
 export CFLAGS="$(echo $CFLAGS | sed 's/-fvisibility-inlines-hidden//g')"
 export CXXFLAGS="$(echo $CXXFLAGS | sed 's/-fvisibility-inlines-hidden//g')"
 export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,--as-needed//g')"
+
+# Add this for GCC 14.3 compatibility with XNNPACK
+if [[ "$target_platform" == linux-aarch64 ]]; then
+    export CFLAGS="$CFLAGS -Wno-error=incompatible-pointer-types"
+fi
 # The default conda LDFLAGs include -Wl,-dead_strip_dylibs, which removes all the
 # MKL sequential, core, etc. libraries, resulting in a "Symbol not found: _mkl_blas_caxpy"
 # error on osx-64.
@@ -289,6 +294,24 @@ $PREFIX/bin/python -m pip $PIP_ACTION . --no-deps --no-build-isolation -vvv --no
 if [[ "$PKG_NAME" == "libtorch" ]]; then
   mkdir -p $SRC_DIR/dist
   pushd $SRC_DIR/dist
+  
+  # Wait for wheel file with timeout
+  WHEEL_WAIT=0
+  MAX_WHEEL_WAIT=30
+  while [ $WHEEL_WAIT -lt $MAX_WHEEL_WAIT ]; do
+      if ls ../torch-*.whl 1> /dev/null 2>&1; then
+          echo "Wheel file found after ${WHEEL_WAIT}s"
+          break
+      fi
+      sleep 1
+      WHEEL_WAIT=$((WHEEL_WAIT + 1))
+  done
+  
+  if ! ls ../torch-*.whl 1> /dev/null 2>&1; then
+      echo "ERROR: No wheel file found after ${MAX_WHEEL_WAIT}s"
+      exit 1
+  fi
+  
   wheel unpack ../torch-*.whl
   pushd torch-*
   mv torch/bin/* ${PREFIX}/bin
