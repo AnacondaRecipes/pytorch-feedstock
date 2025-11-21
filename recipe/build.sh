@@ -30,6 +30,11 @@ export CXXFLAGS="$(echo $CXXFLAGS | sed 's/-std=c++[0-9][0-9]//g')"
 export CFLAGS="$(echo $CFLAGS | sed 's/-fvisibility-inlines-hidden//g')"
 export CXXFLAGS="$(echo $CXXFLAGS | sed 's/-fvisibility-inlines-hidden//g')"
 export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,--as-needed//g')"
+
+# Add this for GCC 14.3 compatibility with XNNPACK
+if [[ "$target_platform" == linux-aarch64 ]]; then
+    export CFLAGS="$CFLAGS -Wno-error=incompatible-pointer-types"
+fi
 # The default conda LDFLAGs include -Wl,-dead_strip_dylibs, which removes all the
 # MKL sequential, core, etc. libraries, resulting in a "Symbol not found: _mkl_blas_caxpy"
 # error on osx-64.
