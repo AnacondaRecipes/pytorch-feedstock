@@ -91,20 +91,6 @@ export PATH=$PREFIX/bin:$PREFIX:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PA
 export Python3_ROOT_DIR=${PREFIX}
 export Python3_EXECUTABLE="${PYTHON}"
 
-# Force extraction of build tools from package cache to avoid race conditions
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    echo "Pre-extracting build dependencies to avoid race conditions..."
-    which cmake > /dev/null 2>&1 || conda install --force-reinstall cmake -y
-    which ninja > /dev/null 2>&1 || conda install --force-reinstall ninja-base -y
-    
-    # Verify cmake can actually run
-    cmake --version || {
-        echo "cmake cannot execute, reinstalling..."
-        conda install --force-reinstall cmake -y
-        cmake --version
-    }
-fi
-
 # Uncomment to use ccache; development only
 # ccache -M 25Gi && ccache -F 0
 # export CMAKE_C_COMPILER_LAUNCHER=ccache
