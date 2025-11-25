@@ -80,7 +80,7 @@ build:
   ignore_run_exports:
     - python *                               # [megabuild]
     - numpy *                                # [megabuild]
-  skip: True  # [py<39]
+  skip: True  # [py<39 and not osx]
 
 requirements:
   # Keep this list synchronized (except for python*, numpy*) in outputs
