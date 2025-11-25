@@ -7,11 +7,6 @@ c_compiler_version:      # [osx]
 cxx_compiler_version:    # [osx]
   - 20                  # [osx]
 
-libprotobuf:
-  - 6.33.0
-
-libabseil:
-  - 20250814.1
 # CONDA_BUILD_SYSROOT is defined in the base cbc.yaml, but it's reflected here so we can zip the keys and
 # build GPU and CPU at the same time for osx-arm64. It'll need to be manually updated here if the base cbc is changed.
 # This could be done using extend_keys instead, with a change to the base cbc.yaml.
