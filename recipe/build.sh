@@ -24,6 +24,8 @@ export USE_ITT=0
 # issue a warning. In particular, if it's set to anything other than c++14,
 # we'll get compiler errors. Let's just remove it like we're told.
 export CXXFLAGS="$(echo $CXXFLAGS | sed 's/-std=c++[0-9][0-9]//g')"
+export CXXFLAGS="$CXXFLAGS -std=c++17"
+export CMAKE_CXX_STANDARD=17
 # The below three lines expose symbols that would otherwise be hidden or
 # optimised away. They were here before, so removing them would potentially
 # break users' programs
