@@ -3,9 +3,9 @@ gpu_variant:
   - metal                    # [(osx and arm64)]
 #  - cuda-12                  # [(linux and x86_64)]
 c_compiler_version:      # [osx]
-  - 17                   # [osx]
+  - 20                   # [osx]
 cxx_compiler_version:    # [osx]
-  - 17                   # [osx]
+  - 20                  # [osx]
 
 libprotobuf:
   - 6.33.0
