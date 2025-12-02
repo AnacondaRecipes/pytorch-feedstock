@@ -80,7 +80,7 @@ build:
   ignore_run_exports:
     - python *                               # [megabuild]
     - numpy *                                # [megabuild]
-  skip: True  # [py<39 and not osx]
+  skip: True  # [py<39]
 
 requirements:
   # Keep this list synchronized (except for python*, numpy*) in outputs
@@ -174,7 +174,7 @@ requirements:
     # For openblas on win and linux, we don't specify any openmp implementation; it comes from the compiler.
     - intel-openmp {{ mkl }}         # [blas_impl == "mkl"]
     - llvm-openmp 17              # [osx and not (blas_impl == "mkl")]
-    - libabseil
+    - libabseil {{ libabseil }}
     - libprotobuf {{ libprotobuf }}
     - sleef 3.5.1
     - typing
@@ -255,7 +255,7 @@ outputs:
       run_exports:
         - {{ pin_subpackage('pytorch', max_pin='x.x') }}
         - {{ pin_subpackage('libtorch', max_pin='x.x') }}
-      skip: True  # [py<39 and not osx]
+      skip: True  # [py<39]
 
     script: build_pytorch.sh   # [unix]
     script: build_pytorch.bat  # [win]
