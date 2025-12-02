@@ -3,9 +3,9 @@ gpu_variant:
   - metal                    # [(osx and arm64)]
 #  - cuda-12                  # [(linux and x86_64)]
 c_compiler_version:      # [osx]
-  - 20                   # [osx]
+  - 17                   # [osx]
 cxx_compiler_version:    # [osx]
-  - 20                  # [osx]
+  - 17                   # [osx]
 
 # CONDA_BUILD_SYSROOT is defined in the base cbc.yaml, but it's reflected here so we can zip the keys and
 # build GPU and CPU at the same time for osx-arm64. It'll need to be manually updated here if the base cbc is changed.
