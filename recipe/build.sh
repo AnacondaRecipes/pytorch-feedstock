@@ -27,8 +27,6 @@ export CXXFLAGS="$(echo $CXXFLAGS | sed 's/-std=c++[0-9][0-9]//g')"
 export CXXFLAGS="$CXXFLAGS -std=c++17"
 export CMAKE_CXX_STANDARD=17
 
-export CXXFLAGS="$CXXFLAGS -Wno-error=missing-template-arg-list-after-template-kw"
-
 # Patch ALL CMakeLists.txt files to use C++17 instead of C++14
 # This fixes libnop template issues with Clang 20
 find . -name "CMakeLists.txt" -type f -exec sed -i.bak 's/CMAKE_CXX_STANDARD 14/CMAKE_CXX_STANDARD 17/g' {} \;
