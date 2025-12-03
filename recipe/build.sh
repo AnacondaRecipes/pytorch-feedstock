@@ -24,13 +24,6 @@ export USE_ITT=0
 # issue a warning. In particular, if it's set to anything other than c++14,
 # we'll get compiler errors. Let's just remove it like we're told.
 export CXXFLAGS="$(echo $CXXFLAGS | sed 's/-std=c++[0-9][0-9]//g')"
-export CXXFLAGS="$CXXFLAGS -std=c++17"
-export CMAKE_CXX_STANDARD=17
-
-# Patch ALL CMakeLists.txt files to use C++17 instead of C++14
-# This fixes libnop template issues with Clang 20
-find . -name "CMakeLists.txt" -type f -exec sed -i.bak 's/CMAKE_CXX_STANDARD 14/CMAKE_CXX_STANDARD 17/g' {} \;
-find . -name "CMakeLists.txt" -type f -exec sed -i.bak 's/CXX_STANDARD 14/CXX_STANDARD 17/g' {} \;
 
 # The below three lines expose symbols that would otherwise be hidden or
 # optimised away. They were here before, so removing them would potentially
