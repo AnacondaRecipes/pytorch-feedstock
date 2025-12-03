@@ -122,7 +122,7 @@ requirements:
     - libgomp        # [linux]
     # This has a strong run_export so we don't need to put it in `host` or `run`
     # We use llvm-openmp for openblas variants on osx.
-    - llvm-openmp 17              # [osx and not (blas_impl == "mkl")]
+    - llvm-openmp 20              # [osx and not (blas_impl == "mkl")]
     - libuv     # [win]
     - cmake
     - ninja-base
@@ -177,7 +177,7 @@ requirements:
     # We use intel-openmp for all mkl variants.
     # For openblas on win and linux, we don't specify any openmp implementation; it comes from the compiler.
     - intel-openmp {{ mkl }}         # [blas_impl == "mkl"]
-    - llvm-openmp 17              # [osx and not (blas_impl == "mkl")]
+    - llvm-openmp 20              # [osx and not (blas_impl == "mkl")]
     - libabseil {{ libabseil }}
     - libprotobuf {{ libprotobuf }}
     - sleef 3.5.1
@@ -298,7 +298,7 @@ outputs:
         - libgomp   # [linux]
         # This has a strong run_export so we don't need to put it in `host` or `run`
         # We use llvm-openmp for openblas variants on osx.
-        - llvm-openmp 17              # [osx and not (blas_impl == "mkl")]
+        - llvm-openmp 20             # [osx and not (blas_impl == "mkl")]
         - cmake
         - ninja-base
         # Keep libprotobuf here so that a compatibile version
@@ -348,7 +348,7 @@ outputs:
         # We use intel-openmp for all mkl variants.
         # For openblas on win and linux, we don't specify any openmp implementation; it comes from the compiler.
         - intel-openmp {{ mkl }}      # [blas_impl == "mkl"]
-        - llvm-openmp 17              # [osx and not (blas_impl == "mkl")]
+        - llvm-openmp 20              # [osx and not (blas_impl == "mkl")]
         - libabseil
         - libprotobuf {{ libprotobuf }}
         - sleef 3.5.1
