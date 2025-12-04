@@ -189,6 +189,7 @@ requirements:
     - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
     - libuv                                  # [win]
     - {{ pin_compatible('magma') }}          # [(gpu_variant or "").startswith("cuda")]
+    - {{ pin_compatible('libcudnn') }}          # [(gpu_variant or "").startswith("cuda")]
 
 # these tests are for the libtorch output below, but due to
 # a particularity of conda-build, that output is defined in
@@ -355,7 +356,7 @@ outputs:
         - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
         - llvm-openmp                            # [osx and not (blas_impl == "mkl")]
         # GPU requirements without run_exports
-        - cudnn 9.15.1.9          # [(gpu_variant or "").startswith("cuda")]
+        - {{ pin_compatible('libcudnn') }}          # [(gpu_variant or "").startswith("cuda")]
         # Required for GPU profiler
         - {{ pin_compatible('cuda-cupti') }}                  # [gpu_variant == "cuda-12"]
         # other requirements
