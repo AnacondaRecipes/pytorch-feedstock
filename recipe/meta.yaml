@@ -182,7 +182,7 @@ requirements:
     - pkg-config  # [unix]
     - typing_extensions
     - pybind11 2.12.1
-    - pybind1-abi 2.12.1
+    - pybind11-abi 2.12.1
     - eigen 3.3.7
     - astunparse 1.6.3
     - opentelemetry-api
