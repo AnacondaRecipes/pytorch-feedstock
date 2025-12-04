@@ -34,10 +34,15 @@ export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,--as-needed//g')"
 # Add this for GCC 14.3 compatibility with XNNPACK
 if [[ "$target_platform" == linux-aarch64 ]]; then
     export CFLAGS="$CFLAGS -Wno-error=incompatible-pointer-types"
-
+    
     # Disable SVE due to GCC 14.3.0 internal compiler error with BFloat16
+    # These must be set BEFORE setup.py runs
     export USE_SVE=0
     export CAFFE2_PERF_WITH_SVE=0
+    export AT_BUILD_ARM_VEC256_WITH_SLEEF=0
+    export PYTORCH_BUILD_WITH_ARM_SVE=0
+    
+    # Also pass to CMake for good measure
     export CMAKE_ARGS="$CMAKE_ARGS -DCAFFE2_PERF_WITH_SVE=0 -DUSE_SVE=0"
 fi
 
