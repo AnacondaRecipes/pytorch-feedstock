@@ -34,6 +34,11 @@ export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,--as-needed//g')"
 # Add this for GCC 14.3 compatibility with XNNPACK
 if [[ "$target_platform" == linux-aarch64 ]]; then
     export CFLAGS="$CFLAGS -Wno-error=incompatible-pointer-types"
+
+    # Disable SVE due to GCC 14.3.0 internal compiler error with BFloat16
+    export USE_SVE=0
+    export CAFFE2_PERF_WITH_SVE=0
+    export CMAKE_ARGS="$CMAKE_ARGS -DCAFFE2_PERF_WITH_SVE=0 -DUSE_SVE=0"
 fi
 
 # The default conda LDFLAGs include -Wl,-dead_strip_dylibs, which removes all the
