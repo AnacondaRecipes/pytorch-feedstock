@@ -6,8 +6,8 @@ Index: pytorch/torch/csrc/distributed/c10d/control_plane/Handlers.hpp
 ===================================================================
 diff --git torch/csrc/distributed/c10d/control_plane/Handlers.hpp torch/csrc/distributed/c10d/control_plane/Handlers.hpp
 index 70333a3..aa9619e 100644
---- a/torch/csrc/distributed/c10d/control_plane/Handlers.hpp
-+++ b/torch/csrc/distributed/c10d/control_plane/Handlers.hpp
+--- a/torch/csrc/distributed/c10d/control_plane/torch/csrc/distributed/c10d/control_plane/Handlers.hpp
++++ b/torch/csrc/distributed/c10d/control_plane/torch/csrc/distributed/c10d/control_plane/Handlers.hpp
 @@ -4,6 +4,8 @@
  #include <map>
  #include <string>

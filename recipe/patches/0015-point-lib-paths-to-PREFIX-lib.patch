@@ -9,10 +9,10 @@ that's where are sos/dlls are.
 Index: pytorch/torch/utils/cpp_extension.py
 ===================================================================
 diff --git torch/utils/cpp_extension.py torch/utils/cpp_extension.py
-index a8caba3..b2d28ab 100644
---- a/torch/utils/cpp_extension.py
-+++ b/torch/utils/cpp_extension.py
-@@ -39,7 +39,18 @@ SHARED_FLAG = '/DLL' if IS_WINDOWS else '-shared'
+index 8a1bd5d..e1eccf5 100644
+--- a/torch/utils/torch/utils/cpp_extension.py
++++ b/torch/utils/torch/utils/cpp_extension.py
+@@ -40,7 +40,18 @@ SHARED_FLAG = '/DLL' if IS_WINDOWS else '-shared'
  
  _HERE = os.path.abspath(__file__)
  _TORCH_PATH = os.path.dirname(os.path.dirname(_HERE))
