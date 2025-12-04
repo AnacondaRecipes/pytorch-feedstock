@@ -77,6 +77,9 @@ build:
     - python *                               # [megabuild]
     - numpy *                                # [megabuild]
     - cross-python_{{ target_platform }}     # [megabuild and build_platform != target_platform]
+    - libabseil
+    - libprotobuf
+    - protobuf
   ignore_run_exports:
     - python *                               # [megabuild]
     - numpy *                                # [megabuild]
@@ -85,10 +88,6 @@ build:
 requirements:
   # Keep this list synchronized (except for python*, numpy*) in outputs
   # We use python to build libtorch as well because it is easier
-  ignore_run_exports_from: 
-    - libabseil
-    - libprotobuf
-    - protobuf
   build:
     # When you change megabuild_python, change it in build.sh as well
     - python {{ megabuild_python }}          # [megabuild and build_platform != target_platform]
@@ -247,6 +246,10 @@ outputs:
         - torchrun = torch.distributed.run:main
       ignore_run_exports:             # [osx]
         - libuv                       # [osx]
+      ignore_run_exports_from: 
+        - libabseil
+        - libprotobuf
+        - protobuf
       missing_dso_whitelist:
         # The are dynamically loaded from %SP_DIR%\torch\lib\
         - "**/asmjit.dll"             # [win]
@@ -264,10 +267,6 @@ outputs:
     script: build_pytorch.sh   # [unix]
     script: build_pytorch.bat  # [win]
     requirements:
-      ignore_run_exports_from: 
-        - libabseil
-        - libprotobuf
-        - protobuf
       build:
         - python                                 # [build_platform != target_platform]
         - cross-python_{{ target_platform }}     # [build_platform != target_platform]
