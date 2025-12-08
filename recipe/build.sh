@@ -85,6 +85,7 @@ else
 fi
 # Required to make the right SDK found on Anaconda's CI system. Ideally should be fixed in the CI or conda-build
 if [[ "${build_platform}" = "osx-arm64" ]]; then
+    export USE_NCCL=0
     export DEVELOPER_DIR=/Library/Developer/CommandLineTools
 fi
 export CMAKE_GENERATOR=Ninja
