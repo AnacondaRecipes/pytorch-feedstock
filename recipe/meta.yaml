@@ -95,11 +95,11 @@ requirements:
     - {{ stdlib('c') }}
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
-    - {{ compiler('cuda') }}                 # [(gpu_variant or "").startswith("cuda")]
-    - cuda-version 12.8  # [(gpu_variant or "").startswith("cuda")]
+    - {{ compiler('cuda') }}                    # [(gpu_variant or "").startswith("cuda")]
+    - cuda-version {{ cuda_compiler_version }}  # [(gpu_variant or "").startswith("cuda")]
     - nvtx-c                                 # [cuda_compiler_version != "None" and build_platform != target_platform]
     {% if cuda_major >= 12 %}
-    # - cuda-driver-dev                        # [build_platform != target_platform]
+    - cuda-driver-dev                        # [linux]
     - cuda-cudart-dev                        # [build_platform != target_platform]
     - cuda-nvrtc-dev                         # [build_platform != target_platform]
     - cuda-nvtx-dev                          # [build_platform != target_platform]
@@ -271,7 +271,7 @@ outputs:
         - {{ compiler('cuda') }}                 # [(gpu_variant or "").startswith("cuda")]
         - nvtx-c                                 # [(gpu_variant or "").startswith("cuda") and build_platform != target_platform]
         {% if cuda_major >= 12 %}
-        - cuda-driver-dev                        # [build_platform != target_platform]
+        - cuda-driver-dev                        # [linux]
         - cuda-cudart-dev                        # [build_platform != target_platform]
         - cuda-nvrtc-dev                         # [build_platform != target_platform]
         - cuda-nvtx-dev                          # [build_platform != target_platform]
@@ -306,11 +306,11 @@ outputs:
         - magma 2.9                       # [(gpu_variant or "").startswith("cuda")]
         - nvtx-c                          # [(gpu_variant or "").startswith("cuda")]
         {% if cuda_major >= 12 %}
-        - cuda-driver-dev # [linux]
+        - cuda-driver-dev                 # [linux]
         - cuda-cudart-dev
         - cuda-nvrtc-dev
         - cuda-nvtx-dev
-        - cuda-nvml-dev # [linux]
+        - cuda-nvml-dev                   # [linux]
         - cuda-profiler-api
         - libcublas-dev
         - libcufft-dev
