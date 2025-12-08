@@ -79,9 +79,6 @@ build:
     - python *                               # [megabuild]
     - numpy *                                # [megabuild]
     - cross-python_{{ target_platform }}     # [megabuild and build_platform != target_platform]
-    - libabseil
-    - libprotobuf
-    - protobuf
   ignore_run_exports:
     - python *                               # [megabuild]
     - numpy *                                # [megabuild]
@@ -248,10 +245,6 @@ outputs:
         - torchrun = torch.distributed.run:main
       ignore_run_exports:             # [osx]
         - libuv                       # [osx]
-      ignore_run_exports_from: 
-        - libabseil
-        - libprotobuf
-        - protobuf
       missing_dso_whitelist:
         # The are dynamically loaded from %SP_DIR%\torch\lib\
         - "**/asmjit.dll"             # [win]
