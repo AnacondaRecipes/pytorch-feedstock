@@ -35,15 +35,18 @@ export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,--as-needed//g')"
 if [[ "$target_platform" == linux-aarch64 ]]; then
     export CFLAGS="$CFLAGS -Wno-error=incompatible-pointer-types"
     
-    # Disable SVE due to GCC 14.3.0 internal compiler error with BFloat16
-    # These must be set BEFORE setup.py runs
+    # CRITICAL: Force disable SVE auto-detection
     export USE_SVE=0
     export CAFFE2_PERF_WITH_SVE=0
     export AT_BUILD_ARM_VEC256_WITH_SLEEF=0
     export PYTORCH_BUILD_WITH_ARM_SVE=0
     
-    # Also pass to CMake for good measure
-    export CMAKE_ARGS="$CMAKE_ARGS -DCAFFE2_PERF_WITH_SVE=0 -DUSE_SVE=0"
+    # Also override compiler flags to prevent auto-detection
+    export CXXFLAGS="$CXXFLAGS -DCAFFE2_PERF_WITH_SVE=0 -DUSE_SVE=0"
+    export CFLAGS="$CFLAGS -DCAFFE2_PERF_WITH_SVE=0 -DUSE_SVE=0"
+    
+    # CMake args
+    export CMAKE_ARGS="$CMAKE_ARGS -DCAFFE2_PERF_WITH_SVE=0 -DUSE_SVE=0 -DAT_BUILD_ARM_VEC256_WITH_SLEEF=0"
 fi
 
 # The default conda LDFLAGs include -Wl,-dead_strip_dylibs, which removes all the
