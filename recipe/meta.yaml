@@ -60,6 +60,7 @@ source:
       - patches/0016-Do-not-check-out-nccl-when-not-building-it.patch
       - patches/0017-mkl-version-mismatch.patch
       - patches/0018-cmake-clang-17-osx.patch
+      - patches/0019-ensure-no-algoritmic-specilization.patch
 {% endif %}
   - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.ci/pytorch/smoke_test/smoke_test.py
     folder: smoke_test
