@@ -30,8 +30,8 @@ zip_keys:                    # [(osx and arm64)]
 # Conda-forge didn't do a "megabuild" on osx because it pushed their CI runners over their 6-hour limit. We don't have
 # such a limit.
 megabuild:
- - true
-#- false
+#- true
+- false
 
 # The version of python to use when building libtorch in a "megabuild"
 megabuild_python:
