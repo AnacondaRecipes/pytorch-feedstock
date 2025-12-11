@@ -101,7 +101,7 @@ requirements:
     - cuda-version {{ cuda_compiler_version }}  # [(gpu_variant or "").startswith("cuda")]
     - nvtx-c                                 # [cuda_compiler_version != "None" and build_platform != target_platform]
     {% if cuda_major >= 12 %}
-    - cuda-driver-dev                        # [linux]
+    - cuda-driver-dev                        # [linux and build_platform != target_platform]
     - cuda-cudart-dev                        # [build_platform != target_platform]
     - cuda-nvrtc-dev                         # [build_platform != target_platform]
     - cuda-nvtx-dev                          # [build_platform != target_platform]
@@ -113,8 +113,6 @@ requirements:
     - libcusolver-dev                        # [build_platform != target_platform]
     - libcusparse-dev                        # [build_platform != target_platform]
     {% endif %}
-    # Dec 2020: it seems that git is broken on windows, so we use m2-git
-    - patch     # [not win]
     - git       # [not win]
     - libgomp        # [linux]
     # This has a strong run_export so we don't need to put it in `host` or `run`
@@ -273,7 +271,7 @@ outputs:
         - {{ compiler('cuda') }}                 # [(gpu_variant or "").startswith("cuda")]
         - nvtx-c                                 # [(gpu_variant or "").startswith("cuda") and build_platform != target_platform]
         {% if cuda_major >= 12 %}
-        - cuda-driver-dev                        # [linux]
+        - cuda-driver-dev                        # [linux and build_platform != target_platform]
         - cuda-cudart-dev                        # [build_platform != target_platform]
         - cuda-nvrtc-dev                         # [build_platform != target_platform]
         - cuda-nvtx-dev                          # [build_platform != target_platform]
@@ -285,8 +283,6 @@ outputs:
         - libcusolver-dev                        # [build_platform != target_platform]
         - libcusparse-dev                        # [build_platform != target_platform]
         {% endif %}
-        # Dec 2020: it seems that git is broken on windows, so we use m2-git
-        - patch     # [not win]
         - git       # [not win]
         - libgomp   # [linux]
         # This has a strong run_export so we don't need to put it in `host` or `run`
@@ -308,11 +304,11 @@ outputs:
         - magma 2.9                       # [(gpu_variant or "").startswith("cuda")]
         - nvtx-c                          # [(gpu_variant or "").startswith("cuda")]
         {% if cuda_major >= 12 %}
-        - cuda-driver-dev                 # [linux]
+        - cuda-driver-dev                 # [linux and build_platform != target_platform]
         - cuda-cudart-dev
         - cuda-nvrtc-dev
         - cuda-nvtx-dev
-        - cuda-nvml-dev                   # [linux]
+        - cuda-nvml-dev
         - cuda-profiler-api
         - libcublas-dev
         - libcufft-dev
