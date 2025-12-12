@@ -2,14 +2,18 @@ gpu_variant:
   - cpu
   - metal                    # [(osx and arm64)]
 #  - cuda-12                  # [(linux and x86_64)]
-c_compiler_version:      # [osx]
+c_compiler_version:      # [osx or (linux and aarch64)]
   - 20                   # [osx]
-cxx_compiler_version:    # [osx]
+  - 15.2.0               # [linux and aarch64]
+cxx_compiler_version:    # [osx or (linux and aarch64)]
   - 20                   # [osx]
+  - 15.2.0               # [linux and aarch64]
 # CONDA_BUILD_SYSROOT is defined in the base cbc.yaml, but it's reflected here so we can zip the keys and
 # build GPU and CPU at the same time for osx-arm64. It'll need to be manually updated here if the base cbc is changed.
 # This could be done using extend_keys instead, with a change to the base cbc.yaml.
 # However there's currently a conda-forge bug that prevents this: https://github.com/conda/conda-build/issues/5048
+gcc_compiler_version:
+  - 15.1.0 # [osx and arm64]
 MACOSX_SDK_VERSION:          # [(osx and arm64)]
   - 11.1                     # [(osx and arm64)]
   - 13.3                     # [(osx and arm64)]
