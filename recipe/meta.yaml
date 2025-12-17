@@ -60,6 +60,9 @@ source:
       # - patches/0016-Do-not-check-out-nccl-when-not-building-it.patch
       - patches/0017-mkl-version-mismatch.patch
       - patches/0020-disable-sve.patch # [linux and aarch64]
+      - patches_submodules/0002-tensorpipe-memory.patch # [linux and aarch64]
+      - patches_submodules/0003-gloo-types.patch # [linux and aarch64]
+      - patches_submodules/0004-tensorpipe-allocator.patch # [linux and aarch64]
 {% endif %}
   - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.ci/pytorch/smoke_test/smoke_test.py
     folder: smoke_test
