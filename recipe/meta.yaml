@@ -119,7 +119,7 @@ requirements:
     - m2-git    # [win]
     - patch     # [not win]
     - git       # [not win]
-    - libgomp        # [linux]
+    - libgomp   # [linux]
     # This has a strong run_export so we don't need to put it in `host` or `run`
     # We use llvm-openmp for openblas variants on osx.
     - llvm-openmp 17              # [osx and not (blas_impl == "mkl")]
