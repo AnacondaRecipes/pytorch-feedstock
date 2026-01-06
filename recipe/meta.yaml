@@ -84,7 +84,7 @@ build:
   ignore_run_exports:
     - python *                               # [megabuild]
     - numpy *                                # [megabuild]
-  skip: True  # [py<39 or not win]
+  skip: True  # [py<39]
 
 requirements:
   # Keep this list synchronized (except for python*, numpy*) in outputs
@@ -259,7 +259,7 @@ outputs:
       run_exports:
         - {{ pin_subpackage('pytorch', max_pin='x.x') }}
         - {{ pin_subpackage('libtorch', max_pin='x.x') }}
-      skip: True  # [py<39 or not win]
+      skip: True  # [py<39]
 
     script: build_pytorch.sh   # [unix]
     script: build_pytorch.bat  # [win]
