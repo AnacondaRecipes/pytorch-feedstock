@@ -15,9 +15,9 @@ set PYTORCH_BUILD_NUMBER=0
 :: uncomment to debug cmake build
 :: set CMAKE_VERBOSE_MAKEFILE=1
 
-if "%pytorch_variant%" == "gpu" (
+if "%gpu_variant%" == "cuda-12" (
     set build_with_cuda=1
-    set desired_cuda=%CUDA_VERSION:~0,-1%.%CUDA_VERSION:~-1,1%
+    set desired_cuda=%cuda_compiler_version%
 ) else (
     set build_with_cuda=
     set USE_CUDA=0
@@ -38,7 +38,15 @@ set TORCH_CUDA_ARCH_LIST=3.5;5.0+PTX
 if "%desired_cuda%" == "9.0" set TORCH_CUDA_ARCH_LIST=%TORCH_CUDA_ARCH_LIST%;6.0;7.0
 if "%desired_cuda%" == "9.2" set TORCH_CUDA_ARCH_LIST=%TORCH_CUDA_ARCH_LIST%;6.0;6.1;7.0
 if "%desired_cuda%" == "10.0" set TORCH_CUDA_ARCH_LIST=%TORCH_CUDA_ARCH_LIST%;6.0;6.1;7.0;7.5
+if "%desired_cuda:~0,3%" == "12." set TORCH_CUDA_ARCH_LIST=7.5;8.0;8.6;8.9;9.0+PTX
+
 set TORCH_NVCC_FLAGS=-Xfatbin -compress-all
+
+:: CUDA build flags - MUST be set before build
+set USE_CUDA=1
+set USE_CUDNN=1
+set USE_NCCL=0
+set USE_SYSTEM_NCCL=0
 
 :cuda_flags_end
 :: =============================== CUDA FLAGS< ======================================
@@ -51,7 +59,7 @@ set DISTUTILS_USE_SDK=1
 set BUILD_TEST=0
 set INSTALL_TEST=0
 :: Don't increase MAX_JOBS to NUMBER_OF_PROCESSORS, as it will run out of heap
-set CPU_COUNT=4
+set CPU_COUNT=8
 set MAX_JOBS=%CPU_COUNT%
 :: Use our Pybind11, Eigen
 set USE_SYSTEM_PYBIND11=1
@@ -68,6 +76,7 @@ set MAGMA_HOME=%LIBRARY_PREFIX%
 set "PATH=%CUDA_BIN_PATH%;%PATH%"
 
 set CUDNN_INCLUDE_DIR=%LIBRARY_PREFIX%\include
+set CUDNN_LIBRARY=%LIBRARY_PREFIX%\lib
 
 :cuda_end
 :: =============================== CUDA< ======================================
@@ -147,8 +156,9 @@ if "%PKG_NAME%" == "libtorch" (
   robocopy /NP /NFL /NDL /NJH /E torch\bin\ %LIBRARY_BIN%\ torch*.dll c10.dll shm.dll asmjit.dll fbgemm.dll
   robocopy /NP /NFL /NDL /NJH /E torch\lib\ %LIBRARY_LIB%\ torch*.lib c10.lib shm.lib asmjit.lib fbgemm.lib
   if not "%cuda_compiler_version%" == "None" (
-      robocopy /NP /NFL /NDL /NJH /E torch\lib\ %LIBRARY_BIN%\ c10_cuda.dll caffe2_nvrtc.dll
-      robocopy /NP /NFL /NDL /NJH /E torch\lib\ %LIBRARY_LIB%\ c10_cuda.lib caffe2_nvrtc.lib
+      robocopy /NP /NFL /NDL /NJH torch\bin\ %LIBRARY_BIN%\ c10_cuda.dll
+      robocopy /NP /NFL /NDL /NJH torch\lib\ %LIBRARY_BIN%\ caffe2_nvrtc.dll torch_cuda.dll
+      robocopy /NP /NFL /NDL /NJH /E torch\lib\ %LIBRARY_LIB%\ c10_cuda.lib caffe2_nvrtc.lib torch_cuda.lib
   )
   robocopy /NP /NFL /NDL /NJH /E torch\share\ %LIBRARY_PREFIX%\share
   for %%f in (ATen caffe2 torch c10) do (

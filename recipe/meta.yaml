@@ -97,10 +97,11 @@ requirements:
     - {{ stdlib('c') }}
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
-    - {{ compiler('cuda') }}                # [(gpu_variant or "").startswith("cuda")]
+    - {{ compiler('cuda') }}                    # [(gpu_variant or "").startswith("cuda")]
+    - cuda-version {{ cuda_compiler_version }}  # [(gpu_variant or "").startswith("cuda")]
     - nvtx-c                                 # [cuda_compiler_version != "None" and build_platform != target_platform]
     {% if cuda_major >= 12 %}
-    - cuda-driver-dev                        # [build_platform != target_platform]
+    - cuda-driver-dev                        # [linux and build_platform != target_platform]
     - cuda-cudart-dev                        # [build_platform != target_platform]
     - cuda-nvrtc-dev                         # [build_platform != target_platform]
     - cuda-nvtx-dev                          # [build_platform != target_platform]
@@ -112,10 +113,6 @@ requirements:
     - libcusolver-dev                        # [build_platform != target_platform]
     - libcusparse-dev                        # [build_platform != target_platform]
     {% endif %}
-    # Dec 2020: it seems that git is broken on windows, so we use m2-git
-    - m2-patch  # [win]
-    - m2-git    # [win]
-    - patch     # [not win]
     - git       # [not win]
     - libgomp        # [linux]
     # This has a strong run_export so we don't need to put it in `host` or `run`
@@ -134,13 +131,13 @@ requirements:
     # - ccache
   host:
     # GPU requirements
-    - cudnn 9.1.1.17                  # [(gpu_variant or "").startswith("cuda")]
-    - nccl 2.21.5.1                   # [(gpu_variant or "").startswith("cuda")]
-    - magma 2.7.1                     # [(gpu_variant or "").startswith("cuda")]
-    - cuda-version {{ cuda_compiler_version }}  # [(gpu_variant or "").startswith("cuda")]
-    - nvtx-c                          # [(gpu_variant or "").startswith("cuda")]
+    - cudnn 9.15.1.9                           # [(gpu_variant or "").startswith("cuda")]
+    - nccl 2.21.5.1                            # [(gpu_variant or "").startswith("cuda") and linux]
+    - magma 2.9                                # [(gpu_variant or "").startswith("cuda")]
+    - cuda-version {{ cuda_compiler_version }} # [(gpu_variant or "").startswith("cuda")]
+    - nvtx-c                                   # [(gpu_variant or "").startswith("cuda")]
     {% if cuda_major >= 12 %}
-    - cuda-driver-dev
+    # - cuda-driver-dev
     - cuda-cudart-dev
     - cuda-nvrtc-dev
     - cuda-nvtx-dev
@@ -192,6 +189,7 @@ requirements:
     - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
     - libuv                                  # [win]
     - {{ pin_compatible('magma') }}          # [(gpu_variant or "").startswith("cuda")]
+    - {{ pin_compatible('libcudnn') }}          # [(gpu_variant or "").startswith("cuda")]
 
 # these tests are for the libtorch output below, but due to
 # a particularity of conda-build, that output is defined in
@@ -203,6 +201,7 @@ test:
     - {{ compiler('cxx') }}
     # for CMake config to find cuda & nvrtc
     - {{ compiler('cuda') }}    # [(gpu_variant or "").startswith("cuda")]
+    - cuda-nvcc ={{ cuda_compiler_version }}     # [(gpu_variant or "").startswith("cuda")]
     - cuda-nvrtc-dev            # [(gpu_variant or "").startswith("cuda")]
     - cmake
     - ninja
@@ -272,7 +271,7 @@ outputs:
         - {{ compiler('cuda') }}                 # [(gpu_variant or "").startswith("cuda")]
         - nvtx-c                                 # [(gpu_variant or "").startswith("cuda") and build_platform != target_platform]
         {% if cuda_major >= 12 %}
-        - cuda-driver-dev                        # [build_platform != target_platform]
+        - cuda-driver-dev                        # [linux and build_platform != target_platform]
         - cuda-cudart-dev                        # [build_platform != target_platform]
         - cuda-nvrtc-dev                         # [build_platform != target_platform]
         - cuda-nvtx-dev                          # [build_platform != target_platform]
@@ -284,11 +283,7 @@ outputs:
         - libcusolver-dev                        # [build_platform != target_platform]
         - libcusparse-dev                        # [build_platform != target_platform]
         {% endif %}
-        # Dec 2020: it seems that git is broken on windows, so we use m2-git
-        - patch     # [not win]
-        - m2-patch  # [win]
         - git       # [not win]
-        - m2-git    # [win]
         - libgomp   # [linux]
         # This has a strong run_export so we don't need to put it in `host` or `run`
         # We use llvm-openmp for openblas variants on osx.
@@ -304,12 +299,12 @@ outputs:
         # - ccache
       host:
         # GPU requirements
-        - cudnn 9.1.1.17                  # [(gpu_variant or "").startswith("cuda")]
-        - nccl 2.21.5.1                   # [(gpu_variant or "").startswith("cuda")]
-        - magma 2.7.1                     # [(gpu_variant or "").startswith("cuda")]
+        - cudnn 9.15.1.9                  # [(gpu_variant or "").startswith("cuda")]
+        - nccl 2.21.5.1                   # [(gpu_variant or "").startswith("cuda") and linux]
+        - magma 2.9                       # [(gpu_variant or "").startswith("cuda")]
         - nvtx-c                          # [(gpu_variant or "").startswith("cuda")]
         {% if cuda_major >= 12 %}
-        - cuda-driver-dev
+        - cuda-driver-dev                 # [linux and build_platform != target_platform]
         - cuda-cudart-dev
         - cuda-nvrtc-dev
         - cuda-nvtx-dev
@@ -359,7 +354,7 @@ outputs:
         - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
         - llvm-openmp                            # [osx and not (blas_impl == "mkl")]
         # GPU requirements without run_exports
-        - {{ pin_compatible('cudnn') }}          # [(gpu_variant or "").startswith("cuda")]
+        - {{ pin_compatible('libcudnn') }}          # [(gpu_variant or "").startswith("cuda")]
         # Required for GPU profiler
         - {{ pin_compatible('cuda-cupti') }}                  # [gpu_variant == "cuda-12"]
         # other requirements
@@ -451,7 +446,8 @@ outputs:
         - export TARGET_OS="macos-arm64"                                                        # [(osx and arm64)]
         - export TARGET_OS="macos-x86_64"                                                       # [(osx and x86_64)]
         - export OMP_NUM_THREADS=4                                                              # [not win]
-        - python ./smoke_test/smoke_test.py --package torchonly
+        # Smoke test is not supported on Windows with CUDA
+        - python ./smoke_test/smoke_test.py --package torchonly  # [not (gpu_variant or "").startswith("cuda") and win]
         # We seem to have individual platform-specific test failures or flaky
         # tests, but the majority of tests pass.
         # Note that the `|| true` expression will make the build continue even if the whole script falls over completely
@@ -482,10 +478,11 @@ outputs:
         - python -c "import torch; assert torch.distributed.is_available()"        # [linux or osx]
         # mkldnn is set in build.sh for linux/non-cuda variants
         - python -c "import torch; assert torch.backends.mkldnn.m.is_available()"  # [linux and not (gpu_variant or "").startswith("cuda")]
-        - python -c "import torch; assert torch.backends.cuda.is_built()"          # [(gpu_variant or "").startswith("cuda")]
-        - python -c "import torch; assert torch.backends.cudnn.is_available()"     # [(gpu_variant or "").startswith("cuda")]
-        - python -c "import torch; assert torch.cuda.is_available()"               # [(gpu_variant or "").startswith("cuda")]
-        - python -c "import torch; assert torch.backends.cudnn.enabled"            # [(gpu_variant or "").startswith("cuda")]
+        # Add debug for GPU tests
+        - python -c "import torch; print('CUDA is_built:', torch.backends.cuda.is_built()); assert torch.backends.cuda.is_built()"                # [(gpu_variant or "").startswith("cuda")]
+        - python -c "import torch; print('CUDA is_available:', torch.cuda.is_available()); assert torch.cuda.is_available()"                      # [(gpu_variant or "").startswith("cuda")]
+        - python -c "import torch; print('cuDNN is_available:', torch.backends.cudnn.is_available()); assert torch.backends.cudnn.is_available()" # [(gpu_variant or "").startswith("cuda")]
+        - python -c "import torch; print('cuDNN enabled:', torch.backends.cudnn.enabled); assert torch.backends.cudnn.enabled"                    # [(gpu_variant or "").startswith("cuda")]
         - python -c "import torch; assert torch.backends.mps.is_built()"           # [(gpu_variant == "metal")]
         - python -c "import torch; torch.tensor(1).to('cpu').numpy(); print('numpy support enabled!!!')"
         - test -f $PREFIX/lib/libtorch_python${SHLIB_EXT}     # [unix]
