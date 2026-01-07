@@ -32,22 +32,9 @@ export CFLAGS="$(echo $CFLAGS | sed 's/-fvisibility-inlines-hidden//g')"
 export CXXFLAGS="$(echo $CXXFLAGS | sed 's/-fvisibility-inlines-hidden//g')"
 export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,--as-needed//g')"
 
-# Add this for GCC 14.3 compatibility with XNNPACK
+# Add this for GCC 14.3+ compatibility with XNNPACK
 if [[ "$target_platform" == linux-aarch64 ]]; then
     export CFLAGS="$CFLAGS -Wno-error=incompatible-pointer-types"
-    
-    # CRITICAL: Force disable SVE auto-detection
-    export USE_SVE=0
-    export CAFFE2_PERF_WITH_SVE=0
-    export AT_BUILD_ARM_VEC256_WITH_SLEEF=0
-    export PYTORCH_BUILD_WITH_ARM_SVE=0
-    
-    # Also override compiler flags to prevent auto-detection
-    export CXXFLAGS="$CXXFLAGS -DCAFFE2_PERF_WITH_SVE=0 -DUSE_SVE=0"
-    export CFLAGS="$CFLAGS -DCAFFE2_PERF_WITH_SVE=0 -DUSE_SVE=0"
-    
-    # CMake args
-    export CMAKE_ARGS="$CMAKE_ARGS -DCAFFE2_PERF_WITH_SVE=0 -DUSE_SVE=0 -DAT_BUILD_ARM_VEC256_WITH_SLEEF=0"
 fi
 
 # The default conda LDFLAGs include -Wl,-dead_strip_dylibs, which removes all the

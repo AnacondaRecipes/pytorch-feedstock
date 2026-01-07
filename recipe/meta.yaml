@@ -59,7 +59,6 @@ source:
       - patches/0015-point-lib-paths-to-PREFIX-lib.patch
       # - patches/0016-Do-not-check-out-nccl-when-not-building-it.patch
       - patches/0017-mkl-version-mismatch.patch
-      - patches/0020-disable-sve.patch # [linux]
       - patches_submodules/0002-tensorpipe-memory.patch # [linux]
       - patches_submodules/0003-gloo-types.patch # [linux]
       - patches_submodules/0004-tensorpipe-allocator.patch # [linux]
