@@ -10,10 +10,10 @@ Subject: [PATCH 10/15] point include paths to $PREFIX/include
 Index: pytorch/torch/utils/cpp_extension.py
 ===================================================================
 diff --git torch/utils/cpp_extension.py torch/utils/cpp_extension.py
-index 23e2499..a8caba3 100644
---- a/torch/utils/cpp_extension.py
-+++ b/torch/utils/cpp_extension.py
-@@ -1208,10 +1208,28 @@ def include_paths(device_type: str = "cpu") -> List[str]:
+index 7fa5237..8a1bd5d 100644
+--- a/torch/utils/torch/utils/cpp_extension.py
++++ b/torch/utils/torch/utils/cpp_extension.py
+@@ -1495,10 +1495,28 @@ def include_paths(device_type: str = "cpu") -> list[str]:
          A list of include path strings.
      """
      lib_include = os.path.join(_TORCH_PATH, 'include')

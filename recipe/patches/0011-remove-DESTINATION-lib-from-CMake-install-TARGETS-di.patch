@@ -1,7 +1,7 @@
-From f7db4cbfb0af59027ed8bdcd0387dba6fbcb1192 Mon Sep 17 00:00:00 2001
+From b3cbb135f98bdb7de641bf355486f79fbb3e9b72 Mon Sep 17 00:00:00 2001
 From: "H. Vetinari" <h.vetinari@gmx.com>
 Date: Tue, 28 Jan 2025 10:58:29 +1100
-Subject: [PATCH 19/19] remove `DESTINATION lib` from CMake `install(TARGETS`
+Subject: [PATCH 11/17] remove `DESTINATION lib` from CMake `install(TARGETS`
  directives
 
 Suggested-By: Silvio Traversaro <silvio@traversaro.it>
@@ -15,10 +15,10 @@ Suggested-By: Silvio Traversaro <silvio@traversaro.it>
  torch/lib/libshm_windows/CMakeLists.txt |  2 +-
  7 files changed, 15 insertions(+), 15 deletions(-)
 
-diff --git c10/CMakeLists.txt c10/CMakeLists.txt
-index 34577ca..8f00b3d 100644
---- a/c10/c10/CMakeLists.txt
-+++ b/c10/c10/CMakeLists.txt
+diff --git a/c10/CMakeLists.txt b/c10/CMakeLists.txt
+index 34577caef2e..8f00b3d8cb1 100644
+--- a/c10/CMakeLists.txt
++++ b/c10/CMakeLists.txt
 @@ -163,7 +163,7 @@ if(NOT BUILD_LIBTORCHLESS)
    # Note: for now, we will put all export path into one single Caffe2Targets group
    # to deal with the cmake deployment need. Inside the Caffe2Targets set, the
@@ -28,10 +28,10 @@ index 34577ca..8f00b3d 100644
  endif()
  
  install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-diff --git c10/cuda/CMakeLists.txt c10/cuda/CMakeLists.txt
-index 3327dab..9336c9e 100644
---- a/c10/c10/cuda/CMakeLists.txt
-+++ b/c10/c10/cuda/CMakeLists.txt
+diff --git a/c10/cuda/CMakeLists.txt b/c10/cuda/CMakeLists.txt
+index 3327dab4779..9336c9e8f77 100644
+--- a/c10/cuda/CMakeLists.txt
++++ b/c10/cuda/CMakeLists.txt
 @@ -82,7 +82,7 @@ if(NOT BUILD_LIBTORCHLESS)
  # Note: for now, we will put all export path into one single Caffe2Targets group
  # to deal with the cmake deployment need. Inside the Caffe2Targets set, the
@@ -41,10 +41,10 @@ index 3327dab..9336c9e 100644
  
  endif()
  
-diff --git c10/hip/CMakeLists.txt c10/hip/CMakeLists.txt
-index f153030..514c6d2 100644
---- a/c10/c10/hip/CMakeLists.txt
-+++ b/c10/c10/hip/CMakeLists.txt
+diff --git a/c10/hip/CMakeLists.txt b/c10/hip/CMakeLists.txt
+index f153030e793..514c6d29266 100644
+--- a/c10/hip/CMakeLists.txt
++++ b/c10/hip/CMakeLists.txt
 @@ -55,7 +55,7 @@ if(NOT BUILD_LIBTORCHLESS)
        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../..>
        $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
@@ -54,10 +54,10 @@ index f153030..514c6d2 100644
    set(C10_HIP_LIB c10_hip)
  endif()
  
-diff --git c10/xpu/CMakeLists.txt c10/xpu/CMakeLists.txt
-index 01f77d6..437ade6 100644
---- a/c10/c10/xpu/CMakeLists.txt
-+++ b/c10/c10/xpu/CMakeLists.txt
+diff --git a/c10/xpu/CMakeLists.txt b/c10/xpu/CMakeLists.txt
+index 01f77d61713..437ade657f9 100644
+--- a/c10/xpu/CMakeLists.txt
++++ b/c10/xpu/CMakeLists.txt
 @@ -45,7 +45,7 @@ if(NOT BUILD_LIBTORCHLESS)
        $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
        $<INSTALL_INTERFACE:include>
@@ -67,10 +67,10 @@ index 01f77d6..437ade6 100644
    set(C10_XPU_LIB c10_xpu)
    add_subdirectory(test)
  endif()
-diff --git caffe2/CMakeLists.txt caffe2/CMakeLists.txt
-index 33199c7..fc858f3 100644
---- a/c10/caffe2/CMakeLists.txt
-+++ b/c10/caffe2/CMakeLists.txt
+diff --git a/caffe2/CMakeLists.txt b/caffe2/CMakeLists.txt
+index d2d23b7ab65..512e4ba3a81 100644
+--- a/caffe2/CMakeLists.txt
++++ b/caffe2/CMakeLists.txt
 @@ -557,7 +557,7 @@ if(USE_CUDA)
    endif()
  
@@ -89,7 +89,7 @@ index 33199c7..fc858f3 100644
  endif()
  
  if(NOT NO_API AND NOT BUILD_LITE_INTERPRETER)
-@@ -1031,7 +1031,7 @@ elseif(USE_CUDA)
+@@ -1035,7 +1035,7 @@ elseif(USE_CUDA)
            CUDA::culibos ${CMAKE_DL_LIBS})
      endif()
      set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/../aten/src/ATen/native/cuda/LinearAlgebraStubs.cpp PROPERTIES COMPILE_FLAGS "-DBUILD_LAZY_CUDA_LINALG")
@@ -98,7 +98,7 @@ index 33199c7..fc858f3 100644
    endif()
  
    if(USE_PRECOMPILED_HEADERS)
-@@ -1517,17 +1517,17 @@ endif()
+@@ -1536,17 +1536,17 @@ endif()
  
  caffe2_interface_library(torch torch_library)
  
@@ -121,7 +121,7 @@ index 33199c7..fc858f3 100644
  
  target_link_libraries(torch PUBLIC torch_cpu_library)
  
-@@ -1666,7 +1666,7 @@ if(BUILD_SHARED_LIBS)
+@@ -1685,7 +1685,7 @@ if(BUILD_SHARED_LIBS)
        target_link_libraries(torch_global_deps torch::nvtoolsext)
      endif()
    endif()
@@ -130,11 +130,11 @@ index 33199c7..fc858f3 100644
  endif()
  
  # ---[ Caffe2 HIP sources.
-diff --git torch/CMakeLists.txt torch/CMakeLists.txt
-index b123023..650319c 100644
---- a/c10/torch/CMakeLists.txt
-+++ b/c10/torch/CMakeLists.txt
-@@ -458,7 +458,7 @@ if(NOT TORCH_PYTHON_LINK_FLAGS STREQUAL "")
+diff --git a/torch/CMakeLists.txt b/torch/CMakeLists.txt
+index 8b8ebdc6e97..7e84d4e29af 100644
+--- a/torch/CMakeLists.txt
++++ b/torch/CMakeLists.txt
+@@ -464,7 +464,7 @@ if(NOT TORCH_PYTHON_LINK_FLAGS STREQUAL "")
      set_target_properties(torch_python PROPERTIES LINK_FLAGS ${TORCH_PYTHON_LINK_FLAGS})
  endif()
  
@@ -143,10 +143,10 @@ index b123023..650319c 100644
  
  # Generate torch/version.py from the appropriate CMake cache variables.
  if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-diff --git torch/lib/libshm_windows/CMakeLists.txt torch/lib/libshm_windows/CMakeLists.txt
-index df2a106..5fa15e6 100644
---- a/c10/torch/lib/libshm_windows/CMakeLists.txt
-+++ b/c10/torch/lib/libshm_windows/CMakeLists.txt
+diff --git a/torch/lib/libshm_windows/CMakeLists.txt b/torch/lib/libshm_windows/CMakeLists.txt
+index df2a1064938..5fa15e6be31 100644
+--- a/torch/lib/libshm_windows/CMakeLists.txt
++++ b/torch/lib/libshm_windows/CMakeLists.txt
 @@ -19,7 +19,7 @@ target_include_directories(shm PRIVATE
  target_link_libraries(shm torch c10)
  
