@@ -315,7 +315,7 @@ outputs:
         - libcurand-dev
         - libcusolver-dev
         - libcusparse-dev
-        - cuda-cupti
+        - cuda-cupti 12
         {% endif %}
         # other requirements
         - python
