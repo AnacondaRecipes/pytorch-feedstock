@@ -1,6 +1,6 @@
 gpu_variant:
 #  - cpu
-#  - metal                    # [(osx and arm64)]
+  - metal                    # [(osx and arm64)]
   - cuda-12                  # [(linux and x86_64)]
 c_compiler_version:      # [osx]
   - 20                   # [osx]
