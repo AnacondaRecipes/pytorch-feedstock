@@ -32,7 +32,7 @@ export CFLAGS="$(echo $CFLAGS | sed 's/-fvisibility-inlines-hidden//g')"
 export CXXFLAGS="$(echo $CXXFLAGS | sed 's/-fvisibility-inlines-hidden//g')"
 export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,--as-needed//g')"
 
-# Add this for GCC 14.3 compatibility with XNNPACK
+# Add this for GCC 14.3+ compatibility with XNNPACK
 if [[ "$target_platform" == linux-aarch64 ]]; then
     export CFLAGS="$CFLAGS -Wno-error=incompatible-pointer-types"
 fi
@@ -76,6 +76,7 @@ else
 fi
 # Required to make the right SDK found on Anaconda's CI system. Ideally should be fixed in the CI or conda-build
 if [[ "${build_platform}" = "osx-arm64" ]]; then
+    export USE_NCCL=0
     export DEVELOPER_DIR=/Library/Developer/CommandLineTools
 fi
 export CMAKE_GENERATOR=Ninja

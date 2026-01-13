@@ -5,10 +5,10 @@ author: dpetry@anaconda.com
 Index: pytorch/torch/_inductor/cpp_builder.py
 ===================================================================
 diff --git torch/_inductor/cpp_builder.py torch/_inductor/cpp_builder.py
-index 92cf88d..5275dfa 100644
---- a/torch/_inductor/cpp_builder.py
-+++ b/torch/_inductor/cpp_builder.py
-@@ -1071,6 +1071,7 @@ def get_cpp_torch_options(
+index d0a646c..7468f27 100644
+--- a/torch/_inductor/torch/_inductor/cpp_builder.py
++++ b/torch/_inductor/torch/_inductor/cpp_builder.py
+@@ -1136,6 +1136,7 @@ def get_cpp_torch_options(
          + python_include_dirs
          + torch_include_dirs
          + omp_include_dir_paths

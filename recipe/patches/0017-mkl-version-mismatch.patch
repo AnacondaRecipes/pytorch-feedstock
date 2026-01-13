@@ -8,11 +8,11 @@ From https://github.com/pytorch/pytorch/pull/143894
  aten/src/ATen/native/mkl/SpectralOps.cpp | 12 +++++++++++-
  1 file changed, 11 insertions(+), 1 deletion(-)
 
-diff --git a/aten/src/ATen/native/mkl/SpectralOps.cpp b/aten/src/ATen/native/mkl/SpectralOps.cpp
-index e26cfbf6d..c61b76d32 100644
---- a/aten/src/ATen/native/mkl/SpectralOps.cpp
-+++ b/aten/src/ATen/native/mkl/SpectralOps.cpp
-@@ -477,7 +477,17 @@ static Tensor& _exec_fft(Tensor& out, const Tensor& self, IntArrayRef out_sizes,
+diff --git aten/src/ATen/native/mkl/SpectralOps.cpp aten/src/ATen/native/mkl/SpectralOps.cpp
+index 636e94e..6e52871 100644
+--- a/aten/src/ATen/native/mkl/aten/src/ATen/native/mkl/SpectralOps.cpp
++++ b/aten/src/ATen/native/mkl/aten/src/ATen/native/mkl/SpectralOps.cpp
+@@ -478,7 +478,17 @@ static Tensor& _exec_fft(Tensor& out, const Tensor& self, IntArrayRef out_sizes,
  
    const auto value_type = c10::toRealValueType(input.scalar_type());
    out.resize_(batched_out_sizes, MemoryFormat::Contiguous);
@@ -31,5 +31,3 @@ index e26cfbf6d..c61b76d32 100644
    auto descriptor = _plan_mkl_fft(
        input.strides(), out.strides(), signal_size, input.is_complex(),
        out.is_complex(), normalization, forward, value_type);
--- 
-2.47.1
