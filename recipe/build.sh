@@ -285,6 +285,13 @@ else
     # for CPU builds. Not to be confused with MKL.
     export USE_MKLDNN=1
     export USE_CUDA=0
+    
+    # Force export of oneDNN JIT symbols for Linux builds
+    if [[ "$OSTYPE" != "darwin"* ]]; then
+        export CXXFLAGS="$CXXFLAGS -fvisibility=default"
+        export LDFLAGS="$LDFLAGS -Wl,--no-as-needed"
+    fi
+    
     export CMAKE_TOOLCHAIN_FILE="${RECIPE_DIR}/cross-linux.cmake"
 fi
 
