@@ -490,9 +490,11 @@ outputs:
         - test -f $PREFIX/lib/libtorch_python${SHLIB_EXT}     # [unix]
 
   - name: pytorch-{{ "cpu" if gpu_variant == "cpu" else "gpu" }}
+    build:
+      string: "{{ 'cpu' if gpu_variant == 'cpu' else 'gpu' }}_{{ gpu_variant.replace('-', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}"
     requirements:
       run:
-        - pytorch ={{ version }}={{ "cpu" if gpu_variant == "cpu" else "gpu" }}* # NB pinning exact=True will also pin to the python version
+        - pytorch ={{ version }}={{ "cpu" if gpu_variant == "cpu" else "gpu" }}*
     test:
       imports:
         - torch
