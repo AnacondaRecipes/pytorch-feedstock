@@ -1,12 +1,17 @@
 --- caffe2/CMakeLists.txt.orig	2026-01-16 12:11:10.447162648 +0000
-+++ caffe2/CMakeLists.txt	2026-01-16 12:10:09.240321579 +0000
-@@ -1926,3 +1926,8 @@
++++ caffe2/CMakeLists.txt	2026-01-16 14:30:07.126681367 +0000
+@@ -1926,3 +1926,13 @@
    endforeach()
  endif()
  endif()
 +
-+# FIX: Force OneDNN headers for CUDA build (Fixes undefined symbol: fuseGraph)
-+if(USE_CUDA)
-+  target_include_directories(torch_cuda PRIVATE "\${PROJECT_SOURCE_DIR}/third_party/ideep/mkl-dnn/include")
++# FIX: Force OneDNN headers for BOTH CPU and CUDA targets
++# This fixes "fatal error: oneapi/dnnl/dnnl_graph.hpp" caused by path overrides
++if(TARGET torch_cpu)
++  target_include_directories(torch_cpu PRIVATE "${PROJECT_SOURCE_DIR}/third_party/ideep/mkl-dnn/include")
++endif()
++
++if(USE_CUDA AND TARGET torch_cuda)
++  target_include_directories(torch_cuda PRIVATE "${PROJECT_SOURCE_DIR}/third_party/ideep/mkl-dnn/include")
 +endif()
 \ No newline at end of file
