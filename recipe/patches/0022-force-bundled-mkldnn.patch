@@ -1,0 +1,26 @@
+--- cmake/Dependencies.cmake.orig	2026-01-16 15:49:49.384563087 +0000
++++ cmake/Dependencies.cmake	2026-01-16 15:49:55.732590205 +0000
+@@ -1499,14 +1499,15 @@
+     endif()
+   endif()
+   if(USE_MKLDNN)
+-    include(${CMAKE_CURRENT_LIST_DIR}/public/mkldnn.cmake)
+-    if(MKLDNN_FOUND)
+-      set(AT_MKLDNN_ENABLED 1)
+-      include_directories(AFTER SYSTEM ${MKLDNN_INCLUDE_DIR})
+-    else()
+-      message(WARNING "MKLDNN could not be found.")
+-      caffe2_update_option(USE_MKLDNN OFF)
+-    endif()
++    # FIX: Force bundled MKLDNN build to generate dnnl_config.h
++    # This bypasses false system detection caused by Conda environment patches
++    set(MKLDNN_BUILD_TESTS OFF CACHE BOOL "" FORCE)
++    set(MKLDNN_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
++    add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/ideep/mkl-dnn)
++    include_directories(AFTER SYSTEM ${PROJECT_SOURCE_DIR}/third_party/ideep/mkl-dnn/include)
++    include_directories(AFTER SYSTEM ${PROJECT_BINARY_DIR}/third_party/ideep/mkl-dnn/include)
++    set(MKLDNN_FOUND TRUE)
++    set(AT_MKLDNN_ENABLED 1)
+   else()
+     message("disabling MKLDNN because USE_MKLDNN is not set")
+   endif()
