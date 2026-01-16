@@ -1,0 +1,11 @@
+--- caffe2/CMakeLists.txt.orig	2026-01-16 11:17:22.965726333 +0000
++++ caffe2/CMakeLists.txt	2026-01-16 11:17:49.698778664 +0000
+@@ -80,6 +80,8 @@
+   list(APPEND Caffe2_CUDA_DEPENDENCY_LIBS ${ATen_CUDA_DEPENDENCY_LIBS})
+   list(APPEND Caffe2_HIP_DEPENDENCY_LIBS ${ATen_HIP_DEPENDENCY_LIBS})
+   list(APPEND Caffe2_DEPENDENCY_INCLUDE ${ATen_THIRD_PARTY_INCLUDE})
++  # Fix missing headers for CUDA build when MKLDNN is enabled
++  list(APPEND Caffe2_DEPENDENCY_INCLUDE "${PROJECT_SOURCE_DIR}/third_party/ideep/mkl-dnn/include")
+   set(Caffe2_CUDA_DEPENDENCY_LIBS ${Caffe2_CUDA_DEPENDENCY_LIBS} PARENT_SCOPE)
+ endif()
+ 
