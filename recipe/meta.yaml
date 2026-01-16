@@ -62,7 +62,7 @@ source:
       - patches/0018-cmake-clang-17-osx.patch # [osx]
       - patches/0019-ensure-no-algoritmic-specilization.patch # [osx]
       - patches/0020-Define-PY_SSIZE_T_CLEAN-before-include-Python.h.patch
-      - patches/0021-cmakecaffe.patch
+      - patches/0021-fix-onednn-cuda-include.patch
 {% endif %}
   - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.ci/pytorch/smoke_test/smoke_test.py
     folder: smoke_test
