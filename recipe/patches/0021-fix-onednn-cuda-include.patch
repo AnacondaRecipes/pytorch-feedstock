@@ -1,11 +1,12 @@
---- caffe2/CMakeLists.txt.orig	2026-01-16 11:17:22.965726333 +0000
-+++ caffe2/CMakeLists.txt	2026-01-16 11:17:49.698778664 +0000
-@@ -80,6 +80,8 @@
-   list(APPEND Caffe2_CUDA_DEPENDENCY_LIBS ${ATen_CUDA_DEPENDENCY_LIBS})
-   list(APPEND Caffe2_HIP_DEPENDENCY_LIBS ${ATen_HIP_DEPENDENCY_LIBS})
-   list(APPEND Caffe2_DEPENDENCY_INCLUDE ${ATen_THIRD_PARTY_INCLUDE})
-+  # Fix missing headers for CUDA build when MKLDNN is enabled
-+  list(APPEND Caffe2_DEPENDENCY_INCLUDE "${PROJECT_SOURCE_DIR}/third_party/ideep/mkl-dnn/include")
-   set(Caffe2_CUDA_DEPENDENCY_LIBS ${Caffe2_CUDA_DEPENDENCY_LIBS} PARENT_SCOPE)
+--- caffe2/CMakeLists.txt.orig	2026-01-16 12:11:10.447162648 +0000
++++ caffe2/CMakeLists.txt	2026-01-16 12:10:09.240321579 +0000
+@@ -1926,3 +1926,8 @@
+   endforeach()
  endif()
- 
+ endif()
++
++# FIX: Force OneDNN headers for CUDA build (Fixes undefined symbol: fuseGraph)
++if(USE_CUDA)
++  target_include_directories(torch_cuda PRIVATE "\${PROJECT_SOURCE_DIR}/third_party/ideep/mkl-dnn/include")
++endif()
+\ No newline at end of file
