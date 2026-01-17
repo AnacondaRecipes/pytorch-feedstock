@@ -1,6 +1,6 @@
 --- cmake/Dependencies.cmake.orig	2026-01-16 15:49:49.384563087 +0000
-+++ cmake/Dependencies.cmake	2026-01-16 16:35:12.238635899 +0000
-@@ -1499,14 +1499,22 @@
++++ cmake/Dependencies.cmake	2026-01-17 11:18:57.808578602 +0000
+@@ -1499,17 +1499,23 @@
      endif()
    endif()
    if(USE_MKLDNN)
@@ -13,7 +13,6 @@
 -      caffe2_update_option(USE_MKLDNN OFF)
 -    endif()
 +    # FIX: Force bundled MKLDNN build to generate dnnl_config.h
-+    # This bypasses false system detection caused by Conda environment patches
 +    set(MKLDNN_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 +    set(MKLDNN_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 +    set(DNNL_EXPERIMENTAL_UKERNEL ON CACHE BOOL "" FORCE)
@@ -28,6 +27,10 @@
 +
 +    set(MKLDNN_FOUND TRUE)
 +    set(AT_MKLDNN_ENABLED 1)
++    list(APPEND Caffe2_DEPENDENCY_LIBS dnnl)
    else()
-     message("disabling MKLDNN because USE_MKLDNN is not set")
-   endif()
+-    message("disabling MKLDNN because USE_MKLDNN is not set")
+-  endif()
+ 
+   if(USE_KLEIDIAI)
+     if(CMAKE_C_COMPILER_ID STREQUAL "Clang" AND CMAKE_C_COMPILER_VERSION VERSION_LESS "11" )
