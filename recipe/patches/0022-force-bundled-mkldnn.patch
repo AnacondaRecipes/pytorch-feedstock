@@ -1,5 +1,16 @@
---- cmake/Dependencies.cmake.orig	2026-01-16 15:49:49.384563087 +0000
-+++ cmake/Dependencies.cmake	2026-01-17 17:30:21.516750877 +0000
+From e2d141dbde55c2a4370fac5165b0561b6af4798b Mon May 17 02:03:44 2025
+From: James Robertson <jrobertson@anaconda.com>
+Date: Fri, 17 Jan 2026 12:12:48 +0000
+Subject: [PATCH] Force bundled OneDNN build, enable experimental kernels, and fix linking
+
+---
+ cmake/Dependencies.cmake | 18 ++++++++++++++++--
+ 1 file changed, 16 insertions(+), 2 deletions(-)
+
+diff --git a/cmake/Dependencies.cmake b/cmake/Dependencies.cmake
+index e2d141d..kf8325f 100644
+--- a/cmake/Dependencies.cmake
++++ b/cmake/Dependencies.cmake
 @@ -1499,16 +1499,22 @@
      endif()
    endif()
