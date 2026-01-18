@@ -62,8 +62,8 @@ source:
       - patches/0018-cmake-clang-17-osx.patch # [osx]
       - patches/0019-ensure-no-algoritmic-specilization.patch # [osx]
       - patches/0020-Define-PY_SSIZE_T_CLEAN-before-include-Python.h.patch
-      - patches/0021-fix-onednn-cuda-include.patch
-      - patches/0022-force-bundled-mkldnn.patch
+      - patches/0021-fix-onednn-cuda-include.patch # [linux and x86_64]
+      - patches/0022-force-bundled-mkldnn.patch # [linux and x86_64]
 {% endif %}
   - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.ci/pytorch/smoke_test/smoke_test.py
     folder: smoke_test
@@ -85,7 +85,7 @@ build:
   ignore_run_exports:
     - python *                               # [megabuild]
     - numpy *                                # [megabuild]
-  skip: True  # [py<39 or (not (linux and x86_64))]
+  skip: True  # [py<39]
 
 requirements:
   # Keep this list synchronized (except for python*, numpy*) in outputs
@@ -259,7 +259,7 @@ outputs:
       run_exports:
         - {{ pin_subpackage('pytorch', max_pin='x.x') }}
         - {{ pin_subpackage('libtorch', max_pin='x.x') }}
-      skip: True  # [py<39 or (not (linux and x86_64))]
+      skip: True  # [py<39]
 
     script: build_pytorch.sh   # [unix]
     script: build_pytorch.bat  # [win]
