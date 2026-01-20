@@ -29,10 +29,6 @@ zip_keys:                    # [(osx and arm64)]
   - gpu_variant              # [(osx and arm64)]
   - MACOSX_SDK_VERSION       # [(osx and arm64)]
   - CONDA_BUILD_SYSROOT      # [(osx and arm64)]
-# gcc/CUDA compatibility guide, for pinning if necessary:
-# https://docs.nvidia.com/cuda/archive/11.8.0/cuda-installation-guide-linux/index.html
-# We don't build a CUDA variant yet for Windows, due to issues getting CMake to build magma with CUDA support.
-
 # Conda-forge didn't do a "megabuild" on osx because it pushed their CI runners over their 6-hour limit. We don't have
 # such a limit.
 megabuild:
