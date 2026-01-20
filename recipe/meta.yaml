@@ -83,7 +83,7 @@ build:
   ignore_run_exports:
     - python *                               # [megabuild]
     - numpy *                                # [megabuild]
-  skip: True  # [not win or not (gpu_variant or "").startswith("cuda")]
+  skip: True  # [not linux or not (gpu_variant or "").startswith("cuda")]
 
 requirements:
   # Keep this list synchronized (except for python*, numpy*) in outputs
@@ -257,7 +257,7 @@ outputs:
       run_exports:
         - {{ pin_subpackage('pytorch', max_pin='x.x') }}
         - {{ pin_subpackage('libtorch', max_pin='x.x') }}
-      skip: True  # [not win or not (gpu_variant or "").startswith("cuda")]
+      skip: True  # [not linux or not (gpu_variant or "").startswith("cuda")]
 
     script: build_pytorch.sh   # [unix]
     script: build_pytorch.bat  # [win]
@@ -375,7 +375,7 @@ outputs:
         - nomkl                 # [blas_impl != "mkl"]
         - fsspec
         # Required to support torch.compile. This is tested in smoke_test.py, which is required to pass
-        - triton 3.3.0       # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
+        - triton 3.4.0       # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
         # avoid that people without GPUs needlessly download ~0.5-1GB
         # The CUDA version constraint is handled in cuda-version as a run_constrained.
         # However, that doesn't enforce that the package requires a GPU; that needs to be done here.
