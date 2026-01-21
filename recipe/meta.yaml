@@ -2,7 +2,7 @@
 {% set sha256 = "ecca266fa2de4235a9fd5a18a33299a9de55ab3babb87f8c297c1c9ab8d436bd" %}
 # Set the RC number to build release candidates. Set to None otherwise
 {% set rc = None %}
-{% set build = 1 %}
+{% set build = 2 %}
 
 # Keep this in sync with the release
 {% set smoke_test_commit = "1eba9b3aa3c43f86f4a2c807ac8e12c4a7767340" %}
@@ -61,6 +61,9 @@ source:
       - patches/0017-mkl-version-mismatch.patch
       - patches/0018-cmake-clang-17-osx.patch # [osx]
       - patches/0019-ensure-no-algoritmic-specilization.patch # [osx]
+      - patches/0020-Define-PY_SSIZE_T_CLEAN-before-include-Python.h.patch
+      - patches/0021-fix-onednn-cuda-include.patch # [linux and x86_64]
+      - patches/0022-force-bundled-mkldnn.patch # [linux and x86_64]
 {% endif %}
   - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.ci/pytorch/smoke_test/smoke_test.py
     folder: smoke_test
@@ -148,7 +151,7 @@ requirements:
     - libcurand-dev
     - libcusolver-dev
     - libcusparse-dev
-    - cuda-cupti
+    - cuda-cupti {{ cuda_compiler_version }}
     {% endif %}
     # other requirements
     - python {{megabuild_python}}  # [megabuild]
@@ -315,7 +318,7 @@ outputs:
         - libcurand-dev
         - libcusolver-dev
         - libcusparse-dev
-        - cuda-cupti
+        - cuda-cupti {{ cuda_compiler_version }}
         {% endif %}
         # other requirements
         - python
@@ -465,7 +468,9 @@ outputs:
         # which would be run if we used the --inductor option. (Distributed tests would only be correctly run on a multi-gpu test platform,
         # which we don't have.)
         # torch.compile isn't supported on python 3.12 yet
-        - python test/run_test.py -i inductor/test_torchinductor.py --continue-through-error || true                 # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
+        # These following tests have been disbaled due to GPU architecture needing to be very new on CI. And the others are disbled due to https://github.com/conda-forge/pytorch-cpu-feedstock/issues/380
+        # this also aligns with their meta.yaml testing strategy
+        - python test/run_test.py -i inductor/test_torchinductor.py --continue-through-error -k "not (test_isinf_cuda or test_donated_buffer_inplace_gpt or test_sdpa_inference_mode_aot_compile)" || true   # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
         - python ./test/run_test.py --mps --continue-through-error || true                                           # [(gpu_variant == "metal")]
         # Run pip check so as to ensure that all pytorch packages are installed
         # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/24
@@ -488,9 +493,11 @@ outputs:
         - test -f $PREFIX/lib/libtorch_python${SHLIB_EXT}     # [unix]
 
   - name: pytorch-{{ "cpu" if gpu_variant == "cpu" else "gpu" }}
+    build:
+      string: "{{ 'cpu' if gpu_variant == 'cpu' else 'gpu' }}_{{ gpu_variant.replace('-', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}"
     requirements:
       run:
-        - pytorch ={{ version }}={{ "cpu" if gpu_variant == "cpu" else "gpu" }}* # NB pinning exact=True will also pin to the python version
+        - pytorch ={{ version }}={{ "cpu" if gpu_variant == "cpu" else "gpu" }}*
     test:
       imports:
         - torch
