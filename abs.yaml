@@ -3,4 +3,4 @@
 extra_labels_for_os:
   osx-arm64: [ventura]
 
-task_timeout: 144000
+task_timeout: 86400
