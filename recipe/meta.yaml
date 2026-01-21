@@ -128,8 +128,6 @@ requirements:
     - libprotobuf
     - protobuf
     - make      # [linux]
-    # Uncomment to use ccache, see README and build_pytorch.sh
-    # - ccache
   host:
     # GPU requirements
     - cudnn 9.15.1.9                           # [(gpu_variant or "").startswith("cuda")]
