@@ -137,11 +137,11 @@ requirements:
     {% if cuda_major < 13 %}
     - cudnn 9.15.1.9                           # [(gpu_variant or "").startswith("cuda")]
     - nccl 2.21.5.1                            # [(gpu_variant or "").startswith("cuda") and linux]
-    {% else %}    - cudnn                  # [(gpu_variant or "").startswith("cuda")]
+    {% else %}    
+    - cudnn                  # [(gpu_variant or "").startswith("cuda")]
     - nccl                   # [(gpu_variant or "").startswith("cuda") and linux]
     {% endif %}
     {% if cuda_major >= 12 %}
-    # - cuda-driver-dev
     - cuda-cudart-dev
     - cuda-nvrtc-dev
     - cuda-nvtx-dev
