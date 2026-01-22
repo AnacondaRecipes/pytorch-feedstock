@@ -300,12 +300,17 @@ outputs:
         # - ccache
       host:
         # GPU requirements
-        - cudnn >=9.15.1.9               # [(gpu_variant or "").startswith("cuda")]
-        - nccl >=2.21.5.1                # [(gpu_variant or "").startswith("cuda") and linux]
-        - magma 2.9                      # [(gpu_variant or "").startswith("cuda")]
-        - nvtx-c                         # [(gpu_variant or "").startswith("cuda")]
+        {% if cuda_major < 13 %}
+        - cudnn 9.15.1.9                           # [(gpu_variant or "").startswith("cuda")]
+        - nccl 2.21.5.1                            # [(gpu_variant or "").startswith("cuda") and linux]
+        {% else %}
+        - cudnn                  # [(gpu_variant or "").startswith("cuda")]
+        - nccl                   # [(gpu_variant or "").startswith("cuda") and linux]
+        {% endif %}
+        - magma                  # [(gpu_variant or "").startswith("cuda")]
+        - nvtx-c                          # [(gpu_variant or "").startswith("cuda")]
         {% if cuda_major >= 12 %}
-        - cuda-driver-dev                # [linux and build_platform != target_platform]
+        - cuda-driver-dev                 # [linux and build_platform != target_platform]
         - cuda-cudart-dev
         - cuda-nvrtc-dev
         - cuda-nvtx-dev
@@ -316,7 +321,7 @@ outputs:
         - libcurand-dev
         - libcusolver-dev
         - libcusparse-dev
-        - cuda-cupti >={{ cuda_compiler_version }}
+        - cuda-cupti {{ cuda_compiler_version }}
         {% endif %}
         # other requirements
         - python
