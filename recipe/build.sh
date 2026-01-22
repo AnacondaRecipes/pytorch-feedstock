@@ -269,6 +269,9 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
     elif [[ ${cuda_compiler_version} == 13.* ]]; then
         export TORCH_CUDA_ARCH_LIST="6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0;10.0+PTX"
         export CUDA_TOOLKIT_ROOT_DIR="${PREFIX}"
+        # FIX: Force bundled CUB/Thrust for CUDA 13 compatibility
+        export USE_SYSTEM_CUB=0
+        export USE_SYSTEM_THRUST=0
         if [[ "${target_platform}" != "${build_platform}" ]]; then
             export CUDA_TOOLKIT_ROOT=${PREFIX}
         fi
