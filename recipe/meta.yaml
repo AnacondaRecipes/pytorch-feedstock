@@ -316,7 +316,7 @@ outputs:
         - libcurand-dev
         - libcusolver-dev
         - libcusparse-dev
-        - cuda-cupti {{ cuda_compiler_version }}
+        - cuda-cupti >={{ cuda_compiler_version }}
         {% endif %}
         # other requirements
         - python
