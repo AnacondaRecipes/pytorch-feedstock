@@ -61,6 +61,7 @@ source:
       - patches_submodules/0002-tensorpipe-memory.patch # [linux]
       - patches_submodules/0003-gloo-types.patch # [linux]
       - patches_submodules/0004-tensorpipe-allocator.patch # [linux]
+      - patches_submodules/0005-fix-tensorpipe-cuda13.patch # [(gpu_variant or "").startswith("cuda")]
 {% endif %}
   - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.ci/pytorch/smoke_test/smoke_test.py
     folder: smoke_test
