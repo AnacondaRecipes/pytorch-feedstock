@@ -57,7 +57,7 @@ source:
       - patches/0014-point-include-paths-to-PREFIX-include.patch
       - patches/0015-point-lib-paths-to-PREFIX-lib.patch
       - patches/0017-mkl-version-mismatch.patch
-      - patches/0018-find-cub.patch # [cuda_compiler_version == 13.*]
+      - patches/0018-find-cub.patch # [(gpu_variant or "").startswith("cuda")]
       - patches_submodules/0002-tensorpipe-memory.patch # [linux]
       - patches_submodules/0003-gloo-types.patch # [linux]
       - patches_submodules/0004-tensorpipe-allocator.patch # [linux]
