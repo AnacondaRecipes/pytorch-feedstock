@@ -276,8 +276,8 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
 
         # Explicitly help CMake find the headers in the Conda environment
         # cuda-cccl installs headers into targets/x86_64-linux/include
-        export CUB_INCLUDE_DIR="${PREFIX}/include"
-        export THRUST_INCLUDE_DIR="${PREFIX}/include"
+        export CUB_INCLUDE_DIR="${PREFIX}/targets/x86_64-linux/include"
+        export THRUST_INCLUDE_DIR="${PREFIX}/targets/x86_64-linux/include"
 
         if [[ "${target_platform}" != "${build_platform}" ]]; then
             export CUDA_TOOLKIT_ROOT=${PREFIX}
