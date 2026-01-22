@@ -1,27 +1,14 @@
-From 87e2bf41ebed1b215c4e91cbba009fadc132ddcf Mon Sep 17 00:00:00 2001
-From: Jamie Robertson <jamierobertsongames@gmail.com>
-Date: Thu, 22 Jan 2026 14:10:11 +0000
-Subject: [PATCH] Fix TensorPipe for CUDA 13 computeMode removed
-
----
- third_party/tensorpipe/tensorpipe/channel/cuda_ipc/context_impl.cc | 7 +++++--
- 1 file changed, 5 insertions(+), 2 deletions(-)
-
-diff --git a/third_party/tensorpipe/tensorpipe/channel/cuda_ipc/context_impl.cc b/third_party/tensorpipe/tensorpipe/channel/cuda_ipc/context_impl.cc
-index 69db487..a6104bb 100644
---- a/third_party/tensorpipe/tensorpipe/channel/cuda_ipc/context_impl.cc
-+++ b/third_party/tensorpipe/tensorpipe/channel/cuda_ipc/context_impl.cc
-@@ -233,8 +233,11 @@ std::shared_ptr<ContextImpl> ContextImpl::create() {
+--- third_party/tensorpipe/tensorpipe/channel/cuda_ipc/context_impl.cc
++++ third_party/tensorpipe/tensorpipe/channel/cuda_ipc/context_impl.cc
+@@ -233,7 +233,10 @@
  
      // The other two compute modes are "exclusive" and "prohibited", both of
      // which prevent access from an other process.
 -    if (props.computeMode != cudaComputeModeDefault) {
--      TP_VLOG(4) << "CUDA device " << deviceIdx << " is in exclusive or "
 +    // NOTE: cudaComputeModeDefault is deprecated in CUDA 13.0, but we still support CUDA 12.x
 +    int computeMode = -1;
-+    TP_CUDA_CHECK(cudaDeviceGetAttribute(&computeMode, cudaDevAttrComputeMode, deviceIdx));
++    TP_CUDA_CHECK(cudaDeviceGetAttribute(&computeMode, cudaDevAttrComputeMode, device.index));
 +    if (computeMode != cudaComputeModeDefault) {
-+      TP_VLOG(4) << "CUDA device " << deviceIdx << " is in exclusive or "
-                  << "prohibited mode, skipping";
-       continue;
-     }
+       TP_VLOG(4) << "CUDA IPC channel is not viable because CUDA device "
+                  << device.index << " is not in default compute mode";
+       return nullptr;
