@@ -301,7 +301,7 @@ outputs:
       host:
         # GPU requirements
         - cudnn 9.15.1.9                  # [(gpu_variant or "").startswith("cuda")]
-        - nccl 2.21.5.1                   # [(gpu_variant or "").startswith("cuda") and linux]
+        - nccl >=2.21.5.1                   # [(gpu_variant or "").startswith("cuda") and linux]
         - magma 2.9                       # [(gpu_variant or "").startswith("cuda")]
         - nvtx-c                          # [(gpu_variant or "").startswith("cuda")]
         {% if cuda_major >= 12 %}
