@@ -345,7 +345,7 @@ outputs:
         - libuv
         - pkg-config  # [unix]
         - typing_extensions
-        - {{ pin_subpackage('libtorch', max_pin='x.x.x') }}
+         - {{ pin_subpackage('libtorch', exact=True) }}
         - pybind11 2.12.1
         - eigen 3.3.7
         - astunparse 1.6.3
