@@ -76,12 +76,12 @@ build:
   run_exports:
     - {{ pin_subpackage('libtorch', max_pin='x.x') }}
   ignore_run_exports_from:
-    - python *                               # [megabuild]
-    - numpy *                                # [megabuild]
-    - cross-python_{{ target_platform }}     # [megabuild and build_platform != target_platform]
+    - python *
+    - numpy *
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
   ignore_run_exports:
-    - python *                               # [megabuild]
-    - numpy *                                # [megabuild]
+    - python *
+    - numpy *
   skip: True  # [py<39 or not linux or not (gpu_variant or "").startswith("cuda")]
 
 requirements:
@@ -345,7 +345,7 @@ outputs:
         - libuv
         - pkg-config  # [unix]
         - typing_extensions
-         - {{ pin_subpackage('libtorch', exact=True) }}
+        - {{ pin_subpackage('libtorch', exact=True) }}
         - pybind11 2.12.1
         - eigen 3.3.7
         - astunparse 1.6.3
