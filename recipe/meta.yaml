@@ -226,12 +226,12 @@ outputs:
   - name: libtorch
     build:
       ignore_run_exports_from:
-        - python
-        - numpy
-        - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+        - python                             # [(gpu_variant or "").startswith("cuda")]
+        - numpy                              # [(gpu_variant or "").startswith("cuda")]
+        - cross-python_{{ target_platform }} # [build_platform != target_platform]
       ignore_run_exports:
-        - python_abi
-        - numpy
+        - python_abi                         # [(gpu_variant or "").startswith("cuda")]
+        - numpy                              # [(gpu_variant or "").startswith("cuda")]
       missing_dso_whitelist:
         # The are dynamically loaded from %SP_DIR%\torch\lib\
         - "**/asmjit.dll"             # [win]
