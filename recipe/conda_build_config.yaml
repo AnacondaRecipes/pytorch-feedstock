@@ -1,3 +1,5 @@
+pytorch:
+  - 2.7.0
 gpu_variant:
   - cpu
   - metal                    # [(osx and arm64)]
