@@ -61,6 +61,9 @@ source:
       - patches/0017-mkl-version-mismatch.patch
       - patches/0018-cmake-clang-17-osx.patch # [osx]
       - patches/0019-ensure-no-algoritmic-specilization.patch # [osx]
+      - patches/0020-Define-PY_SSIZE_T_CLEAN-before-include-Python.h.patch
+      - patches/0021-fix-onednn-cuda-include.patch # [linux and x86_64]
+      - patches/0022-force-bundled-mkldnn.patch # [linux and x86_64]
 {% endif %}
   - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.ci/pytorch/smoke_test/smoke_test.py
     folder: smoke_test
@@ -491,9 +494,11 @@ outputs:
         - test -f $PREFIX/lib/libtorch_python${SHLIB_EXT}     # [unix]
 
   - name: pytorch-{{ "cpu" if gpu_variant == "cpu" else "gpu" }}
+    build:
+      string: "{{ 'cpu' if gpu_variant == 'cpu' else 'gpu' }}_{{ gpu_variant.replace('-', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}"
     requirements:
       run:
-        - pytorch ={{ version }}={{ "cpu" if gpu_variant == "cpu" else "gpu" }}* # NB pinning exact=True will also pin to the python version
+        - pytorch ={{ version }}={{ "cpu" if gpu_variant == "cpu" else "gpu" }}*
     test:
       imports:
         - torch
