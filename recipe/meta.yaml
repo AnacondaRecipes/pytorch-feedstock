@@ -79,12 +79,12 @@ build:
   run_exports:
     - {{ pin_subpackage('libtorch', max_pin='x.x') }}
   ignore_run_exports_from:
-    - python *                               # [megabuild]
-    - numpy *                                # [megabuild]
-    - cross-python_{{ target_platform }}     # [megabuild and build_platform != target_platform]
+    - python
+    - numpy
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
   ignore_run_exports:
-    - python *                               # [megabuild]
-    - numpy *                                # [megabuild]
+    - python_abi
+    - numpy
   skip: True  # [py<39]
 
 requirements:
@@ -228,6 +228,13 @@ test:
 outputs:
   - name: libtorch
     build:
+      ignore_run_exports_from:
+        - python                             # [(gpu_variant or "").startswith("cuda")]
+        - numpy                              # [(gpu_variant or "").startswith("cuda")]
+        - cross-python_{{ target_platform }} # [build_platform != target_platform]
+      ignore_run_exports:
+        - python_abi                         # [(gpu_variant or "").startswith("cuda")]
+        - numpy                              # [(gpu_variant or "").startswith("cuda")]
       missing_dso_whitelist:
         # The are dynamically loaded from %SP_DIR%\torch\lib\
         - "**/asmjit.dll"             # [win]
@@ -378,10 +385,6 @@ outputs:
         - fsspec
         # Required to support torch.compile. This is tested in smoke_test.py, which is required to pass
         - triton 3.3.0       # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
-        # avoid that people without GPUs needlessly download ~0.5-1GB
-        # The CUDA version constraint is handled in cuda-version as a run_constrained.
-        # However, that doesn't enforce that the package requires a GPU; that needs to be done here.
-        - __cuda  # [(gpu_variant or "").startswith("cuda")]
         # On macOS, the GPU accelerated backend, MPS, can be used from macOS v12.3. This isn't tightly dependent on the
         # SDK version used.
         - __osx >=12.3                                               # [gpu_variant == "metal"]
