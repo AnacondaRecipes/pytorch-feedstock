@@ -79,12 +79,12 @@ build:
   run_exports:
     - {{ pin_subpackage('libtorch', max_pin='x.x') }}
   ignore_run_exports_from:
-    - python
-    - numpy
-    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+    - python *                               # [megabuild]
+    - numpy *                                # [megabuild]
+    - cross-python_{{ target_platform }}     # [megabuild and build_platform != target_platform]
   ignore_run_exports:
-    - python_abi
-    - numpy
+    - python *                               # [megabuild]
+    - numpy *                                # [megabuild]
   skip: True  # [py<39 and not linux]
 
 requirements:
@@ -128,7 +128,6 @@ requirements:
     # Keep libprotobuf here so that a compatibile version
     # of protobuf is installed between build and host
     - libprotobuf
-    - protobuf
     - make      # [linux]
     # Uncomment to use ccache, see README and build_pytorch.sh
     # - ccache
@@ -228,13 +227,6 @@ test:
 outputs:
   - name: libtorch
     build:
-      ignore_run_exports_from:
-        - python                             # [(gpu_variant or "").startswith("cuda")]
-        - numpy                              # [(gpu_variant or "").startswith("cuda")]
-        - cross-python_{{ target_platform }} # [build_platform != target_platform]
-      ignore_run_exports:
-        - python_abi                         # [(gpu_variant or "").startswith("cuda")]
-        - numpy                              # [(gpu_variant or "").startswith("cuda")]
       missing_dso_whitelist:
         # The are dynamically loaded from %SP_DIR%\torch\lib\
         - "**/asmjit.dll"             # [win]
@@ -303,7 +295,6 @@ outputs:
         # Keep libprotobuf here so that a compatibile version
         # of protobuf is installed between build and host
         - libprotobuf
-        - protobuf
         - make      # [linux]
         # Uncomment to use ccache, see README and build_pytorch.sh
         # - ccache
