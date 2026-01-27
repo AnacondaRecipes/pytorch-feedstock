@@ -229,12 +229,11 @@ outputs:
   - name: libtorch
     build:
       ignore_run_exports_from:
-        - python *
-        - numpy *
-        - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+        - python
+        - numpy
       ignore_run_exports:
-        - python *
-        - numpy *
+        - python_abi
+        - numpy
       missing_dso_whitelist:
         # The are dynamically loaded from %SP_DIR%\torch\lib\
         - "**/asmjit.dll"             # [win]
