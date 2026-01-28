@@ -237,6 +237,9 @@ outputs:
         - "**/torch_python.dll"       # [win]
         # libcuda.so is the cuda driver API library and is a system library.
         - "**/libcuda.so*"            # [(gpu_variant or "").startswith("cuda")]
+        - "**/libtorch_cpu.so*"       # [linux and aarch64]
+        - "**/libc10.so*"             # [linux and aarch64]
+
   - name: pytorch
     build:
       string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda-12"]
