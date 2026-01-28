@@ -126,7 +126,6 @@ requirements:
     # Keep libprotobuf here so that a compatibile version
     # of protobuf is installed between build and host
     - libprotobuf
-    - protobuf
     - make      # [linux]
     # Uncomment to use ccache, see README and build_pytorch.sh
     # - ccache
@@ -294,7 +293,6 @@ outputs:
         # Keep libprotobuf here so that a compatibile version
         # of protobuf is installed between build and host
         - libprotobuf
-        - protobuf
         - make      # [linux]
         # Uncomment to use ccache, see README and build_pytorch.sh
         # - ccache
