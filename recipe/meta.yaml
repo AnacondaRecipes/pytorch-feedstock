@@ -83,7 +83,7 @@ build:
   ignore_run_exports:
     - python *                               # [megabuild]
     - numpy *                                # [megabuild]
-  skip: True  # [py<39 and not aarch64]
+  skip: True  # [py<39 or not aarch64]
 
 requirements:
   # Keep this list synchronized (except for python*, numpy*) in outputs
@@ -235,8 +235,11 @@ outputs:
         - "**/torch_python.dll"       # [win]
         # libcuda.so is the cuda driver API library and is a system library.
         - "**/libcuda.so*"            # [(gpu_variant or "").startswith("cuda")]
-        - "**/libtorch_cpu.so*"       # [linux and aarch64]
-        - "**/libc10.so*"             # [linux and aarch64]
+        - "**/libtorch_cpu.so*"       # [aarch64]
+        - "**/libc10.so*"             # [aarch64]
+        - "**/libshm.so*"             # [aarch64]
+        - "**/libtorch.so*"           # [aarch64]
+        - "**/libtorch_global_deps.so*"  # [aarch64]
 
   - name: pytorch
     build:
@@ -255,11 +258,17 @@ outputs:
         - "**/shm.dll"                # [win]
         - "**/torch_cpu.dll"          # [win]
         - "**/torch_python.dll"       # [win]
+        - "**/libtorch_cpu.so*"       # [aarch64]
+        - "**/libc10.so*"             # [aarch64]
+        - "**/libshm.so*"             # [aarch64]
+        - "**/libtorch.so*"           # [aarch64]
+        - "**/libtorch_global_deps.so*"  # [aarch64]
+
       detect_binary_files_with_prefix: false
       run_exports:
         - {{ pin_subpackage('pytorch', max_pin='x.x') }}
         - {{ pin_subpackage('libtorch', max_pin='x.x') }}
-      skip: True  # [py<39 and not aarch64]
+      skip: True  # [py<39 or not aarch64]
 
     script: build_pytorch.sh   # [unix]
     script: build_pytorch.bat  # [win]
