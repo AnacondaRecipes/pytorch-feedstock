@@ -263,6 +263,7 @@ outputs:
       overlinking_ignore_patterns:
         - "**/libtorch_cpu.so*"       # [aarch64]
         - "**/libc10.so*"             # [aarch64]
+        - "**/libtorch_python.so*"    # [aarch64]
       detect_binary_files_with_prefix: false
       run_exports:
         - {{ pin_subpackage('pytorch', max_pin='x.x') }}
