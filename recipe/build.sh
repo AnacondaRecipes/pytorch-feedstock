@@ -42,6 +42,18 @@ fi
 # error on osx-64.
 export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,-dead_strip_dylibs//g')"
 export LDFLAGS_LD="$(echo $LDFLAGS_LD | sed 's/-dead_strip_dylibs//g')"
+
+#################### BUILD SPEED OPTIMIZATIONS #####################
+
+# Use lld linker for faster linking (2-4x faster than default ld)
+if [[ "$OSTYPE" != "darwin"* ]]; then
+    export LDFLAGS="$LDFLAGS -fuse-ld=lld"
+fi
+
+# Reduce debug information level for faster compilation and smaller object files
+export CFLAGS="$(echo $CFLAGS | sed 's/-g[0-9]*//g') -g1"
+export CXXFLAGS="$(echo $CXXFLAGS | sed 's/-g[0-9]*//g') -g1"
+
 if [[ "$c_compiler" == "clang" ]]; then
     export CXXFLAGS="$CXXFLAGS -Wno-deprecated-declarations -Wno-unknown-warning-option -Wno-error=unused-command-line-argument -Wno-error=vla-cxx-extension"
     export CFLAGS="$CFLAGS -Wno-deprecated-declarations -Wno-unknown-warning-option -Wno-error=unused-command-line-argument -Wno-error=vla-cxx-extension"
@@ -129,13 +141,6 @@ export USE_SYSTEM_SLEEF=1
 export BUILD_CUSTOM_PROTOBUF=OFF
 export USE_SYSTEM_PYBIND11=1
 export USE_SYSTEM_EIGEN_INSTALL=1
-# TODO:Unvendor onnx. Requires our package to provide ONNXConfig.cmake etc first
-# Breakpad is missing a ppc64 and s390x port
-case "$build_platform" in
-    linux-ppc64le|linux-s390x)
-        export USE_BREAKPAD=OFF
-    ;;
-esac
 
 rm -rf $PREFIX/bin/protoc
 
@@ -155,21 +160,14 @@ if [[ "$CONDA_BUILD_CROSS_COMPILATION" == 1 ]]; then
     export COMPILER_WORKS_EXITCODE__TRYRUN_OUTPUT=""
 fi
 
-if [[ "${CI}" == "github_actions" ]]; then
-    # h-vetinari/hmaarrfk -- May 2024
-    # reduce parallelism to avoid getting OOM-killed on
-    # cirun-openstack-gpu-2xlarge, which has 32GB RAM, 8 CPUs
-    export MAX_JOBS=4
-else
-    # Leave a spare core for other tasks. This may need to be reduced further
-    # if we get out of memory errors. (Each job uses a certain amount of memory.)
-    export MAX_JOBS=$((CPU_COUNT > 1 ? CPU_COUNT - 1 : 1))
-fi
+# Leave a spare core for other tasks. This may need to be reduced further
+# if we get out of memory errors. (Each job uses a certain amount of memory.)
+export MAX_JOBS=$((CPU_COUNT > 1 ? CPU_COUNT - 1 : 1))
+
 
 if [[ "$blas_impl" == "openblas" ]]; then
     # Fake openblas
     export BLAS=OpenBLAS
-    #sed -i.bak "s#FIND_LIBRARY.*#set(OpenBLAS_LIB ${PREFIX}/lib/liblapack${SHLIB_EXT} ${PREFIX}/lib/libcblas${SHLIB_EXT} ${PREFIX}/lib/libblas${SHLIB_EXT})#g" cmake/Modules/FindOpenBLAS.cmake
 elif [[ "$blas_impl" == "mkl" ]]; then
     export BLAS=MKL
 else

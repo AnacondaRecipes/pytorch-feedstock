@@ -52,13 +52,12 @@ source:
       - patches/0007-continue-tests-on-failure.patch
       - patches/0008-add-missing-includes.patch
       - patches/0009-use-prefix-include-for-inductor.patch
-      #- patches/0010-make-ATEN_INCLUDE_DIR-relative-to-TORCH_INSTALL_PREF.patch 
       - patches/0011-remove-DESTINATION-lib-from-CMake-install-TARGETS-di.patch             # [win]
       - patches_submodules/0001-remove-DESTINATION-lib-from-CMake-install-directives.patch  # [win]
       - patches/0014-point-include-paths-to-PREFIX-include.patch
       - patches/0015-point-lib-paths-to-PREFIX-lib.patch
-      # - patches/0016-Do-not-check-out-nccl-when-not-building-it.patch
       - patches/0017-mkl-version-mismatch.patch
+      # submodules patches
       - patches_submodules/0002-tensorpipe-memory.patch # [linux]
       - patches_submodules/0003-gloo-types.patch # [linux]
       - patches_submodules/0004-tensorpipe-allocator.patch # [linux]
@@ -83,7 +82,7 @@ build:
   ignore_run_exports:
     - python *                               
     - numpy *                               
-  skip: True  # [py<39]
+  skip: True  # [py<39 or aarch64]
 
 requirements:
   # Keep this list synchronized (except for python*, numpy*) in outputs
@@ -127,6 +126,7 @@ requirements:
     # of protobuf is installed between build and host
     - libprotobuf
     - make      # [linux]
+    - lld       # [linux]
     # Uncomment to use ccache, see README and build_pytorch.sh
     # - ccache
   host:
@@ -164,10 +164,6 @@ requirements:
     - six
     - mkl-devel {{ mkl }}          # [blas_impl == "mkl"]
     - openblas-devel {{ openblas }}   # [blas_impl == "openblas"]
-    # - libcblas * *_mkl      # [blas_impl == "mkl"]
-    # - libcblas              # [blas_impl != "mkl"]
-    # - liblapack             # [blas_impl != "mkl"]
-    # - libgomp   # [linux]
     # We pull in the same versions of mkl and intel-openmp: intel aligns the versions
     # We use intel-openmp for all mkl variants.
     # For openblas on win and linux, we don't specify any openmp implementation; it comes from the compiler.
@@ -269,7 +265,7 @@ outputs:
       run_exports:
         - {{ pin_subpackage('pytorch', max_pin='x.x') }}
         - {{ pin_subpackage('libtorch', max_pin='x.x') }}
-      skip: True  # [py<39]
+      skip: True  # [py<39 or aarch64]
 
     script: build_pytorch.sh   # [unix]
     script: build_pytorch.bat  # [win]
@@ -307,8 +303,7 @@ outputs:
         # of protobuf is installed between build and host
         - libprotobuf
         - make      # [linux]
-        # Uncomment to use ccache, see README and build_pytorch.sh
-        # - ccache
+        - lld       # [linux]
       host:
         # GPU requirements
         - cudnn 9.15.1.9                  # [(gpu_variant or "").startswith("cuda")]
@@ -341,10 +336,6 @@ outputs:
         - six
         - mkl-devel {{ mkl }}             # [blas_impl == "mkl"]
         - openblas-devel {{ openblas }}   # [blas_impl == "openblas"]
-        # - libcblas * *_mkl      # [blas_impl == "mkl"]
-        # - libcblas              # [blas_impl != "mkl"]
-        # - liblapack             # [blas_impl != "mkl"]
-        # - libgomp   # [linux]
         # We pull in the same versions of mkl and intel-openmp: intel aligns the versions
         # We use intel-openmp for all mkl variants.
         # For openblas on win and linux, we don't specify any openmp implementation; it comes from the compiler.
