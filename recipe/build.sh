@@ -95,6 +95,8 @@ export CMAKE_GENERATOR=Ninja
 export CMAKE_LIBRARY_PATH=$PREFIX/lib:$PREFIX/include:$CMAKE_LIBRARY_PATH
 export CMAKE_PREFIX_PATH=$PREFIX
 export CMAKE_BUILD_TYPE=Release
+export CMAKE_UNITY_BUILD=ON
+export CMAKE_UNITY_BUILD_BATCH_SIZE=32
 
 # Apparently, the PATH that conda generates when stacking environments, does not
 # have a logical order, potentially leading to CMake looking for (and finding)
