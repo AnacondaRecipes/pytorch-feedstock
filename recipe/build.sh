@@ -54,6 +54,9 @@ fi
 export CFLAGS="$(echo $CFLAGS | sed 's/-g[0-9]*//g') -g1"
 export CXXFLAGS="$(echo $CXXFLAGS | sed 's/-g[0-9]*//g') -g1"
 
+export CFLAGS="$CFLAGS -pipe"
+export CXXFLAGS="$CXXFLAGS -pipe"
+
 if [[ "$c_compiler" == "clang" ]]; then
     export CXXFLAGS="$CXXFLAGS -Wno-deprecated-declarations -Wno-unknown-warning-option -Wno-error=unused-command-line-argument -Wno-error=vla-cxx-extension"
     export CFLAGS="$CFLAGS -Wno-deprecated-declarations -Wno-unknown-warning-option -Wno-error=unused-command-line-argument -Wno-error=vla-cxx-extension"
@@ -95,7 +98,6 @@ export CMAKE_GENERATOR=Ninja
 export CMAKE_LIBRARY_PATH=$PREFIX/lib:$PREFIX/include:$CMAKE_LIBRARY_PATH
 export CMAKE_PREFIX_PATH=$PREFIX
 export CMAKE_BUILD_TYPE=Release
-export USE_PRECOMPILED_HEADERS=ON
 
 # Apparently, the PATH that conda generates when stacking environments, does not
 # have a logical order, potentially leading to CMake looking for (and finding)
