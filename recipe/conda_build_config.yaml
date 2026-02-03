@@ -35,5 +35,5 @@ megabuild:
 - false
 
 # The version of python to use when building libtorch in a "megabuild"
-megabuild_python:
-  - 3.12
+#  megabuild_python:
+#    - 3.12
