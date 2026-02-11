@@ -2,7 +2,7 @@
 {% set sha256 = "ecca266fa2de4235a9fd5a18a33299a9de55ab3babb87f8c297c1c9ab8d436bd" %}
 # Set the RC number to build release candidates. Set to None otherwise
 {% set rc = None %}
-{% set build = 2 %}
+{% set build = 3 %}
 
 # Keep this in sync with the release
 {% set smoke_test_commit = "1eba9b3aa3c43f86f4a2c807ac8e12c4a7767340" %}
@@ -79,13 +79,13 @@ build:
   run_exports:
     - {{ pin_subpackage('libtorch', max_pin='x.x') }}
   ignore_run_exports_from:
-    - python *                               # [megabuild]
-    - numpy *                                # [megabuild]
-    - cross-python_{{ target_platform }}     # [megabuild and build_platform != target_platform]
+    - python *
+    - numpy *
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
   ignore_run_exports:
-    - python *                               # [megabuild]
-    - numpy *                                # [megabuild]
-  skip: True  # [py<39]
+    - python *
+    - numpy *
+  skip: True  # [py<39 or not linux]
 
 requirements:
   # Keep this list synchronized (except for python*, numpy*) in outputs
@@ -128,7 +128,6 @@ requirements:
     # Keep libprotobuf here so that a compatibile version
     # of protobuf is installed between build and host
     - libprotobuf
-    - protobuf
     - make      # [linux]
     # Uncomment to use ccache, see README and build_pytorch.sh
     # - ccache
@@ -174,7 +173,7 @@ requirements:
     # We pull in the same versions of mkl and intel-openmp: intel aligns the versions
     # We use intel-openmp for all mkl variants.
     # For openblas on win and linux, we don't specify any openmp implementation; it comes from the compiler.
-    - intel-openmp {{ mkl }}         # [blas_impl == "mkl"]
+    - intel-openmp {{ mkl }}      # [blas_impl == "mkl"]
     - llvm-openmp 17              # [osx and not (blas_impl == "mkl")]
     - libabseil {{ libabseil }}
     - libprotobuf {{ libprotobuf }}
@@ -238,6 +237,12 @@ outputs:
         - "**/torch_python.dll"       # [win]
         # libcuda.so is the cuda driver API library and is a system library.
         - "**/libcuda.so*"            # [(gpu_variant or "").startswith("cuda")]
+        - "**/libtorch_cpu.so*"       # [aarch64]
+        - "**/libc10.so*"             # [aarch64]
+      overlinking_ignore_patterns:
+        - "**/libtorch_cpu.so*"       # [aarch64]
+        - "**/libc10.so*"             # [aarch64]
+
   - name: pytorch
     build:
       string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda-12"]
@@ -255,11 +260,18 @@ outputs:
         - "**/shm.dll"                # [win]
         - "**/torch_cpu.dll"          # [win]
         - "**/torch_python.dll"       # [win]
+        - "**/libtorch_cpu.so*"       # [aarch64]
+        - "**/libc10.so*"             # [aarch64]
+        - "**/libtorch_python.so*"    # [aarch64]
+      overlinking_ignore_patterns:
+        - "**/libtorch_cpu.so*"       # [aarch64]
+        - "**/libc10.so*"             # [aarch64]
+        - "**/libtorch_python.so*"    # [aarch64]
       detect_binary_files_with_prefix: false
       run_exports:
         - {{ pin_subpackage('pytorch', max_pin='x.x') }}
         - {{ pin_subpackage('libtorch', max_pin='x.x') }}
-      skip: True  # [py<39]
+      skip: True  # [py<39 or not linux]
 
     script: build_pytorch.sh   # [unix]
     script: build_pytorch.bat  # [win]
@@ -296,7 +308,6 @@ outputs:
         # Keep libprotobuf here so that a compatibile version
         # of protobuf is installed between build and host
         - libprotobuf
-        - protobuf
         - make      # [linux]
         # Uncomment to use ccache, see README and build_pytorch.sh
         # - ccache
@@ -332,10 +343,6 @@ outputs:
         - six
         - mkl-devel {{ mkl }}             # [blas_impl == "mkl"]
         - openblas-devel {{ openblas }}   # [blas_impl == "openblas"]
-        # - libcblas * *_mkl      # [blas_impl == "mkl"]
-        # - libcblas              # [blas_impl != "mkl"]
-        # - liblapack             # [blas_impl != "mkl"]
-        # - libgomp   # [linux]
         # We pull in the same versions of mkl and intel-openmp: intel aligns the versions
         # We use intel-openmp for all mkl variants.
         # For openblas on win and linux, we don't specify any openmp implementation; it comes from the compiler.
@@ -378,10 +385,6 @@ outputs:
         - fsspec
         # Required to support torch.compile. This is tested in smoke_test.py, which is required to pass
         - triton 3.3.0       # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
-        # avoid that people without GPUs needlessly download ~0.5-1GB
-        # The CUDA version constraint is handled in cuda-version as a run_constrained.
-        # However, that doesn't enforce that the package requires a GPU; that needs to be done here.
-        - __cuda  # [(gpu_variant or "").startswith("cuda")]
         # On macOS, the GPU accelerated backend, MPS, can be used from macOS v12.3. This isn't tightly dependent on the
         # SDK version used.
         - __osx >=12.3                                               # [gpu_variant == "metal"]
