@@ -57,7 +57,7 @@ export LDFLAGS_LD="$(echo $LDFLAGS_LD | sed 's/-dead_strip_dylibs//g')"
 # --threads enables multi-threaded linking (lld default on some builds,
 # but explicit is safer). --thread-count matches our job parallelism.
 if [[ "$OSTYPE" != "darwin"* ]]; then
-    export LDFLAGS="$LDFLAGS -fuse-ld=lld -Wl,--threads"
+    export LDFLAGS="$LDFLAGS -fuse-ld=lld"
 fi
 
 # --- Reduced + split debug info ---
