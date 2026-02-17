@@ -45,7 +45,6 @@ export LDFLAGS_LD="$(echo $LDFLAGS_LD | sed 's/-dead_strip_dylibs//g')"
 #   lld linker + threaded linking  : ~2-4x faster link phase
 #   -g1 + -gsplit-dwarf            : ~15-25% faster compile + link (less debug I/O)
 #   -pipe                          : ~2-5% faster (avoids temp files)
-#   Unity build (aarch64)          : ~30-50% faster compile (fewer TU parses)
 #   Component pruning (aarch64)    : ~10-15% fewer compilation units
 #   -fno-semantic-interposition    : ~1-3% faster codegen (no PLT indirection)
 #
@@ -122,36 +121,12 @@ if [[ "$target_platform" == "linux-aarch64" ]]; then
     export USE_PYTORCH_QNNPACK=OFF
 
     # FBGEMM: Facebook's x86 AVX2/AVX512 GEMM library. Produces zero
-    # useful code on ARM — it's dead weight that still costs compile time.
+    # useful code on ARM
     export USE_FBGEMM=OFF
 
     # Lite interpreter profiler: Mobile profiling infrastructure.
     # Unnecessary for server/desktop aarch64 deployments.
     export USE_LITE_INTERPRETER_PROFILER=OFF
-
-    # --- Unity build: THE BIG WIN ---
-    # With XNNPACK/NNPACK/QNNPACK disabled, the pointer-type conflicts
-    # that previously broke Unity build on GCC 15 aarch64 are gone.
-    #
-    # Unity build merges N source files into one translation unit per batch.
-    # Benefits:
-    #   - Headers parsed once per batch instead of once per file
-    #   - Template instantiations shared across merged files
-    #   - Fewer object files = faster linking
-    #   - Better optimization opportunities within merged TUs
-    #
-    # Batch size 16 is a balance: larger batches = more savings from shared
-    # headers, but also more memory per compile job and coarser parallelism.
-    # With MAX_JOBS=(CPU_COUNT-1), batch=16 keeps all cores busy while
-    # avoiding OOM on typical 8-16GB/core CI machines.
-    #
-    # If OOM occurs, reduce batch size to 8 or reduce MAX_JOBS.
-    export CMAKE_ARGS="${CMAKE_ARGS} -DCMAKE_UNITY_BUILD=ON -DCMAKE_UNITY_BUILD_BATCH_SIZE=16"
-
-    # --- Optional: further component pruning (uncomment if safe for your users) ---
-    # Caffe2 ops are legacy. Disabling saves ~5-8% of compilation units.
-    # Risk: breaks torch.ops._caffe2.* and some older model formats.
-    # export BUILD_CAFFE2_OPS=OFF
 fi
 
 # This is not correctly found for linux-aarch64 since pytorch 2.0.0 for some reason
