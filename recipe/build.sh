@@ -32,7 +32,16 @@ export CFLAGS="$(echo $CFLAGS | sed 's/-fvisibility-inlines-hidden//g')"
 export CXXFLAGS="$(echo $CXXFLAGS | sed 's/-fvisibility-inlines-hidden//g')"
 export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,--as-needed//g')"
 
-# Add this for GCC 14.3+ compatibility with XNNPACK
+# Suppress all C++ warnings. PyTorch and its third_party dependencies emit
+# thousands of warnings that bloat logs and cost real compile time (the
+# compiler must format and emit each diagnostic). These need to be fixed
+# upstream, not worked around one-by-one in packaging. C warnings are kept
+# via specific -Wno-error flags below to preserve visibility into C-level
+# issues (fewer files, more actionable).
+export CXXFLAGS="$CXXFLAGS -w"
+
+# Add this for GCC 14.3+ compatibility with XNNPACK on aarch64.
+# GCC 15 promotes -Wincompatible-pointer-types to an error by default.
 if [[ "$target_platform" == linux-aarch64 ]]; then
     export CFLAGS="$CFLAGS -Wno-error=incompatible-pointer-types"
 fi
@@ -50,32 +59,26 @@ if [[ "$OSTYPE" != "darwin"* ]]; then
     export LDFLAGS="$LDFLAGS -fuse-ld=lld"
 fi
 
-# Reduce debug information level for faster compilation and smaller object files.
-# -gsplit-dwarf moves debug info to .dwo sidecar files so the linker never
-# touches it, reducing link-phase I/O. Not supported on macOS.
-if [[ "$OSTYPE" != "darwin"* ]]; then
-    export CFLAGS="$(echo $CFLAGS | sed 's/-g[0-9]*//g') -g1 -gsplit-dwarf"
-    export CXXFLAGS="$(echo $CXXFLAGS | sed 's/-g[0-9]*//g') -g1 -gsplit-dwarf"
-else
-    export CFLAGS="$(echo $CFLAGS | sed 's/-g[0-9]*//g') -g1"
-    export CXXFLAGS="$(echo $CXXFLAGS | sed 's/-g[0-9]*//g') -g1"
-fi
+# Reduce debug information level for faster compilation and smaller object files
+export CFLAGS="$(echo $CFLAGS | sed 's/-g[0-9]*//g') -g1"
+export CXXFLAGS="$(echo $CXXFLAGS | sed 's/-g[0-9]*//g') -g1"
 
 export CFLAGS="$CFLAGS -pipe"
 export CXXFLAGS="$CXXFLAGS -pipe"
 
+# Compiler-specific warning suppression for C code only (C++ uses -w above)
 if [[ "$c_compiler" == "clang" ]]; then
-    export CXXFLAGS="$CXXFLAGS -Wno-deprecated-declarations -Wno-unknown-warning-option -Wno-error=unused-command-line-argument -Wno-error=vla-cxx-extension"
     export CFLAGS="$CFLAGS -Wno-deprecated-declarations -Wno-unknown-warning-option -Wno-error=unused-command-line-argument -Wno-error=vla-cxx-extension"
 else
-    export CXXFLAGS="$CXXFLAGS -Wno-deprecated-declarations -Wno-error=maybe-uninitialized"
     export CFLAGS="$CFLAGS -Wno-deprecated-declarations -Wno-error=maybe-uninitialized"
 fi
 
-#################### AARCH64-SPECIFIC ####################
-# GCC 15 on aarch64 breaks XNNPACK/NNPACK/QNNPACK due to
-# float16* <-> uint16_t* pointer casts in ARM NEON intrinsics.
-# FBGEMM is x86 AVX2/AVX512 only — zero useful code on ARM.
+#################### PLATFORM-SPECIFIC FLAGS ####################
+
+# GCC 15 on aarch64 breaks XNNPACK/NNPACK/QNNPACK due to float16* <-> uint16_t*
+# pointer casts in ARM NEON intrinsics. These are mobile inference libraries and
+# not critical for server/desktop aarch64 workloads.
+# FBGEMM is x86 AVX2/AVX512 only — produces zero useful code on ARM.
 if [[ "$target_platform" == "linux-aarch64" ]]; then
     export USE_XNNPACK=OFF
     export USE_NNPACK=OFF
@@ -94,8 +97,14 @@ export _GLIBCXX_USE_CXX11_ABI=1
 export USE_KINETO=OFF
 
 if [[ "$target_platform" == "osx-64" ]]; then
-  export CXXFLAGS="$CXXFLAGS -DTARGET_OS_OSX=1"
-  export CFLAGS="$CFLAGS -DTARGET_OS_OSX=1"
+    export CXXFLAGS="$CXXFLAGS -DTARGET_OS_OSX=1"
+    export CFLAGS="$CFLAGS -DTARGET_OS_OSX=1"
+elif [[ "$target_platform" == linux-* ]]; then
+    # Force non-executable stack for glibc 2.41+ compatibility.
+    # ittptmark64.S.o lacks .note.GNU-stack, which newer glibc interprets
+    # as requesting an executable stack — a security concern that some
+    # distros reject outright.
+    LDFLAGS="${LDFLAGS} -Wl,-z,noexecstack"
 fi
 
 # Dynamic libraries need to be lazily loaded so that torch
@@ -147,6 +156,8 @@ for ARG in $CMAKE_ARGS; do
     export ${cmake_arg}
   fi
 done
+# Help CMake find things in the source tree (e.g. for cross-compilation)
+CMAKE_FIND_ROOT_PATH+=";$SRC_DIR"
 unset CMAKE_INSTALL_PREFIX
 #export TH_BINARY_BUILD=1
 # Use our build version and number for inserting into binaries
@@ -165,6 +176,11 @@ export USE_SYSTEM_PYBIND11=1
 export USE_SYSTEM_EIGEN_INSTALL=1
 
 rm -rf $PREFIX/bin/protoc
+
+# Prevent setup.py from checking submodule status (we don't use all of them)
+rm -f .gitmodules
+# Prevent NNPACK from trying to download six at build time
+> third_party/NNPACK/cmake/DownloadSix.cmake
 
 if [[ "${target_platform}" != "${build_platform}" ]]; then
     # It helps cross compiled builds without emulation support to complete
@@ -198,15 +214,10 @@ else
 fi
 
 if [[ "$PKG_NAME" == "pytorch" ]]; then
-  PIP_ACTION=install
   # Trick Cmake into thinking python hasn't changed
   sed "s/3\.12/$PY_VER/g" build/CMakeCache.txt.orig > build/CMakeCache.txt
   sed -i.bak "s/3;12/${PY_VER%.*};${PY_VER#*.}/g" build/CMakeCache.txt
   sed -i.bak "s/cpython-312/cpython-${PY_VER%.*}${PY_VER#*.}/g" build/CMakeCache.txt
-else
-  # For the main script we just build a wheel for so that the C++/CUDA
-  # parts are built. Then they are reused in each python version.
-  PIP_ACTION=wheel
 fi
 
 # MacOS build is simple, and will not be for CUDA
@@ -311,33 +322,33 @@ fi
 
 echo '${CXX}'=${CXX}
 echo '${PREFIX}'=${PREFIX}
-$PREFIX/bin/python -m pip $PIP_ACTION . --no-deps --no-build-isolation -vvv --no-clean \
-    | sed "s,${CXX},\$\{CXX\},g" \
-    | sed "s,${PREFIX},\$\{PREFIX\},g"
 
 if [[ "$PKG_NAME" == "libtorch" ]]; then
-  mkdir -p $SRC_DIR/dist
-  pushd $SRC_DIR/dist
-  wheel unpack ../torch-*.whl
-  pushd torch-*
-  mv torch/bin/* ${PREFIX}/bin
-  mv torch/lib/* ${PREFIX}/lib
-  # need to merge these now because we're using system pybind11
-  rsync -a torch/share/* ${PREFIX}/share
-  for f in ATen caffe2 tensorpipe torch c10; do
-    mv torch/include/$f ${PREFIX}/include/$f
-  done
-  rm ${PREFIX}/lib/libtorch_python.*
-  popd
-  popd
+    # Call setup.py directly to avoid the overhead of packing into a .whl
+    # then immediately unpacking it. Saves minutes of I/O on large builds.
+    $PREFIX/bin/python setup.py -q build \
+        2>&1 \
+        | sed "s,${CXX},\$\{CXX\},g" \
+        | sed "s,${PREFIX},\$\{PREFIX\},g"
 
-  # Keep the original backed up to sed later
-  cp build/CMakeCache.txt build/CMakeCache.txt.orig
+    mv build/lib.*/torch/bin/* ${PREFIX}/bin/
+    mv build/lib.*/torch/lib/* ${PREFIX}/lib/
+    # need to merge these now because we're using system pybind11
+    rsync -a build/lib.*/torch/share/* ${PREFIX}/share/
+    mv build/lib.*/torch/include/{ATen,caffe2,tensorpipe,torch,c10} ${PREFIX}/include/
+    rm ${PREFIX}/lib/libtorch_python.*
+
+    # Keep the original backed up to sed later
+    cp build/CMakeCache.txt build/CMakeCache.txt.orig
 else
-  # Keep this in ${PREFIX}/lib so that the library can be found by
-  # TorchConfig.cmake.
-  # With upstream non-split build, `libtorch_python.so`
-  # and TorchConfig.cmake are both in ${SP_DIR}/torch/lib and therefore
-  # this is not needed.
-  mv ${SP_DIR}/torch/lib/libtorch_python${SHLIB_EXT} ${PREFIX}/lib
+    $PREFIX/bin/python -m pip install . --no-deps --no-build-isolation -vvv --no-clean \
+        | sed "s,${CXX},\$\{CXX\},g" \
+        | sed "s,${PREFIX},\$\{PREFIX\},g"
+
+    # Keep this in ${PREFIX}/lib so that the library can be found by
+    # TorchConfig.cmake.
+    # With upstream non-split build, `libtorch_python.so`
+    # and TorchConfig.cmake are both in ${SP_DIR}/torch/lib and therefore
+    # this is not needed.
+    mv ${SP_DIR}/torch/lib/libtorch_python${SHLIB_EXT} ${PREFIX}/lib
 fi
