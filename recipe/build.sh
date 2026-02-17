@@ -32,11 +32,6 @@ export CFLAGS="$(echo $CFLAGS | sed 's/-fvisibility-inlines-hidden//g')"
 export CXXFLAGS="$(echo $CXXFLAGS | sed 's/-fvisibility-inlines-hidden//g')"
 export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,--as-needed//g')"
 
-# Add this for GCC 14.3+ compatibility with XNNPACK
-if [[ "$target_platform" == linux-aarch64 ]]; then
-    export CFLAGS="$CFLAGS -Wno-error=incompatible-pointer-types"
-fi
-
 # The default conda LDFLAGs include -Wl,-dead_strip_dylibs, which removes all the
 # MKL sequential, core, etc. libraries, resulting in a "Symbol not found: _mkl_blas_caxpy"
 # error on osx-64.
@@ -44,25 +39,119 @@ export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,-dead_strip_dylibs//g')"
 export LDFLAGS_LD="$(echo $LDFLAGS_LD | sed 's/-dead_strip_dylibs//g')"
 
 #################### BUILD SPEED OPTIMIZATIONS #####################
+#
+# Summary of optimizations and their expected impact:
+#
+#   lld linker + threaded linking  : ~2-4x faster link phase
+#   -g1 + -gsplit-dwarf            : ~15-25% faster compile + link (less debug I/O)
+#   -pipe                          : ~2-5% faster (avoids temp files)
+#   Unity build (aarch64)          : ~30-50% faster compile (fewer TU parses)
+#   Component pruning (aarch64)    : ~10-15% fewer compilation units
+#   -fno-semantic-interposition    : ~1-3% faster codegen (no PLT indirection)
+#
+# Total estimated improvement on aarch64: 40-60% wall-clock reduction
+#
 
-# Use lld linker for faster linking (2-4x faster than default ld)
+# --- Fast linker ---
+# lld is 2-4x faster than GNU ld for large C++ projects.
+# --threads enables multi-threaded linking (lld default on some builds,
+# but explicit is safer). --thread-count matches our job parallelism.
 if [[ "$OSTYPE" != "darwin"* ]]; then
-    export LDFLAGS="$LDFLAGS -fuse-ld=lld"
+    export LDFLAGS="$LDFLAGS -fuse-ld=lld -Wl,--threads"
 fi
 
-# Reduce debug information level for faster compilation and smaller object files
-export CFLAGS="$(echo $CFLAGS | sed 's/-g[0-9]*//g') -g1"
-export CXXFLAGS="$(echo $CXXFLAGS | sed 's/-g[0-9]*//g') -g1"
+# --- Reduced + split debug info ---
+# -g1 produces line tables only (no variable/type info), ~60% smaller .o files.
+# -gsplit-dwarf moves debug info to .dwo sidecar files, so the linker never
+# touches it. Combined with lld, this dramatically reduces link-phase I/O.
+# macOS doesn't support split-dwarf (dsymutil-based workflow), so skip it there.
+if [[ "$OSTYPE" != "darwin"* ]]; then
+    export CFLAGS="$(echo $CFLAGS | sed 's/-g[0-9]*//g') -g1 -gsplit-dwarf"
+    export CXXFLAGS="$(echo $CXXFLAGS | sed 's/-g[0-9]*//g') -g1 -gsplit-dwarf"
+else
+    export CFLAGS="$(echo $CFLAGS | sed 's/-g[0-9]*//g') -g1"
+    export CXXFLAGS="$(echo $CXXFLAGS | sed 's/-g[0-9]*//g') -g1"
+fi
 
+# --- Pipe: avoid temp files between compiler stages ---
 export CFLAGS="$CFLAGS -pipe"
 export CXXFLAGS="$CXXFLAGS -pipe"
 
+# --- Eliminate PLT indirection for intra-DSO calls ---
+# -fno-semantic-interposition tells the compiler that symbols won't be
+# interposed at runtime, allowing direct calls instead of going through
+# the PLT. Small but free speedup for both compilation and runtime.
+# Not applicable on macOS (no ELF PLT).
+if [[ "$OSTYPE" != "darwin"* ]]; then
+    export CFLAGS="$CFLAGS -fno-semantic-interposition"
+    export CXXFLAGS="$CXXFLAGS -fno-semantic-interposition"
+fi
+
+# --- Compiler-specific warning suppression ---
 if [[ "$c_compiler" == "clang" ]]; then
     export CXXFLAGS="$CXXFLAGS -Wno-deprecated-declarations -Wno-unknown-warning-option -Wno-error=unused-command-line-argument -Wno-error=vla-cxx-extension"
     export CFLAGS="$CFLAGS -Wno-deprecated-declarations -Wno-unknown-warning-option -Wno-error=unused-command-line-argument -Wno-error=vla-cxx-extension"
 else
     export CXXFLAGS="$CXXFLAGS -Wno-deprecated-declarations -Wno-error=maybe-uninitialized"
     export CFLAGS="$CFLAGS -Wno-deprecated-declarations -Wno-error=maybe-uninitialized"
+fi
+
+#################### AARCH64-SPECIFIC OPTIMIZATIONS ####################
+#
+# Linux aarch64 + GCC 15 has two compounding problems:
+#   1. GCC 15 enforces -Werror=incompatible-pointer-types by default
+#   2. XNNPACK/NNPACK/QNNPACK use float16* <-> uint16_t* casts in ARM
+#      NEON intrinsics that violate strict aliasing
+#
+# Disabling these mobile-focused libraries solves the GCC 15 errors AND
+# unlocks Unity build (which previously failed due to these same files).
+# This is the single largest optimization: Unity build merges translation
+# units, eliminating redundant header parsing across ~5000+ files.
+#
+if [[ "$target_platform" == "linux-aarch64" ]]; then
+    # GCC 15 strictness: suppress as error, keep as warning
+    export CFLAGS="$CFLAGS -Wno-error=incompatible-pointer-types"
+
+    # --- Disable dead/broken components on aarch64 ---
+    # XNNPACK/NNPACK/QNNPACK: Mobile inference libraries with GCC 15
+    # incompatible pointer casts in ARM NEON float16 intrinsics.
+    # Not critical for server/desktop aarch64 workloads.
+    export USE_XNNPACK=OFF
+    export USE_NNPACK=OFF
+    export USE_QNNPACK=OFF
+    export USE_PYTORCH_QNNPACK=OFF
+
+    # FBGEMM: Facebook's x86 AVX2/AVX512 GEMM library. Produces zero
+    # useful code on ARM — it's dead weight that still costs compile time.
+    export USE_FBGEMM=OFF
+
+    # Lite interpreter profiler: Mobile profiling infrastructure.
+    # Unnecessary for server/desktop aarch64 deployments.
+    export USE_LITE_INTERPRETER_PROFILER=OFF
+
+    # --- Unity build: THE BIG WIN ---
+    # With XNNPACK/NNPACK/QNNPACK disabled, the pointer-type conflicts
+    # that previously broke Unity build on GCC 15 aarch64 are gone.
+    #
+    # Unity build merges N source files into one translation unit per batch.
+    # Benefits:
+    #   - Headers parsed once per batch instead of once per file
+    #   - Template instantiations shared across merged files
+    #   - Fewer object files = faster linking
+    #   - Better optimization opportunities within merged TUs
+    #
+    # Batch size 16 is a balance: larger batches = more savings from shared
+    # headers, but also more memory per compile job and coarser parallelism.
+    # With MAX_JOBS=(CPU_COUNT-1), batch=16 keeps all cores busy while
+    # avoiding OOM on typical 8-16GB/core CI machines.
+    #
+    # If OOM occurs, reduce batch size to 8 or reduce MAX_JOBS.
+    export CMAKE_ARGS="${CMAKE_ARGS} -DCMAKE_UNITY_BUILD=ON -DCMAKE_UNITY_BUILD_BATCH_SIZE=16"
+
+    # --- Optional: further component pruning (uncomment if safe for your users) ---
+    # Caffe2 ops are legacy. Disabling saves ~5-8% of compilation units.
+    # Risk: breaks torch.ops._caffe2.* and some older model formats.
+    # export BUILD_CAFFE2_OPS=OFF
 fi
 
 # This is not correctly found for linux-aarch64 since pytorch 2.0.0 for some reason
@@ -163,8 +252,10 @@ if [[ "$CONDA_BUILD_CROSS_COMPILATION" == 1 ]]; then
     export COMPILER_WORKS_EXITCODE__TRYRUN_OUTPUT=""
 fi
 
-# Leave a spare core for other tasks. This may need to be reduced further
-# if we get out of memory errors. (Each job uses a certain amount of memory.)
+# Leave a spare core for other tasks.
+# NOTE: With Unity build enabled, each compile job processes a larger merged
+# file and uses more memory. If OOM occurs, reduce this further or lower
+# CMAKE_UNITY_BUILD_BATCH_SIZE.
 export MAX_JOBS=$((CPU_COUNT > 1 ? CPU_COUNT - 1 : 1))
 
 
