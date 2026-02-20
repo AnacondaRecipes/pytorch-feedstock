@@ -127,8 +127,6 @@ requirements:
     - libprotobuf
     - protobuf
     - make      # [linux]
-    # Uncomment to use ccache, see README and build_pytorch.sh
-    # - ccache
   host:
     # GPU requirements
     - cuda-version {{ cuda_compiler_version }} # [(gpu_variant or "").startswith("cuda")]
@@ -304,8 +302,6 @@ outputs:
         - libprotobuf
         - protobuf
         - make      # [linux]
-        # Uncomment to use ccache, see README and build_pytorch.sh
-        # - ccache
       host:
         # GPU requirements
         {% if cuda_major < 13 %}
