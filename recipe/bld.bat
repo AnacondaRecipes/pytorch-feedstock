@@ -1,43 +1,28 @@
 @echo On
 setlocal enabledelayedexpansion
 
-@REM ============================================================================
-@REM PyTorch Windows Build Script (Optimized)
-@REM
-@REM Key changes vs original:
-@REM   - MAX_JOBS=4 instead of 1 (~4x compilation speedup)
-@REM   - pip-based build with --no-clean (incremental CMake, cleaner flow)
-@REM   - PACKAGE_TYPE=conda (prevents vendored library bundling)
-@REM   - IN_PYTORCH_BUILD=1 (enables CUDA path overrides via patched FindCUDAToolkit)
-@REM   - Reduced CUDA arch list (dropped pre-Turing, added Blackwell)
-@REM   - CMAKE_CUDA_FLAGS to suppress noisy ptxas advisories
-@REM   - Consolidated and cleaned up env var setup
-@REM ============================================================================
-
 @REM remove pyproject.toml to avoid installing deps from pip
 if EXIST pyproject.toml (
   DEL pyproject.toml
   if %ERRORLEVEL% neq 0 exit 1
 )
 
-@REM This tells pytorch's setup.py we're in a conda build, which prevents
-@REM it from bundling vendored libraries into the wheel.
-@REM See: https://github.com/pytorch/pytorch/blob/v2.8.0/setup.py#L341
+@REM Tells pytorch's setup.py we're in a conda build, preventing
+@REM vendored library bundling into the wheel.
 set PACKAGE_TYPE=conda
 
-@REM This is used by our patched FindCUDAToolkit.cmake to allow overriding
+@REM Used by our patched FindCUDAToolkit.cmake to allow overriding
 @REM CUDA paths instead of using CMAKE_CUDA_COMPILER_TOOLKIT_ROOT
 set IN_PYTORCH_BUILD=1
 
 set PYTORCH_BUILD_VERSION=%PKG_VERSION%
 @REM Always pass 0 to avoid appending ".post" to version string.
-@REM https://github.com/conda-forge/pytorch-cpu-feedstock/issues/315
 set PYTORCH_BUILD_NUMBER=0
 
 @REM ========================= PARALLELISM ======================================
-@REM Each CUDA compilation job uses ~2-4GB RAM.
-@REM 4 is safe on 32GB runners. Push to 6-8 on 64GB+.
-set MAX_JOBS=4
+@REM Each CUDA compilation job peaks at ~2-4GB RAM.
+@REM 6 is safe on our 64GB runners.
+set MAX_JOBS=6
 
 @REM ========================= BLAS SETUP =======================================
 if "%blas_impl%" == "openblas" (
@@ -57,6 +42,8 @@ set "USE_LITE_PROTO=ON"
 set "USE_ITT=0"
 set "USE_NUMA=0"
 set "USE_OPENMP=ON"
+set "USE_TENSORPIPE=0"
+set "USE_KINETO=OFF"
 set "INSTALL_TEST=0"
 set "BUILD_TEST=0"
 
@@ -78,18 +65,13 @@ if not "%cuda_compiler_version%" == "None" (
     set USE_STATIC_NCCL=0
 
     @REM CUDA Architecture List
-    @REM Each target roughly multiplies nvcc compilation time.
-    @REM
-    @REM  7.5 = Turing     (RTX 20xx, T4)        - 2018, still common in cloud
-    @REM  8.0 = Ampere HPC (A100)                 - 2020, major datacenter GPU
-    @REM  8.6 = Ampere     (RTX 30xx)             - 2020, large consumer base
-    @REM  8.9 = Ada        (RTX 40xx, L4, L40)    - 2022, current consumer gen
-    @REM  9.0 = Hopper     (H100, H200)           - 2022, current datacenter
-    @REM 10.0 = Blackwell  (B100, B200, RTX 50xx) - 2024, newest generation
+    @REM  7.5 = Turing     (RTX 20xx, T4)
+    @REM  8.0 = Ampere HPC (A100)
+    @REM  8.6 = Ampere     (RTX 30xx)
+    @REM  8.9 = Ada        (RTX 40xx, L4, L40)
+    @REM  9.0 = Hopper     (H100, H200)
+    @REM 10.0 = Blackwell  (B100, B200, RTX 50xx)
     @REM +PTX = forward compat via JIT for future archs
-    @REM
-    @REM Dropped vs old list: nothing lost (old list was 7.5-9.0+PTX)
-    @REM Added: 10.0 native (Blackwell), PTX moved forward to 10.0
     set "TORCH_CUDA_ARCH_LIST=7.5;8.0;8.6;8.9;9.0;10.0+PTX"
     set "TORCH_NVCC_FLAGS=-Xfatbin -compress-all"
 
@@ -102,7 +84,6 @@ if not "%cuda_compiler_version%" == "None" (
     set "CUDA_VERSION=%cuda_compiler_version%"
 ) else (
     set USE_CUDA=0
-    @REM MKLDNN is an Apache-2.0 licensed library for DNNs, not to be confused with MKL.
     set "USE_MKLDNN=1"
     @REM On Windows, env vars are case-insensitive and setup.py passes all
     @REM env vars starting with CUDA_*, CMAKE_* to cmake. Clear them.
@@ -129,6 +110,11 @@ set Python_ROOT_DIR=%PREFIX%
 
 set "libuv_ROOT=%LIBRARY_PREFIX%"
 
+@REM Increase MSVC precompiled header memory limit.
+@REM PyTorch has very large translation units that can hit compiler OOM without this.
+set "CFLAGS=/Zm800 %CFLAGS%"
+set "CXXFLAGS=/Zm800 %CXXFLAGS%"
+
 @REM The activation script for cuda-nvcc doesn't add CUDA_CFLAGS on Windows.
 @REM https://github.com/conda-forge/cuda-nvcc-feedstock/issues/47
 set "CUDA_CFLAGS=-I%PREFIX%/Library/include -I%BUILD_PREFIX%/Library/include"
@@ -154,10 +140,6 @@ if "%PKG_NAME%" == "pytorch" (
 if %ERRORLEVEL% neq 0 exit 1
 
 @REM ========================= PACKAGE SPLIT ====================================
-@REM Both libtorch and pytorch use this script.
-@REM libtorch: extract non-Python binaries, headers, cmake files
-@REM pytorch: install Python package, move Python-specific binary to LIBRARY
-
 if "%PKG_NAME%" == "libtorch" (
     if not exist "%SRC_DIR%\dist" mkdir %SRC_DIR%\dist
     pushd %SRC_DIR%\dist
@@ -166,7 +148,6 @@ if "%PKG_NAME%" == "libtorch" (
         if %ERRORLEVEL% neq 0 exit 1
     )
 
-    @REM Navigate into unpacked wheel (naming per pypa/wheel spec)
     pushd torch-*
     if %ERRORLEVEL% neq 0 exit 1
 
