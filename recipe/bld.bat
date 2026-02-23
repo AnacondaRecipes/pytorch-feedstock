@@ -186,5 +186,8 @@ if "%PKG_NAME%" == "libtorch" (
     robocopy /NP /NFL /NDL /NJH /E /MOV %LIBRARY_LIB%\ %SP_DIR%\torch\lib\ torch_python.lib _C.lib
 )
 
+@REM Robocopy exit codes: 0=nothing copied, 1=files copied, 2=extras found,
+@REM 4=mismatched. Codes <=7 are success. Only >=8 indicates failure.
+if %ERRORLEVEL% leq 7 set ERRORLEVEL=0
 if %ERRORLEVEL% neq 0 exit 1
 exit /b 0
