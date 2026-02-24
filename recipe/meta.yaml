@@ -77,12 +77,12 @@ build:
   run_exports:
     - {{ pin_subpackage('libtorch', max_pin='x.x') }}
   ignore_run_exports_from:
-    - python *                               # [megabuild]
-    - numpy *                                # [megabuild]
-    - cross-python_{{ target_platform }}     # [megabuild and build_platform != target_platform]
+    - python *
+    - numpy *
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
   ignore_run_exports:
-    - python *                               # [megabuild]
-    - numpy *                                # [megabuild]
+    - python *
+    - numpy *
   skip: True  # [not win or not (gpu_variant or "").startswith("cuda")]
 
 requirements:
