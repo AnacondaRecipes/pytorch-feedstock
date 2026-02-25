@@ -386,11 +386,7 @@ outputs:
         - triton 3.3.0       # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
         # avoid that people without GPUs needlessly download ~0.5-1GB
         # The CUDA version constraint is handled in cuda-version as a run_constrained.
-        # However, that doesn't enforce that the package requires a GPU; that needs to be done here.
-        - __cuda  # [(gpu_variant or "").startswith("cuda")]
-        # On macOS, the GPU accelerated backend, MPS, can be used from macOS v12.3. This isn't tightly dependent on the
-        # SDK version used.
-        - __osx >=12.3                                               # [gpu_variant == "metal"]
+        # However, that doesn't enforce that the package requires a GPU; that needs to be done here.                                          # [gpu_variant == "metal"]
         - libtorch {{ version }}
         - setuptools
         - opentelemetry-api
