@@ -6,22 +6,26 @@ c_compiler_version:      # [linux]
   - 15.2.0               # [linux]
 cxx_compiler_version:    # [linux]
   - 15.2.0               # [linux]
+c_stdlib_version:            # [(osx and arm64)]
+  - 12.1                     # [(osx and arm64)]
+  - 13.3                     # [(osx and arm64)]
 cuda_compiler_version:       # [win or (linux and x86_64)]
   - 12.8                     # [win or (linux and x86_64)]
 # CONDA_BUILD_SYSROOT is defined in the base cbc.yaml, but it's reflected here so we can zip the keys and
 # build GPU and CPU at the same time for osx-arm64. It'll need to be manually updated here if the base cbc is changed.
 # This could be done using extend_keys instead, with a change to the base cbc.yaml.
 # However there's currently a conda-forge bug that prevents this: https://github.com/conda/conda-build/issues/5048
-MACOSX_SDK_VERSION:          # [(osx and arm64)]
-  - 11.1                     # [(osx and arm64)]
+MACOSX_DEPLOYMENT_TARGET:    # [(osx and arm64)]
+  - 12.1                     # [(osx and arm64)]
   - 13.3                     # [(osx and arm64)]
 CONDA_BUILD_SYSROOT:         # [(osx and arm64)]
-  - /Library/Developer/CommandLineTools/SDKs/MacOSX11.1.sdk  # [(osx and arm64)]
+  - /Library/Developer/CommandLineTools/SDKs/MacOSX12.1.sdk  # [(osx and arm64)]
   - /Library/Developer/CommandLineTools/SDKs/MacOSX13.3.sdk  # [(osx and arm64)]
-zip_keys:                    # [(osx and arm64)]
-  - gpu_variant              # [(osx and arm64)]
-  - MACOSX_SDK_VERSION       # [(osx and arm64)]
-  - CONDA_BUILD_SYSROOT      # [(osx and arm64)]
+zip_keys:                      # [(osx and arm64)]
+  - - gpu_variant              # [(osx and arm64)]
+    - MACOSX_DEPLOYMENT_TARGET # [(osx and arm64)]
+    - CONDA_BUILD_SYSROOT      # [(osx and arm64)]
+    - c_stdlib_version         # [(osx and arm64)]
 # gcc/CUDA compatibility guide, for pinning if necessary:
 # https://docs.nvidia.com/cuda/archive/11.8.0/cuda-installation-guide-linux/index.html
 # We don't build a CUDA variant yet for Windows, due to issues getting CMake to build magma with CUDA support.
