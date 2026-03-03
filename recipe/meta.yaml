@@ -2,7 +2,7 @@
 {% set sha256 = "c70a2c9488f6f6e8af5982a10d1cc2c37b7df5e6506d839daa5d5e250953d7b5" %}
 # Set the RC number to build release candidates. Set to None otherwise
 {% set rc = None %}
-{% set build = 1 %}
+{% set build = 2 %}
 
 # Keep this in sync with the release
 {% set smoke_test_commit = "ba56102387ef21a3b04b357e5b183d48f0afefc7" %}
@@ -77,12 +77,21 @@ build:
     - {{ pin_subpackage('libtorch', max_pin='x.x') }}
   ignore_run_exports_from:
     - python *
+<<<<<<< 2.8-linux-cuda
     - numpy *                                
+=======
+    - numpy *
+>>>>>>> 2.8-windows-cuda
     - cross-python_{{ target_platform }}     # [build_platform != target_platform]
   ignore_run_exports:
     - python *
     - numpy *
+<<<<<<< 2.8-linux-cuda
   skip: True  # [not linux or not (gpu_variant or "").startswith("cuda")]
+=======
+  skip: True  # [not win or not (gpu_variant or "").startswith("cuda")]
+>>>>>>> 2.8-windows-cuda
+
 
 requirements:
   # Keep this list synchronized (except for python*, numpy*) in outputs
@@ -125,7 +134,6 @@ requirements:
     # Keep libprotobuf here so that a compatibile version
     # of protobuf is installed between build and host
     - libprotobuf
-    - protobuf
     - make      # [linux]
   host:
     # GPU requirements
@@ -242,6 +250,12 @@ outputs:
         - "**/torch_python.dll"       # [win]
         # libcuda.so is the cuda driver API library and is a system library.
         - "**/libcuda.so*"            # [(gpu_variant or "").startswith("cuda")]
+        - "**/libtorch_cpu.so*"       # [aarch64]
+        - "**/libc10.so*"             # [aarch64]
+      overlinking_ignore_patterns:
+        - "**/libtorch_cpu.so*"       # [aarch64]
+        - "**/libc10.so*"             # [aarch64]
+
   - name: pytorch
     build:
       string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda-12"]
@@ -259,6 +273,13 @@ outputs:
         - "**/shm.dll"                # [win]
         - "**/torch_cpu.dll"          # [win]
         - "**/torch_python.dll"       # [win]
+        - "**/libtorch_cpu.so*"       # [aarch64]
+        - "**/libc10.so*"             # [aarch64]
+        - "**/libtorch_python.so*"    # [aarch64]
+      overlinking_ignore_patterns:
+        - "**/libtorch_cpu.so*"       # [aarch64]
+        - "**/libc10.so*"             # [aarch64]
+        - "**/libtorch_python.so*"    # [aarch64]
       detect_binary_files_with_prefix: false
       run_exports:
         - {{ pin_subpackage('pytorch', max_pin='x.x') }}
@@ -300,7 +321,6 @@ outputs:
         # Keep libprotobuf here so that a compatibile version
         # of protobuf is installed between build and host
         - libprotobuf
-        - protobuf
         - make      # [linux]
       host:
         # GPU requirements
@@ -385,9 +405,14 @@ outputs:
         - fsspec
         # Required to support torch.compile. This is tested in smoke_test.py, which is required to pass
         - triton 3.4.0       # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
+<<<<<<< 2.8-linux-cuda
         # On macOS, the GPU accelerated backend, MPS, can be used from macOS v12.3. This isn't tightly dependent on the
         # SDK version used.
         - __osx >=12.3                                               # [gpu_variant == "metal"]
+=======
+        # avoid that people without GPUs needlessly download ~0.5-1GB
+        # The CUDA version constraint is handled in cuda-version as a run_constrained.
+>>>>>>> 2.8-windows-cuda
         - libtorch {{ version }}
         - setuptools
         - opentelemetry-api
