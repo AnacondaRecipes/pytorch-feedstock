@@ -225,12 +225,6 @@ test:
 outputs:
   - name: libtorch
     build:
-      ignore_run_exports_from:
-        - python
-        - numpy
-      ignore_run_exports:
-        - python_abi
-        - numpy
       missing_dso_whitelist:
         # The are dynamically loaded from %SP_DIR%\torch\lib\
         - "**/asmjit.dll"             # [win]
