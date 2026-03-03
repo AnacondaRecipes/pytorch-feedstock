@@ -77,21 +77,12 @@ build:
     - {{ pin_subpackage('libtorch', max_pin='x.x') }}
   ignore_run_exports_from:
     - python *
-<<<<<<< 2.8-linux-cuda
-    - numpy *                                
-=======
     - numpy *
->>>>>>> 2.8-windows-cuda
     - cross-python_{{ target_platform }}     # [build_platform != target_platform]
   ignore_run_exports:
     - python *
     - numpy *
-<<<<<<< 2.8-linux-cuda
   skip: True  # [not linux or not (gpu_variant or "").startswith("cuda")]
-=======
-  skip: True  # [not win or not (gpu_variant or "").startswith("cuda")]
->>>>>>> 2.8-windows-cuda
-
 
 requirements:
   # Keep this list synchronized (except for python*, numpy*) in outputs
@@ -405,14 +396,8 @@ outputs:
         - fsspec
         # Required to support torch.compile. This is tested in smoke_test.py, which is required to pass
         - triton 3.4.0       # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
-<<<<<<< 2.8-linux-cuda
-        # On macOS, the GPU accelerated backend, MPS, can be used from macOS v12.3. This isn't tightly dependent on the
-        # SDK version used.
-        - __osx >=12.3                                               # [gpu_variant == "metal"]
-=======
         # avoid that people without GPUs needlessly download ~0.5-1GB
         # The CUDA version constraint is handled in cuda-version as a run_constrained.
->>>>>>> 2.8-windows-cuda
         - libtorch {{ version }}
         - setuptools
         - opentelemetry-api
