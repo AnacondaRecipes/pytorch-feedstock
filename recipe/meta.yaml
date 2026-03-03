@@ -84,7 +84,7 @@ build:
   ignore_run_exports:
     - python *                               
     - numpy *                               
-  skip: True  # [py<39]
+  skip: True  # [py<39 or not linux]
 
 requirements:
   # Keep this list synchronized (except for python*, numpy*) in outputs
