@@ -1,11 +1,14 @@
-{% set version = "2.8.0" %}
-{% set sha256 = "c70a2c9488f6f6e8af5982a10d1cc2c37b7df5e6506d839daa5d5e250953d7b5" %}
+{% set version = "2.9.1" %}
+{% set sha256 = "e17504700ebc4c87f9b57059df1c4d790b769458c04db144c7a92aea90f2c92b" %}
 # Set the RC number to build release candidates. Set to None otherwise
 {% set rc = None %}
-{% set build = 2 %}
+{% set build = 0 %}
 
 # Keep this in sync with the release
-{% set smoke_test_commit = "ba56102387ef21a3b04b357e5b183d48f0afefc7" %}
+{% set smoke_test_commit = "v2.9.1" %}
+
+# see https://github.com/pytorch/pytorch/blame/v{{ version }}/.ci/docker/ci_commit_pins/triton.txt
+{% set triton = "3.5.1" %}
 
 # Use a higher build number for the CUDA variant, to ensure that it's
 # preferred by conda's solver, and it's preferentially
@@ -46,8 +49,6 @@ source:
       - patches/0001-windows-FindMKL-add-library-suffix.patch                  # [win]
       - patches/0002-swap-openmp-search-precedence.patch                       # [blas_impl == "mkl"]
       - patches/0003-Force-usage-of-python-3-and-error-without-numpy.patch
-      # https://github.com/pytorch/pytorch/pull/137084
-      - patches/0004-Help-find-numpy.patch
       # https://github.com/pytorch/pytorch/issues/150918 - continue tests on failure due to flaky tests
       - patches/0007-continue-tests-on-failure.patch
       - patches/0008-add-missing-includes.patch
@@ -57,8 +58,8 @@ source:
       - patches_submodules/0001-remove-DESTINATION-lib-from-CMake-install-directives.patch  # [win]
       - patches/0014-point-include-paths-to-PREFIX-include.patch
       - patches/0015-point-lib-paths-to-PREFIX-lib.patch
-      # - patches/0016-Do-not-check-out-nccl-when-not-building-it.patch
-      - patches/0017-mkl-version-mismatch.patch
+      # backport https://github.com/pytorch/pytorch/pull/166824
+      - patches/0018-Add-USE_SYSTEM-options-for-KLEIDI-CUDNN_FRONTEND-CUT.patch
       - patches_submodules/0002-tensorpipe-memory.patch # [linux]
       - patches_submodules/0003-gloo-types.patch # [linux]
       - patches_submodules/0004-tensorpipe-allocator.patch # [linux]
@@ -104,11 +105,15 @@ requirements:
     {% if cuda_major >= 12 %}
     - cuda-driver-dev                        # [linux and build_platform != target_platform]
     - cuda-cudart-dev                        # [build_platform != target_platform]
+    - cuda-cupti-dev                         # [build_platform != target_platform]
     - cuda-nvrtc-dev                         # [build_platform != target_platform]
     - cuda-nvtx-dev                          # [build_platform != target_platform]
     - cuda-nvml-dev                          # [build_platform != target_platform]
     - cuda-profiler-api                      # [build_platform != target_platform]
+    - cusparselt                             # [build_platform != target_platform]
     - libcublas-dev                          # [build_platform != target_platform]
+    - libcudss-dev                           # [build_platform != target_platform]
+    - libcufile-dev                          # [linux and build_platform != target_platform]
     - libcufft-dev                           # [build_platform != target_platform]
     - libcurand-dev                          # [build_platform != target_platform]
     - libcusolver-dev                        # [build_platform != target_platform]
@@ -137,30 +142,30 @@ requirements:
     - cuda-version {{ cuda_compiler_version }} # [(gpu_variant or "").startswith("cuda")]
     - nvtx-c                                   # [(gpu_variant or "").startswith("cuda")]
     {% if cuda_major >= 12 %}
-    # - cuda-driver-dev
+    - cuda-driver-dev                        # [linux]
     - cuda-cudart-dev
+    - cuda-cupti-dev
     - cuda-nvrtc-dev
     - cuda-nvtx-dev
     - cuda-nvml-dev
     - cuda-profiler-api
+    - cusparselt
     - libcublas-dev
+    - libcudss-dev
+    - libcufile-dev                          # [linux]
     - libcufft-dev
     - libcurand-dev
     - libcusolver-dev
     - libcusparse-dev
-    - cuda-cupti
     {% endif %}
     # other requirements
     - python {{megabuild_python}}  # [megabuild]
     - python       # [not megabuild]
     - numpy 2
     - pip
-    # Upper bound due to https://github.com/pytorch/pytorch/issues/136541
-    - setuptools <=72.1.0
-    - wheel
+    - setuptools
     - pyyaml
     - requests
-    - future  # [py<313]
     - six
     - mkl-devel {{ mkl }}          # [blas_impl == "mkl"]
     - openblas-devel {{ openblas }}   # [blas_impl == "openblas"]
@@ -176,14 +181,14 @@ requirements:
     - libabseil {{ libabseil }}
     - libprotobuf {{ libprotobuf }}
     - sleef 3.5.1
-    - typing
     - libuv
     - pkg-config  # [unix]
     - typing_extensions
     - pybind11 2.12.1
+    - pybind11-abi
     - eigen 3.3.7
-    - astunparse 1.6.3
-    - opentelemetry-api
+    - zlib
+    - fmt
   # satisfy overlinking checks
   run:
     - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
@@ -286,11 +291,15 @@ outputs:
         {% if cuda_major >= 12 %}
         - cuda-driver-dev                        # [linux and build_platform != target_platform]
         - cuda-cudart-dev                        # [build_platform != target_platform]
+        - cuda-cupti-dev                         # [build_platform != target_platform]
         - cuda-nvrtc-dev                         # [build_platform != target_platform]
         - cuda-nvtx-dev                          # [build_platform != target_platform]
         - cuda-nvml-dev                          # [build_platform != target_platform]
         - cuda-profiler-api                      # [build_platform != target_platform]
+        - cusparselt                             # [build_platform != target_platform]
         - libcublas-dev                          # [build_platform != target_platform]
+        - libcudss-dev                           # [build_platform != target_platform]
+        - libcufile-dev                          # [linux and build_platform != target_platform]
         - libcufft-dev                           # [build_platform != target_platform]
         - libcurand-dev                          # [build_platform != target_platform]
         - libcusolver-dev                        # [build_platform != target_platform]
@@ -318,26 +327,27 @@ outputs:
         {% if cuda_major >= 12 %}
         - cuda-driver-dev                 # [linux and build_platform != target_platform]
         - cuda-cudart-dev
+        - cuda-cupti-dev
         - cuda-nvrtc-dev
         - cuda-nvtx-dev
         - cuda-nvml-dev
         - cuda-profiler-api
+        - cusparselt
         - libcublas-dev
+        - libcudss-dev
+        - libcufile-dev                   # [linux]
         - libcufft-dev
         - libcurand-dev
         - libcusolver-dev
         - libcusparse-dev
-        - cuda-cupti
         {% endif %}
         # other requirements
         - python
         - numpy 2
         - pip
-        - setuptools <=72.1.0
-        - wheel
+        - setuptools
         - pyyaml
         - requests
-        - future  # [py<313]
         - six
         - mkl-devel {{ mkl }}             # [blas_impl == "mkl"]
         - openblas-devel {{ openblas }}   # [blas_impl == "openblas"]
@@ -353,22 +363,20 @@ outputs:
         - libabseil
         - libprotobuf {{ libprotobuf }}
         - sleef 3.5.1
-        - typing
         - libuv
         - pkg-config  # [unix]
         - typing_extensions
         - {{ pin_subpackage('libtorch', exact=True) }}
         - pybind11 2.12.1
+        - pybind11-abi
         - eigen 3.3.7
-        - astunparse 1.6.3
-        - opentelemetry-api
+        - zlib
+        - fmt
       run:
         - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
         - llvm-openmp                            # [osx and not (blas_impl == "mkl")]
         # GPU requirements without run_exports
         - {{ pin_compatible('libcudnn') }}          # [(gpu_variant or "").startswith("cuda")]
-        # Required for GPU profiler
-        - {{ pin_compatible('cuda-cupti') }}                  # [gpu_variant == "cuda-12"]
         # other requirements
         - python
         # from https://numpy.org/neps/nep-0029-deprecation_policy.html
@@ -383,10 +391,11 @@ outputs:
         - filelock
         - jinja2
         - networkx
+        - optree >=0.13.0
         - nomkl                 # [blas_impl != "mkl"]
         - fsspec
         # Required to support torch.compile. This is tested in smoke_test.py, which is required to pass
-        - triton 3.3.0       # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
+        - triton =={{ triton }}       # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
         # avoid that people without GPUs needlessly download ~0.5-1GB
         # The CUDA version constraint is handled in cuda-version as a run_constrained.
         # However, that doesn't enforce that the package requires a GPU; that needs to be done here.
@@ -396,7 +405,6 @@ outputs:
         - __osx >=12.3                                               # [gpu_variant == "metal"]
         - libtorch {{ version }}
         - setuptools
-        - opentelemetry-api
       run_constrained:
         # current intel-openmp builds are incompatible with llvm-openmp on osx-64
         - llvm-openmp <0a0                # [(blas_impl == "mkl") and (osx and x86_64)]  
@@ -515,7 +523,7 @@ about:
   license_file:
     - LICENSE
     - NOTICE
-    - third_party/pybind11/LICENSE
+    - third_party/CMake/Copyright.txt
   summary: PyTorch is an optimized tensor library for deep learning using GPUs and CPUs.
   description: |
     PyTorch is a Python package that provides two high-level features:
