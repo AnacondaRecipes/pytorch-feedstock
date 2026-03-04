@@ -1,12 +1,6 @@
 @echo On
 setlocal enabledelayedexpansion
 
-@REM remove pyproject.toml to avoid installing deps from pip
-if EXIST pyproject.toml (
-  DEL pyproject.toml
-  if %ERRORLEVEL% neq 0 exit 1
-)
-
 @REM Tells pytorch's setup.py we're in a conda build, preventing
 @REM vendored library bundling into the wheel.
 set PACKAGE_TYPE=conda
