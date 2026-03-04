@@ -1,11 +1,17 @@
 gpu_variant:
   - cpu
   - metal                    # [(osx and arm64)]
-  - cuda-12                  # [win or (linux and x86_64)]
-c_compiler_version:      # [linux]
-  - 15.2.0               # [linux]
-cxx_compiler_version:    # [linux]
-  - 15.2.0               # [linux]
+  # - cuda-12                  # [win or (linux and x86_64)]
+# Linux aarch64 needs gcc 15.2.0 due to a bug with 14.3 with vector instructions
+c_compiler_version:          # [linux and aarch64]
+  - 15.2.0                   # [linux and aarch64]
+cxx_compiler_version:        # [linux and aarch64]
+  - 15.2.0                   # [linux and aarch64]
+# Linux x86_64 needs gcc 14 due to CUDA 12.8 compatibility
+c_compiler_version:          # [linux and x86_64]
+  - 14                       # [linux and x86_64]
+cxx_compiler_version:        # [linux and x86_64]
+  - 14                       # [linux and x86_64]
 cuda_compiler_version:       # [win or (linux and x86_64)]
   - 12.8                     # [win or (linux and x86_64)]
 # CONDA_BUILD_SYSROOT is defined in the base cbc.yaml, but it's reflected here so we can zip the keys and
@@ -22,16 +28,6 @@ zip_keys:                    # [(osx and arm64)]
   - gpu_variant              # [(osx and arm64)]
   - MACOSX_SDK_VERSION       # [(osx and arm64)]
   - CONDA_BUILD_SYSROOT      # [(osx and arm64)]
-# gcc/CUDA compatibility guide, for pinning if necessary:
-# https://docs.nvidia.com/cuda/archive/11.8.0/cuda-installation-guide-linux/index.html
-# We don't build a CUDA variant yet for Windows, due to issues getting CMake to build magma with CUDA support.
-
-# Conda-forge didn't do a "megabuild" on osx because it pushed their CI runners over their 6-hour limit. We don't have
-# such a limit.
+# megabuild is disabled as our CI runners work on each python version separately.
 megabuild:
-#- true
 - false
-
-# The version of python to use when building libtorch in a "megabuild"
-megabuild_python:
-  - 3.12

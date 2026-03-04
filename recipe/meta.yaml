@@ -80,7 +80,7 @@ build:
   ignore_run_exports:
     - python *                               
     - numpy *                               
-  skip: True  # [py<39 or osx]
+  skip: True  # [py<39]
 
 requirements:
   # Keep this list synchronized (except for python*, numpy*) in outputs
