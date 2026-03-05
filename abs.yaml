@@ -3,7 +3,4 @@
 extra_labels_for_os:
   osx-arm64: [ventura]
 
-task_timeout: 72000
-
-# build_parameters:
-#   - "--no-test"
+task_timeout: 86400

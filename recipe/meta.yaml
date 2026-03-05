@@ -77,13 +77,14 @@ build:
   run_exports:
     - {{ pin_subpackage('libtorch', max_pin='x.x') }}
   ignore_run_exports_from:
-    - python *                           
-    - numpy *                                
-    - cross-python_{{ target_platform }}     # [megabuild and build_platform != target_platform]
+    - python *
+    - numpy *
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
   ignore_run_exports:
-    - python *                               
-    - numpy *                               
-  skip: True  # [py<39]
+    - python *
+    - numpy *
+  skip: True  # [not win or not (gpu_variant or "").startswith("cuda")]
+
 
 requirements:
   # Keep this list synchronized (except for python*, numpy*) in outputs
@@ -127,8 +128,6 @@ requirements:
     # of protobuf is installed between build and host
     - libprotobuf
     - make      # [linux]
-    # Uncomment to use ccache, see README and build_pytorch.sh
-    # - ccache
   host:
     # GPU requirements
     - cudnn 9.15.1.9                           # [(gpu_variant or "").startswith("cuda")]
@@ -148,7 +147,7 @@ requirements:
     - libcurand-dev
     - libcusolver-dev
     - libcusparse-dev
-    - cuda-cupti
+    - cuda-cupti {{ cuda_compiler_version }}
     {% endif %}
     # other requirements
     - python {{megabuild_python}}  # [megabuild]
@@ -269,7 +268,7 @@ outputs:
       run_exports:
         - {{ pin_subpackage('pytorch', max_pin='x.x') }}
         - {{ pin_subpackage('libtorch', max_pin='x.x') }}
-      skip: True  # [py<39]
+      skip: True  # [not win or not (gpu_variant or "").startswith("cuda")]
 
     script: build_pytorch.sh   # [unix]
     script: build_pytorch.bat  # [win]
@@ -307,8 +306,6 @@ outputs:
         # of protobuf is installed between build and host
         - libprotobuf
         - make      # [linux]
-        # Uncomment to use ccache, see README and build_pytorch.sh
-        # - ccache
       host:
         # GPU requirements
         - cudnn 9.15.1.9                  # [(gpu_variant or "").startswith("cuda")]
@@ -327,7 +324,7 @@ outputs:
         - libcurand-dev
         - libcusolver-dev
         - libcusparse-dev
-        - cuda-cupti
+        - cuda-cupti {{ cuda_compiler_version }}
         {% endif %}
         # other requirements
         - python
@@ -386,14 +383,9 @@ outputs:
         - nomkl                 # [blas_impl != "mkl"]
         - fsspec
         # Required to support torch.compile. This is tested in smoke_test.py, which is required to pass
-        - triton 3.3.0       # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
+        - triton 3.4.0       # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
         # avoid that people without GPUs needlessly download ~0.5-1GB
         # The CUDA version constraint is handled in cuda-version as a run_constrained.
-        # However, that doesn't enforce that the package requires a GPU; that needs to be done here.
-        - __cuda  # [(gpu_variant or "").startswith("cuda")]
-        # On macOS, the GPU accelerated backend, MPS, can be used from macOS v12.3. This isn't tightly dependent on the
-        # SDK version used.
-        - __osx >=12.3                                               # [gpu_variant == "metal"]
         - libtorch {{ version }}
         - setuptools
         - opentelemetry-api
@@ -477,7 +469,9 @@ outputs:
         # which would be run if we used the --inductor option. (Distributed tests would only be correctly run on a multi-gpu test platform,
         # which we don't have.)
         # torch.compile isn't supported on python 3.12 yet
-        - python test/run_test.py -i inductor/test_torchinductor.py --continue-through-error || true                 # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
+        # These following tests have been disbaled due to GPU architecture needing to be very new on CI. And the others are disbled due to https://github.com/conda-forge/pytorch-cpu-feedstock/issues/380
+        # this also aligns with their meta.yaml testing strategy
+        - python test/run_test.py -i inductor/test_torchinductor.py --continue-through-error -k "not (test_isinf_cuda or test_donated_buffer_inplace_gpt or test_sdpa_inference_mode_aot_compile)" || true   # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
         - python ./test/run_test.py --mps --continue-through-error || true                                           # [(gpu_variant == "metal")]
         # Run pip check so as to ensure that all pytorch packages are installed
         # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/24
