@@ -5,5 +5,8 @@ extra_labels_for_os:
 
 task_timeout: 72000
 
+build_env_vars:
+  ANACONDA_ROCKET_ENABLE_PY314: yes
+
 # build_parameters:
 #   - "--no-test"
