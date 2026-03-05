@@ -69,11 +69,6 @@ fi
 LDFLAGS="${LDFLAGS//-Wl,-z,now/-Wl,-z,lazy}"
 
 ################ CONFIGURE CMAKE FOR CONDA ENVIRONMENT ###################
-if [[ "$OSTYPE" != "darwin"* ]]; then
-    export CMAKE_SYSROOT=$CONDA_BUILD_SYSROOT
-else
-    export CMAKE_OSX_SYSROOT=$CONDA_BUILD_SYSROOT
-fi
 # Required to make the right SDK found on Anaconda's CI system. Ideally should be fixed in the CI or conda-build
 if [[ "${build_platform}" = "osx-arm64" ]]; then
     export USE_NCCL=0
@@ -114,6 +109,16 @@ for ARG in $CMAKE_ARGS; do
   fi
 done
 unset CMAKE_INSTALL_PREFIX
+
+# Set the sysroot AFTER the CMAKE_ARGS loop, because $CMAKE_ARGS from the
+# compiler activation contains -DCMAKE_OSX_SYSROOT pointing to the base
+# CBC's SDK (e.g. 12.1), overriding the recipe-specific one we need for
+# the metal variant.
+if [[ "$OSTYPE" != "darwin"* ]]; then
+    export CMAKE_SYSROOT=$CONDA_BUILD_SYSROOT
+else
+    export CMAKE_OSX_SYSROOT=$CONDA_BUILD_SYSROOT
+fi
 #export TH_BINARY_BUILD=1
 # Use our build version and number for inserting into binaries
 export PYTORCH_BUILD_VERSION=$PKG_VERSION
