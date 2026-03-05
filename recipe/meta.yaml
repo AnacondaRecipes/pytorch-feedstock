@@ -80,7 +80,7 @@ build:
   ignore_run_exports:
     - python *                               
     - numpy *                               
-  skip: True  # [py<39 or not osx]
+  skip: True  # [not osx or py!=312]
 
 requirements:
   # Keep this list synchronized (except for python*, numpy*) in outputs
@@ -363,7 +363,7 @@ outputs:
         - pkg-config  # [unix]
         - typing_extensions
         - {{ pin_subpackage('libtorch', exact=True) }}
-        - pybind11 2.12.1
+        - pybind11 2.13.6
         - pybind11-abi
         - eigen 3.3.7
         - zlib
@@ -416,7 +416,7 @@ outputs:
         - pytest-flakefinder
         - pytest-xdist
         # Needed for test_autograd.py
-        - pybind11 2.12.1
+        - pybind11 2.13.6
         # the inductor "test_aoti_eager..." tests require objcopy
         - binutils  # [linux]
       imports:
