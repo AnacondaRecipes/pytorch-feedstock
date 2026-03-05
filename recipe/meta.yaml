@@ -339,7 +339,7 @@ outputs:
         {% endif %}
         # other requirements
         - python
-        - numpy 2
+        - numpy >=1.26.0,<3.0.0
         - pip
         - setuptools
         - pyyaml

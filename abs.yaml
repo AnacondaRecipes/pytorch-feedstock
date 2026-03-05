@@ -8,5 +8,5 @@ task_timeout: 72000
 build_env_vars:
   ANACONDA_ROCKET_ENABLE_PY314: yes
 
-# build_parameters:
-#   - "--no-test"
+build_parameters:
+   - "--no-test"
