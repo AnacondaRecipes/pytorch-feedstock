@@ -50,7 +50,7 @@ set USE_SYSTEM_SLEEF=1
 if EXIST .gitmodules del .gitmodules
 
 @REM ========================= CUDA SETUP =======================================
-if not "%cuda_compiler_version%" == "None" (
+if "%gpu_variant:~0,4%" == "cuda" (
     set USE_CUDA=1
     set USE_STATIC_CUDNN=0
     set USE_CUFILE=0
@@ -148,7 +148,7 @@ if "%PKG_NAME%" == "libtorch" (
     @REM Move non-Python binaries into conda Library locations
     robocopy /NP /NFL /NDL /NJH /E torch\bin\ %LIBRARY_BIN%\ torch*.dll c10.dll shm.dll asmjit.dll fbgemm.dll
     robocopy /NP /NFL /NDL /NJH /E torch\lib\ %LIBRARY_LIB%\ torch*.lib c10.lib shm.lib asmjit.lib fbgemm.lib
-    if not "%cuda_compiler_version%" == "None" (
+    if "%gpu_variant:~0,4%" == "cuda" (
         robocopy /NP /NFL /NDL /NJH /E torch\bin\ %LIBRARY_BIN%\ c10_cuda.dll caffe2_nvrtc.dll
         robocopy /NP /NFL /NDL /NJH /E torch\lib\ %LIBRARY_LIB%\ c10_cuda.lib caffe2_nvrtc.lib
     )
