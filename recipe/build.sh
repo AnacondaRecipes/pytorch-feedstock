@@ -110,14 +110,15 @@ for ARG in $CMAKE_ARGS; do
 done
 unset CMAKE_INSTALL_PREFIX
 
-# Set the sysroot AFTER the CMAKE_ARGS loop, because $CMAKE_ARGS from the
-# compiler activation contains -DCMAKE_OSX_SYSROOT pointing to the base
-# CBC's SDK (e.g. 12.1), overriding the recipe-specific one we need for
-# the metal variant.
+# On macOS, the compiler activation overrides CONDA_BUILD_SYSROOT with the
+# base CBC's SDK (e.g. 12.1), and CMAKE_ARGS also carries that stale value.
+# Reconstruct the correct sysroot from MACOSX_SDK_VERSION, which is
+# preserved from the recipe CBC's zip_keys and not touched by activation.
 if [[ "$OSTYPE" != "darwin"* ]]; then
     export CMAKE_SYSROOT=$CONDA_BUILD_SYSROOT
 else
-    export CMAKE_OSX_SYSROOT=$CONDA_BUILD_SYSROOT
+    export CMAKE_OSX_SYSROOT="/Library/Developer/CommandLineTools/SDKs/MacOSX${MACOSX_SDK_VERSION}.sdk"
+    export CONDA_BUILD_SYSROOT="${CMAKE_OSX_SYSROOT}"
 fi
 #export TH_BINARY_BUILD=1
 # Use our build version and number for inserting into binaries

@@ -157,7 +157,7 @@ requirements:
     # other requirements
     - python {{megabuild_python}}  # [megabuild]
     - python       # [not megabuild]
-    - numpy 2
+    - numpy >=1.26.0,<3.0.0
     - pip
     - setuptools
     - pyyaml
@@ -180,7 +180,7 @@ requirements:
     - libuv
     - pkg-config  # [unix]
     - typing_extensions
-    - pybind11 2.12.1
+    - pybind11 2.13.6
     - pybind11-abi
     - eigen 3.3.7
     - zlib
