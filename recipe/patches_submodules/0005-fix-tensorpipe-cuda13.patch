@@ -1,0 +1,14 @@
+--- third_party/tensorpipe/tensorpipe/channel/cuda_ipc/context_impl.cc
++++ third_party/tensorpipe/tensorpipe/channel/cuda_ipc/context_impl.cc
+@@ -233,7 +233,10 @@
+ 
+     // The other two compute modes are "exclusive" and "prohibited", both of
+     // which prevent access from an other process.
+-    if (props.computeMode != cudaComputeModeDefault) {
++    // NOTE: cudaComputeModeDefault is deprecated in CUDA 13.0, but we still support CUDA 12.x
++    int computeMode = -1;
++    TP_CUDA_CHECK(cudaDeviceGetAttribute(&computeMode, cudaDevAttrComputeMode, device.index));
++    if (computeMode != cudaComputeModeDefault) {
+       TP_VLOG(4) << "CUDA IPC channel is not viable because CUDA device "
+                  << device.index << " is not in default compute mode";
+       return nullptr;

@@ -53,7 +53,6 @@ source:
       - patches/0007-continue-tests-on-failure.patch
       - patches/0008-add-missing-includes.patch
       - patches/0009-use-prefix-include-for-inductor.patch
-      #- patches/0010-make-ATEN_INCLUDE_DIR-relative-to-TORCH_INSTALL_PREF.patch 
       - patches/0011-remove-DESTINATION-lib-from-CMake-install-TARGETS-di.patch             # [win]
       - patches/0014-point-include-paths-to-PREFIX-include.patch
       - patches/0015-point-lib-paths-to-PREFIX-lib.patch
@@ -74,9 +73,9 @@ build:
   run_exports:
     - {{ pin_subpackage('libtorch', max_pin='x.x') }}
   ignore_run_exports_from:
-    - python *                           
-    - numpy *                                
-    - cross-python_{{ target_platform }}     # [megabuild and build_platform != target_platform]
+    - python *
+    - numpy *
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
   ignore_run_exports:
     - python *                               
     - numpy *                               
@@ -127,17 +126,18 @@ requirements:
     # of protobuf is installed between build and host
     - libprotobuf
     - make      # [linux]
-    # Uncomment to use ccache, see README and build_pytorch.sh
-    # - ccache
   host:
     # GPU requirements
-    - cudnn 9.15.1.9                           # [(gpu_variant or "").startswith("cuda")]
-    - nccl 2.21.5.1                            # [(gpu_variant or "").startswith("cuda") and linux]
-    - magma 2.9                                # [(gpu_variant or "").startswith("cuda")]
     - cuda-version {{ cuda_compiler_version }} # [(gpu_variant or "").startswith("cuda")]
     - nvtx-c                                   # [(gpu_variant or "").startswith("cuda")]
+    {% if cuda_major < 13 %}
+    - cudnn 9.15.1.9                           # [(gpu_variant or "").startswith("cuda")]
+    - nccl 2.21.5.1                            # [(gpu_variant or "").startswith("cuda") and linux]
+    {% else %}    
+    - cudnn                  # [(gpu_variant or "").startswith("cuda")]
+    - nccl                   # [(gpu_variant or "").startswith("cuda") and linux]
+    {% endif %}
     {% if cuda_major >= 12 %}
-    - cuda-driver-dev                        # [linux]
     - cuda-cudart-dev
     - cuda-cupti-dev
     - cuda-nvrtc-dev
@@ -152,6 +152,7 @@ requirements:
     - libcurand-dev
     - libcusolver-dev
     - libcusparse-dev
+    - cuda-cupti {{ cuda_compiler_version }}
     {% endif %}
     # other requirements
     - python {{megabuild_python}}  # [megabuild]
@@ -269,7 +270,7 @@ outputs:
       run_exports:
         - {{ pin_subpackage('pytorch', max_pin='x.x') }}
         - {{ pin_subpackage('libtorch', max_pin='x.x') }}
-      skip: True  # [py<39]
+      skip: True  # [not linux or not (gpu_variant or "").startswith("cuda")]
 
     script: build_pytorch.sh   # [unix]
     script: build_pytorch.bat  # [win]
@@ -311,13 +312,16 @@ outputs:
         # of protobuf is installed between build and host
         - libprotobuf
         - make      # [linux]
-        # Uncomment to use ccache, see README and build_pytorch.sh
-        # - ccache
       host:
         # GPU requirements
-        - cudnn 9.15.1.9                  # [(gpu_variant or "").startswith("cuda")]
-        - nccl 2.21.5.1                   # [(gpu_variant or "").startswith("cuda") and linux]
-        - magma 2.9                       # [(gpu_variant or "").startswith("cuda")]
+        {% if cuda_major < 13 %}
+        - cudnn 9.15.1.9                           # [(gpu_variant or "").startswith("cuda")]
+        - nccl 2.21.5.1                            # [(gpu_variant or "").startswith("cuda") and linux]
+        {% else %}
+        - cudnn                  # [(gpu_variant or "").startswith("cuda")]
+        - nccl                   # [(gpu_variant or "").startswith("cuda") and linux]
+        {% endif %}
+        - magma                  # [(gpu_variant or "").startswith("cuda")]
         - nvtx-c                          # [(gpu_variant or "").startswith("cuda")]
         {% if cuda_major >= 12 %}
         - cuda-driver-dev                 # [linux and build_platform != target_platform]
@@ -335,6 +339,7 @@ outputs:
         - libcurand-dev
         - libcusolver-dev
         - libcusparse-dev
+        - cuda-cupti {{ cuda_compiler_version }}
         {% endif %}
         # other requirements
         - python
@@ -473,7 +478,9 @@ outputs:
         # which would be run if we used the --inductor option. (Distributed tests would only be correctly run on a multi-gpu test platform,
         # which we don't have.)
         # torch.compile isn't supported on python 3.12 yet
-        - python test/run_test.py -i inductor/test_torchinductor.py --continue-through-error || true                 # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
+        # These following tests have been disbaled due to GPU architecture needing to be very new on CI. And the others are disbled due to https://github.com/conda-forge/pytorch-cpu-feedstock/issues/380
+        # this also aligns with their meta.yaml testing strategy
+        - python test/run_test.py -i inductor/test_torchinductor.py --continue-through-error -k "not (test_isinf_cuda or test_donated_buffer_inplace_gpt or test_sdpa_inference_mode_aot_compile)" || true   # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
         - python ./test/run_test.py --mps --continue-through-error || true                                           # [(gpu_variant == "metal")]
         # Run pip check so as to ensure that all pytorch packages are installed
         # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/24
