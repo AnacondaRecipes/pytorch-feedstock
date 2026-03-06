@@ -1,17 +1,16 @@
-From e2d141dbde55c2a4370fac5165b0561b6af4798b Mon May 17 02:03:44 2025
+From 0dca61b83cfbc1e4dc772bb4806c052512f47a15 Mon Sep 17 00:00:00 2001
 From: James Robertson <jrobertson@anaconda.com>
-Date: Fri, 17 Jan 2026 12:12:48 +0000
+Date: Fri, 6 Mar 2026 14:38:08 +0000
 Subject: [PATCH] Force OneDNN headers for BOTH CPU and CUDA targets
-
 ---
  caffe2/CMakeLists.txt | 13 +++++++++++++
  1 file changed, 13 insertions(+)
 
 diff --git a/caffe2/CMakeLists.txt b/caffe2/CMakeLists.txt
-index 1234567..89abcdef 100644
+index 6ab41b6c847..8921565de52 100644
 --- a/caffe2/CMakeLists.txt
 +++ b/caffe2/CMakeLists.txt
-@@ -1926,3 +1926,16 @@
+@@ -2007,3 +2007,16 @@ if(MSVC)
    endforeach()
  endif()
  endif()
@@ -28,3 +27,6 @@ index 1234567..89abcdef 100644
 +  target_include_directories(torch_cuda PRIVATE "${PROJECT_SOURCE_DIR}/third_party/ideep/mkl-dnn/include")
 +  target_include_directories(torch_cuda PRIVATE "${PROJECT_BINARY_DIR}/third_party/ideep/mkl-dnn/include")
 +endif()
+-- 
+2.50.1 (Apple Git-155)
+

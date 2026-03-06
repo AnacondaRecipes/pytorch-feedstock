@@ -1,17 +1,19 @@
-From e2d141dbde55c2a4370fac5165b0561b6af4798b Mon May 17 02:03:44 2025
+From c271d3edd2e8790ab16864360346345890efc4c4 Mon Sep 17 00:00:00 2001
 From: James Robertson <jrobertson@anaconda.com>
-Date: Fri, 17 Jan 2026 12:12:48 +0000
-Subject: [PATCH] Force bundled OneDNN build, enable experimental kernels, and fix linking
+Date: Fri, 6 Mar 2026 14:38:12 +0000
+Subject: [PATCH] Force bundled OneDNN build, enable experimental kernels, and
+ fix linking
 
+Made-with: Cursor
 ---
- cmake/Dependencies.cmake | 18 ++++++++++++++++--
- 1 file changed, 16 insertions(+), 2 deletions(-)
+ cmake/Dependencies.cmake | 24 ++++++++++++++++--------
+ 1 file changed, 16 insertions(+), 8 deletions(-)
 
 diff --git a/cmake/Dependencies.cmake b/cmake/Dependencies.cmake
-index e2d141d..kf8325f 100644
+index ef5c2fd4e97..4696cdd4505 100644
 --- a/cmake/Dependencies.cmake
 +++ b/cmake/Dependencies.cmake
-@@ -1499,16 +1499,22 @@
+@@ -1479,14 +1479,22 @@ if(NOT INTERN_BUILD_MOBILE)
      endif()
    endif()
    if(USE_MKLDNN)
@@ -23,8 +25,6 @@ index e2d141d..kf8325f 100644
 -      message(WARNING "MKLDNN could not be found.")
 -      caffe2_update_option(USE_MKLDNN OFF)
 -    endif()
--  else()
--    message("disabling MKLDNN because USE_MKLDNN is not set")
 +    # FIX: Force bundled MKLDNN build to generate dnnl_config.h
 +    set(MKLDNN_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 +    set(MKLDNN_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
@@ -41,6 +41,9 @@ index e2d141d..kf8325f 100644
 +    set(MKLDNN_FOUND TRUE)
 +    set(AT_MKLDNN_ENABLED 1)
 +    list(APPEND Caffe2_DEPENDENCY_LIBS dnnl)
+   else()
+     message("disabling MKLDNN because USE_MKLDNN is not set")
    endif()
- 
-   if(USE_KLEIDIAI)
+-- 
+2.50.1 (Apple Git-155)
+
