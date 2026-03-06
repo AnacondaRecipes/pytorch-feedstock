@@ -84,7 +84,7 @@ build:
   ignore_run_exports:
     - python *
     - numpy *
-
+  skip: True  # [not (gpu_variant or "").startswith("cuda")]
 requirements:
   # Keep this list synchronized (except for python*, numpy*) in outputs
   # We use python to build libtorch as well because it is easier
