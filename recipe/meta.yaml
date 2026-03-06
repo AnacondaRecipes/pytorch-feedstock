@@ -58,6 +58,8 @@ source:
       - patches/0015-point-lib-paths-to-PREFIX-lib.patch
       - patches/0017-mkl-version-mismatch.patch
       - patches/0018-find-cub.patch # [(gpu_variant or "").startswith("cuda")]
+      - patches/0021-fix-onednn-cuda-include.patch
+      - patches/0022-force-bundled-mkldnn.patch
       - patches_submodules/0002-tensorpipe-memory.patch # [linux]
       - patches_submodules/0003-gloo-types.patch # [linux]
       - patches_submodules/0004-tensorpipe-allocator.patch # [linux]
