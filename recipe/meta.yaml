@@ -5,7 +5,7 @@
 {% set build = 0 %}
 
 # Keep this in sync with the release
-{% set smoke_test_commit = "v2.9.1" %}
+{% set smoke_test_commit = "d38164a545b4a4e4e0cf73ce67173f70574890b6" %}
 
 # see https://github.com/pytorch/pytorch/blame/v{{ version }}/.ci/docker/ci_commit_pins/triton.txt
 {% set triton = "3.5.1" %}
