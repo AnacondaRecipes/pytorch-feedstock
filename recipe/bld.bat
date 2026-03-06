@@ -52,6 +52,7 @@ if EXIST .gitmodules del .gitmodules
 @REM ========================= CUDA SETUP =======================================
 if not "%cuda_compiler_version%" == "None" (
     set USE_CUDA=1
+    set "USE_MKLDNN=1"
     set USE_STATIC_CUDNN=0
     set USE_CUFILE=0
     @REM NCCL is not available on Windows
