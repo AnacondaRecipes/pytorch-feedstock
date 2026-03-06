@@ -270,8 +270,6 @@ outputs:
       run_exports:
         - {{ pin_subpackage('pytorch', max_pin='x.x') }}
         - {{ pin_subpackage('libtorch', max_pin='x.x') }}
-      skip: True  # [not linux or not (gpu_variant or "").startswith("cuda")]
-
     script: build_pytorch.sh   # [unix]
     script: build_pytorch.bat  # [win]
     requirements:
