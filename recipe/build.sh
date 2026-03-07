@@ -219,7 +219,7 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
     # Even though cudnn is used for CUDA builds, it's good to enable
     # for MKLDNN for CUDA builds when CUDA builds are used on a machine
     # with no NVIDIA GPUs. However compilation fails with mkldnn and cuda enabled.
-    export USE_MKLDNN=OFF
+    export USE_MKLDNN=1
     export USE_CUDA=1
     # PyTorch Vendors an old version of FindCUDA
     # https://gitlab.kitware.com/cmake/cmake/-/blame/master/Modules/FindCUDA.cmake#L891
