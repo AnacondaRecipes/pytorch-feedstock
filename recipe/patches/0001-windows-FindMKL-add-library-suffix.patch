@@ -6,12 +6,10 @@ Subject: [PATCH] Fix FindMKL to make it use _dll suffix for libraries
 This is required because our mdl-devel package contains libraries named like
 "mkl_intel_lp64_dll.lib" instead of "mkl_intel_lp64.lib".
 
-Index: pytorch/cmake/Modules/FindMKL.cmake
-===================================================================
-diff --git cmake/Modules/FindMKL.cmake cmake/Modules/FindMKL.cmake
-index 7c4647f..ff24c97 100644
---- a/cmake/Modules/cmake/Modules/FindMKL.cmake
-+++ b/cmake/Modules/cmake/Modules/FindMKL.cmake
+diff --git a/cmake/Modules/FindMKL.cmake b/cmake/Modules/FindMKL.cmake
+index 7c4647f3746..ff24c9787ad 100644
+--- a/cmake/Modules/FindMKL.cmake
++++ b/cmake/Modules/FindMKL.cmake
 @@ -124,6 +124,9 @@ ELSE(WIN32)
      ELSE()
        SET(mklthreads "mkl_intel_thread")
