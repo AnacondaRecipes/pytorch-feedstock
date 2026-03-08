@@ -66,7 +66,7 @@ source:
 
 build:
   number: {{ build }}
-  string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda-12"]
+  string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
   detect_binary_files_with_prefix: false
@@ -240,7 +240,7 @@ outputs:
 
   - name: pytorch
     build:
-      string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda-12"]
+      string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
       string: gpu_mps_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
       string: cpu_{{ blas_impl }}_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
       entry_points:
@@ -425,8 +425,7 @@ outputs:
         - aten/src/ATen/native
       commands:
         # the smoke test script takes a bunch of env variables, defined below
-        - set MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cudatoolkit.split('.')[:2]) }}"              # [(gpu_variant == "cuda-11") and (win)]
-        - set MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cuda_compiler_version.split('.')[:2]) }}"    # [(gpu_variant == "cuda-12") and (win)]
+        - set MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cuda_compiler_version.split('.')[:2]) }}"    # [(gpu_variant == "cuda") and (win)]
         - set MATRIX_GPU_ARCH_TYPE="cuda"                                                       # [(gpu_variant or "").startswith("cuda") and (win)]
         - set MATRIX_GPU_ARCH_VERSION="none"                                                    # [(gpu_variant == "cpu") and (win)]
         - set MATRIX_GPU_ARCH_TYPE="none"                                                       # [(gpu_variant == "cpu") and (win)]
@@ -435,8 +434,7 @@ outputs:
         - set MATRIX_PACKAGE_TYPE="conda"                                                       # [win]
         - set TARGET_OS="windows"                                                               # [win]
         - set OMP_NUM_THREADS=4                                                                 # [win]
-        - export MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cudatoolkit.split('.')[:2]) }}"           # [(gpu_variant == "cuda-11") and (linux and x86_64)]
-        - export MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cuda_compiler_version.split('.')[:2]) }}" # [(gpu_variant == "cuda-12") and (linux and x86_64)]
+        - export MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cuda_compiler_version.split('.')[:2]) }}" # [(gpu_variant == "cuda") and (linux and x86_64)]
         - export MATRIX_GPU_ARCH_VERSION="{{ MACOSX_SDK_VERSION }}"                             # [(gpu_variant == "metal")]
         - export MATRIX_GPU_ARCH_TYPE="cuda"                                                    # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
         - export MATRIX_GPU_ARCH_TYPE="mps"                                                     # [(gpu_variant == "metal")]
