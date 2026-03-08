@@ -59,6 +59,10 @@ if "%gpu_variant:~0,4%" == "cuda" (
     set USE_STATIC_NCCL=0
 
     @REM CUDA Architecture List
+    @REM  5.0 = Maxwell    (GTX 9xx)           — dropped in CUDA 13
+    @REM  6.0 = Pascal HPC (P100)              — dropped in CUDA 13
+    @REM  6.1 = Pascal     (GTX 10xx)          — dropped in CUDA 13
+    @REM  7.0 = Volta      (V100)              — dropped in CUDA 13
     @REM  7.5 = Turing     (RTX 20xx, T4)
     @REM  8.0 = Ampere HPC (A100)
     @REM  8.6 = Ampere     (RTX 30xx)
@@ -66,7 +70,16 @@ if "%gpu_variant:~0,4%" == "cuda" (
     @REM  9.0 = Hopper     (H100, H200)
     @REM 10.0 = Blackwell  (B100, B200, RTX 50xx)
     @REM +PTX = forward compat via JIT for future archs
-    set "TORCH_CUDA_ARCH_LIST=7.5;8.0;8.6;8.9;9.0;10.0+PTX"
+    set "cuda_major=%cuda_compiler_version:~0,2%"
+    if "%cuda_major%" == "12" (
+        set "TORCH_CUDA_ARCH_LIST=5.0;6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0;10.0+PTX"
+    ) else if "%cuda_major%" == "13" (
+        set "TORCH_CUDA_ARCH_LIST=7.5;8.0;8.6;8.9;9.0;10.0+PTX"
+    ) else (
+        echo [ERROR] No CUDA architecture list exists for CUDA v%cuda_compiler_version%
+        echo Use https://en.wikipedia.org/wiki/CUDA#GPUs_supported to make one.
+        exit /b 1
+    )
     set "TORCH_NVCC_FLAGS=-Xfatbin -compress-all"
 
     @REM Suppress extremely noisy ptxas advisories that bloat logs

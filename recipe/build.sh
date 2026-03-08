@@ -234,18 +234,18 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
     if [[ "${target_platform}" != "${build_platform}" ]]; then
         export CUDA_TOOLKIT_ROOT=${CUDA_HOME}
     fi
-    if [[ ${cuda_compiler_version} == 12.[0-8] ]]; then
-        export TORCH_CUDA_ARCH_LIST="5.0;6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0+PTX"
-        # $CUDA_HOME not set in CUDA 12.0. Using $PREFIX
-        export CUDA_TOOLKIT_ROOT_DIR="${PREFIX}"
-        if [[ "${target_platform}" != "${build_platform}" ]]; then
-            export CUDA_TOOLKIT_ROOT=${PREFIX}
-            
-        fi
+    if [[ ${cuda_compiler_version} == 12.* ]]; then
+        export TORCH_CUDA_ARCH_LIST="5.0;6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0;10.0+PTX"
+    elif [[ ${cuda_compiler_version} == 13.* ]]; then
+        export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;8.9;9.0;10.0+PTX"
     else
         echo "No CUDA architecture list exists for CUDA v${cuda_compiler_version}"
         echo "in build.sh. Use https://en.wikipedia.org/wiki/CUDA#GPUs_supported to make one."
         exit 1
+    fi
+    export CUDA_TOOLKIT_ROOT_DIR="${PREFIX}"
+    if [[ "${target_platform}" != "${build_platform}" ]]; then
+        export CUDA_TOOLKIT_ROOT=${PREFIX}
     fi
     export TORCH_NVCC_FLAGS="-Xfatbin -compress-all"
     export NCCL_ROOT_DIR=$PREFIX
