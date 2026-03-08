@@ -59,10 +59,10 @@ if "%gpu_variant:~0,4%" == "cuda" (
     set USE_STATIC_NCCL=0
 
     @REM CUDA Architecture List
-    @REM  5.0 = Maxwell    (GTX 9xx)           — dropped in CUDA 13
-    @REM  6.0 = Pascal HPC (P100)              — dropped in CUDA 13
-    @REM  6.1 = Pascal     (GTX 10xx)          — dropped in CUDA 13
-    @REM  7.0 = Volta      (V100)              — dropped in CUDA 13
+    @REM  5.0 = Maxwell    (GTX 9xx)           -- dropped in CUDA 13
+    @REM  6.0 = Pascal HPC (P100)              -- dropped in CUDA 13
+    @REM  6.1 = Pascal     (GTX 10xx)          -- dropped in CUDA 13
+    @REM  7.0 = Volta      (V100)              -- dropped in CUDA 13
     @REM  7.5 = Turing     (RTX 20xx, T4)
     @REM  8.0 = Ampere HPC (A100)
     @REM  8.6 = Ampere     (RTX 30xx)
