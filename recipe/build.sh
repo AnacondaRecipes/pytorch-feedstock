@@ -234,43 +234,13 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
     if [[ "${target_platform}" != "${build_platform}" ]]; then
         export CUDA_TOOLKIT_ROOT=${CUDA_HOME}
     fi
-    # Warning from pytorch v1.12.1: In the future we will require one to
-    # explicitly pass TORCH_CUDA_ARCH_LIST to cmake instead of implicitly
-    # setting it as an env variable.
-    #
-    # +PTX should go to the oldest arch. There's a modest runtime performance
-    # hit for (unlisted) newer arches on doing this, but that must be set
-    # when wide compatibility is a concern.
-    #
-    # https://pytorch.org/docs/stable/cpp_extension.html (Compute capabilities)
-    # https://github.com/pytorch/builder/blob/c85da84005b44041b75e1eb3221ea7dcbd1b28aa/conda/pytorch-nightly/build.sh#L53-L89
-    if [[ ${cuda_compiler_version} == 9.0* ]]; then
-        export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;7.0"
-        export CUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME
-    elif [[ ${cuda_compiler_version} == 9.2* ]]; then
-        export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0"
-        export CUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME
-    elif [[ ${cuda_compiler_version} == 10.* ]]; then
-        export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5"
-        export CUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME
-    elif [[ ${cuda_compiler_version} == 11.0* ]]; then
-        export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5;8.0"
-        export CUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME
-    elif [[ ${cuda_compiler_version} == 11.1 ]]; then
-        export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5;8.0;8.6"
-        export CUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME
-    elif [[ ${cuda_compiler_version} == 11.2 ]]; then
-        export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5;8.0;8.6"
-        export CUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME
-    elif [[ ${cuda_compiler_version} == 11.8 ]]; then
-        export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5;8.0;8.6;8.9"
-        export CUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME
-    elif [[ ${cuda_compiler_version} == 12.[0-8] ]]; then
+    if [[ ${cuda_compiler_version} == 12.[0-8] ]]; then
         export TORCH_CUDA_ARCH_LIST="5.0;6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0+PTX"
         # $CUDA_HOME not set in CUDA 12.0. Using $PREFIX
         export CUDA_TOOLKIT_ROOT_DIR="${PREFIX}"
         if [[ "${target_platform}" != "${build_platform}" ]]; then
             export CUDA_TOOLKIT_ROOT=${PREFIX}
+            
         fi
     else
         echo "No CUDA architecture list exists for CUDA v${cuda_compiler_version}"
@@ -284,6 +254,12 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
     export USE_STATIC_NCCL=0
     export USE_STATIC_CUDNN=0
     export USE_CUFILE=0
+    # Disable cuSPARSELt: the conda package doesn't exist in defaults channels,
+    # and it's only needed for semi-structured (2:4) sparsity ops which most users don't need.
+    export USE_CUSPARSELT=0
+    # Disable cuDSS: the conda package (libcudss-dev) doesn't exist in defaults channels,
+    # and it's only needed for sparse direct solvers on CSR tensors which most users don't need.
+    export USE_CUDSS=0
     export USE_SYSTEM_NVTX=1
     export MAGMA_HOME="${PREFIX}"
     export CUDA_INC_PATH="${PREFIX}/targets/x86_64-linux/include/"  # Point cmake to the header files

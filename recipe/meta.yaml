@@ -104,9 +104,7 @@ requirements:
     - cuda-nvtx-dev                          # [build_platform != target_platform]
     - cuda-nvml-dev                          # [build_platform != target_platform]
     - cuda-profiler-api                      # [build_platform != target_platform]
-    - cusparselt                             # [build_platform != target_platform]
     - libcublas-dev                          # [build_platform != target_platform]
-    - libcudss-dev                           # [build_platform != target_platform]
     - libcufile-dev                          # [linux and build_platform != target_platform]
     - libcufft-dev                           # [build_platform != target_platform]
     - libcurand-dev                          # [build_platform != target_platform]
@@ -144,9 +142,7 @@ requirements:
     - cuda-nvtx-dev
     - cuda-nvml-dev
     - cuda-profiler-api
-    - cusparselt
     - libcublas-dev
-    - libcudss-dev
     - libcufile-dev                          # [linux]
     - libcufft-dev
     - libcurand-dev
@@ -290,9 +286,7 @@ outputs:
         - cuda-nvtx-dev                          # [build_platform != target_platform]
         - cuda-nvml-dev                          # [build_platform != target_platform]
         - cuda-profiler-api                      # [build_platform != target_platform]
-        - cusparselt                             # [build_platform != target_platform]
         - libcublas-dev                          # [build_platform != target_platform]
-        - libcudss-dev                           # [build_platform != target_platform]
         - libcufile-dev                          # [linux and build_platform != target_platform]
         - libcufft-dev                           # [build_platform != target_platform]
         - libcurand-dev                          # [build_platform != target_platform]
@@ -329,9 +323,7 @@ outputs:
         - cuda-nvtx-dev
         - cuda-nvml-dev
         - cuda-profiler-api
-        - cusparselt
         - libcublas-dev
-        - libcudss-dev
         - libcufile-dev                   # [linux]
         - libcufft-dev
         - libcurand-dev

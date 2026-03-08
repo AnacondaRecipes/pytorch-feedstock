@@ -71,6 +71,12 @@ if "%gpu_variant:~0,4%" == "cuda" (
 
     @REM Suppress extremely noisy ptxas advisories that bloat logs
     set "CMAKE_CUDA_FLAGS=-w -Xptxas -w"
+    @REM Disable cuSPARSELt: the conda package doesn't exist in defaults channels,
+    @REM and it's only needed for semi-structured (2:4) sparsity ops which most users don't need.
+    set USE_CUSPARSELT=0
+    @REM Disable cuDSS: the conda package (libcudss-dev) doesn't exist in defaults channels,
+    @REM and it's only needed for sparse direct solvers on CSR tensors which most users don't need.
+    set USE_CUDSS=0
 
     set MAGMA_HOME=%LIBRARY_PREFIX%
     set "PATH=%CUDA_BIN_PATH%;%PATH%"
