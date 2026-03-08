@@ -262,7 +262,7 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
     export USE_CUDSS=0
     export USE_SYSTEM_NVTX=1
     export MAGMA_HOME="${PREFIX}"
-    export CUDA_INC_PATH="${PREFIX}/targets/x86_64-linux/include/"  # Point cmake to the header files
+    export CUDA_INC_PATH="${PREFIX}/targets/$(uname -m)-linux/include/"
 else
     # MKLDNN is an Apache-2.0 licensed library for DNNs and is used
     # for CPU builds. Not to be confused with MKL.
