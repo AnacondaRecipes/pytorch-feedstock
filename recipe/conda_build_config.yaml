@@ -1,5 +1,5 @@
 gpu_variant:
-  # - cpu
+  - cpu
   - metal                    # [(osx and arm64)]
   - cuda                     # [win or linux]
 # Linux aarch64 needs gcc 15.2.0 due to a bug with 14.3 with vector instructions
