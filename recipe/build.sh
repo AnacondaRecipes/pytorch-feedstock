@@ -166,6 +166,10 @@ if [[ "${CI}" == "github_actions" ]]; then
     # reduce parallelism to avoid getting OOM-killed on
     # cirun-openstack-gpu-2xlarge, which has 32GB RAM, 8 CPUs
     export MAX_JOBS=4
+elif [[ "$target_platform" == "linux-aarch64" && ${gpu_variant} == "cuda"* ]]; then
+    # CUDA template instantiation (flash attention / cutlass) is extremely
+    # memory-hungry on aarch64. Cap parallelism to avoid OOM.
+    export MAX_JOBS=4
 else
     # Leave a spare core for other tasks. This may need to be reduced further
     # if we get out of memory errors. (Each job uses a certain amount of memory.)
@@ -234,7 +238,11 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
     if [[ "${target_platform}" != "${build_platform}" ]]; then
         export CUDA_TOOLKIT_ROOT=${CUDA_HOME}
     fi
-    if [[ ${cuda_compiler_version} == 12.* ]]; then
+    if [[ "$target_platform" == "linux-aarch64" ]]; then
+        # aarch64 CUDA systems are datacenter-only (no consumer GPUs).
+        # Fewer archs also reduces peak memory during compilation.
+        export TORCH_CUDA_ARCH_LIST="8.0;9.0;10.0+PTX"
+    elif [[ ${cuda_compiler_version} == 12.* ]]; then
         export TORCH_CUDA_ARCH_LIST="5.0;6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0;10.0+PTX"
     elif [[ ${cuda_compiler_version} == 13.* ]]; then
         export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;8.9;9.0;10.0+PTX"
