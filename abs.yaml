@@ -10,3 +10,6 @@ build_env_vars:
 
 build_parameters:
     - "--no-test"
+
+channels:
+  - https://staging.continuum.io/pbp/fs/magma-feedstock/pr6/a0ed1ea

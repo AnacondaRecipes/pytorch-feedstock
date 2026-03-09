@@ -71,9 +71,9 @@ if "%gpu_variant:~0,4%" == "cuda" (
     @REM 10.0 = Blackwell  (B100, B200, RTX 50xx)
     @REM +PTX = forward compat via JIT for future archs
     set "cuda_major=%cuda_compiler_version:~0,2%"
-    if "%cuda_major%" == "12" (
+    if "!cuda_major!" == "12" (
         set "TORCH_CUDA_ARCH_LIST=5.0;6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0;10.0+PTX"
-    ) else if "%cuda_major%" == "13" (
+    ) else if "!cuda_major!" == "13" (
         set "TORCH_CUDA_ARCH_LIST=7.5;8.0;8.6;8.9;9.0;10.0+PTX"
     ) else (
         echo [ERROR] No CUDA architecture list exists for CUDA v%cuda_compiler_version%
