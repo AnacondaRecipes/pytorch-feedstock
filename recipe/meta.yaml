@@ -66,7 +66,6 @@ source:
 
 build:
   number: {{ build }}
-  skip: true  # [not (linux and aarch64)]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
@@ -162,10 +161,6 @@ requirements:
     - six
     - mkl-devel {{ mkl }}          # [blas_impl == "mkl"]
     - openblas-devel {{ openblas }}   # [blas_impl == "openblas"]
-    # - libcblas * *_mkl      # [blas_impl == "mkl"]
-    # - libcblas              # [blas_impl != "mkl"]
-    # - liblapack             # [blas_impl != "mkl"]
-    # - libgomp   # [linux]
     # We pull in the same versions of mkl and intel-openmp: intel aligns the versions
     # We use intel-openmp for all mkl variants.
     # For openblas on win and linux, we don't specify any openmp implementation; it comes from the compiler.
