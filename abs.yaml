@@ -13,3 +13,4 @@ build_env_vars:
 
 channels:
   - jrobertson
+  - https://staging.continuum.io/pbp/fs/triton-feedstock/pr9/7a73745
