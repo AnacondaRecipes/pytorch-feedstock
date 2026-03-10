@@ -52,6 +52,7 @@ if EXIST .gitmodules del .gitmodules
 @REM ========================= CUDA SETUP =======================================
 if not "%cuda_compiler_version%" == "None" (
     set USE_CUDA=1
+    set "USE_MKLDNN=1"
     set USE_STATIC_CUDNN=0
     set USE_CUFILE=0
     @REM NCCL is not available on Windows
@@ -146,8 +147,8 @@ if "%PKG_NAME%" == "libtorch" (
     if %ERRORLEVEL% neq 0 exit 1
 
     @REM Move non-Python binaries into conda Library locations
-    robocopy /NP /NFL /NDL /NJH /E torch\bin\ %LIBRARY_BIN%\ torch*.dll c10.dll shm.dll asmjit.dll fbgemm.dll
-    robocopy /NP /NFL /NDL /NJH /E torch\lib\ %LIBRARY_LIB%\ torch*.lib c10.lib shm.lib asmjit.lib fbgemm.lib
+    robocopy /NP /NFL /NDL /NJH /E torch\bin\ %LIBRARY_BIN%\ torch*.dll c10.dll shm.dll asmjit.dll fbgemm.dll dnnl.dll
+    robocopy /NP /NFL /NDL /NJH /E torch\lib\ %LIBRARY_LIB%\ torch*.lib c10.lib shm.lib asmjit.lib fbgemm.lib dnnl.lib
     if not "%cuda_compiler_version%" == "None" (
         robocopy /NP /NFL /NDL /NJH /E torch\bin\ %LIBRARY_BIN%\ c10_cuda.dll caffe2_nvrtc.dll
         robocopy /NP /NFL /NDL /NJH /E torch\lib\ %LIBRARY_LIB%\ c10_cuda.lib caffe2_nvrtc.lib

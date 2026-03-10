@@ -1,0 +1,49 @@
+From c271d3edd2e8790ab16864360346345890efc4c4 Mon Sep 17 00:00:00 2001
+From: James Robertson <jrobertson@anaconda.com>
+Date: Fri, 6 Mar 2026 14:38:12 +0000
+Subject: [PATCH] Force bundled OneDNN build, enable experimental kernels, and
+ fix linking
+
+Made-with: Cursor
+---
+ cmake/Dependencies.cmake | 24 ++++++++++++++++--------
+ 1 file changed, 16 insertions(+), 8 deletions(-)
+
+diff --git a/cmake/Dependencies.cmake b/cmake/Dependencies.cmake
+index ef5c2fd4e97..4696cdd4505 100644
+--- a/cmake/Dependencies.cmake
++++ b/cmake/Dependencies.cmake
+@@ -1479,14 +1479,22 @@ if(NOT INTERN_BUILD_MOBILE)
+     endif()
+   endif()
+   if(USE_MKLDNN)
+-    include(${CMAKE_CURRENT_LIST_DIR}/public/mkldnn.cmake)
+-    if(MKLDNN_FOUND)
+-      set(AT_MKLDNN_ENABLED 1)
+-      include_directories(AFTER SYSTEM ${MKLDNN_INCLUDE_DIR})
+-    else()
+-      message(WARNING "MKLDNN could not be found.")
+-      caffe2_update_option(USE_MKLDNN OFF)
+-    endif()
++    # FIX: Force bundled MKLDNN build to generate dnnl_config.h
++    set(MKLDNN_BUILD_TESTS OFF CACHE BOOL "" FORCE)
++    set(MKLDNN_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
++    set(DNNL_EXPERIMENTAL_UKERNEL ON CACHE BOOL "" FORCE)
++    add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/ideep/mkl-dnn)
++
++    # 1. OneDNN Source Headers (dnnl_graph.hpp)
++    include_directories(AFTER SYSTEM ${PROJECT_SOURCE_DIR}/third_party/ideep/mkl-dnn/include)
++    # 2. OneDNN Generated Config (dnnl_config.h)
++    include_directories(AFTER SYSTEM ${PROJECT_BINARY_DIR}/third_party/ideep/mkl-dnn/include)
++    # 3. IDEEP Wrapper Headers (ideep.hpp)
++    include_directories(AFTER SYSTEM ${PROJECT_SOURCE_DIR}/third_party/ideep/include)
++
++    set(MKLDNN_FOUND TRUE)
++    set(AT_MKLDNN_ENABLED 1)
++    list(APPEND Caffe2_DEPENDENCY_LIBS dnnl)
+   else()
+     message("disabling MKLDNN because USE_MKLDNN is not set")
+   endif()
+-- 
+2.50.1 (Apple Git-155)
+
