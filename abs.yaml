@@ -10,6 +10,3 @@ build_env_vars:
 
 # build_parameters:
 #     - "--no-test"
-
-channels:
-  - jrobertson
