@@ -4,6 +4,7 @@
 {% set rc = None %}
 {% set build = 0 %}
 
+
 # Keep this in sync with the release
 {% set smoke_test_commit = "d38164a545b4a4e4e0cf73ce67173f70574890b6" %}
 
@@ -58,6 +59,8 @@ source:
       - patches/0015-point-lib-paths-to-PREFIX-lib.patch
       # backport https://github.com/pytorch/pytorch/pull/166824
       - patches/0018-Add-USE_SYSTEM-options-for-KLEIDI-CUDNN_FRONTEND-CUT.patch
+      - patches/0021-fix-onednn-cuda-include.patch
+      - patches/0022-force-bundled-mkldnn.patch
 {% endif %}
   - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.ci/pytorch/smoke_test/smoke_test.py
     folder: smoke_test
