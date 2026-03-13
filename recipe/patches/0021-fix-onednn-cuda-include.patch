@@ -1,16 +1,16 @@
-From 0dca61b83cfbc1e4dc772bb4806c052512f47a15 Mon Sep 17 00:00:00 2001
+From 8244871a7a4726624f4e5eec45eec287cca454e6 Mon Sep 17 00:00:00 2001
 From: James Robertson <jrobertson@anaconda.com>
 Date: Fri, 6 Mar 2026 14:38:08 +0000
-Subject: [PATCH] Force OneDNN headers for BOTH CPU and CUDA targets
+Subject: [PATCH 12/13] Force OneDNN headers for BOTH CPU and CUDA targets
 ---
  caffe2/CMakeLists.txt | 13 +++++++++++++
  1 file changed, 13 insertions(+)
 
 diff --git a/caffe2/CMakeLists.txt b/caffe2/CMakeLists.txt
-index 6ab41b6c847..8921565de52 100644
+index fa7107180ef..3e2a1a09b75 100644
 --- a/caffe2/CMakeLists.txt
 +++ b/caffe2/CMakeLists.txt
-@@ -2007,3 +2007,16 @@ if(MSVC)
+@@ -2018,3 +2018,16 @@ if(MSVC)
    endforeach()
  endif()
  endif()

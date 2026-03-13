@@ -5,8 +5,6 @@ Subject: [PATCH 09/17] remove `DESTINATION lib` from CMake `install(TARGETS`
  directives
 
 Suggested-By: Silvio Traversaro <silvio@traversaro.it>
-
-Refreshed for PyTorch 2.10.0 (added torch_nvshmem target).
 ---
  c10/CMakeLists.txt                      |  2 +-
  c10/cuda/CMakeLists.txt                 |  2 +-

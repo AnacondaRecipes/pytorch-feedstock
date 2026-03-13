@@ -3,8 +3,6 @@ From: James Robertson <jrobertson@anaconda.com>
 Date: Fri, 6 Mar 2026 14:38:12 +0000
 Subject: [PATCH] Force bundled OneDNN build, enable experimental kernels, and
  fix linking
-
-Made-with: Cursor
 ---
  cmake/Dependencies.cmake | 24 ++++++++++++++++--------
  1 file changed, 16 insertions(+), 8 deletions(-)

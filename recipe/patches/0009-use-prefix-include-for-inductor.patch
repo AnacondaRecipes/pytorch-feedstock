@@ -13,8 +13,6 @@ end user provides a <filename>_compile_flags.json file.
 Updated to use `sysconfig.get_config_vars("prefix")` per
 https://github.com/conda-forge/pytorch-cpu-feedstock/issues/424
 and https://github.com/conda-forge/pytorch-cpu-feedstock/issues/447.
-
-Refreshed for PyTorch 2.10.0 line number changes.
 ---
  torch/_inductor/cpp_builder.py | 4 +++-
  1 file changed, 3 insertions(+), 1 deletion(-)

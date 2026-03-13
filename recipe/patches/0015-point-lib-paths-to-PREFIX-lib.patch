@@ -1,16 +1,20 @@
-From: "danpetry" <dpetry@anaconda.com>
-Date: Thu, 6 Mar 2025
-Subject: Point lib paths to $PREFIX/lib
+From 0945e6e7d259cf3b196a06c850d0b4d56faf343c Mon Sep 17 00:00:00 2001
+From: Daniel Petry <dpetry@anaconda.com>
+Date: Thu, 6 Mar 2025 00:00:00 +0000
+Subject: [PATCH 09/13] Point lib paths to $PREFIX/lib
 
 Point cpp_extension, which is used in cpp_builder to compile at runtime,
 towards the lib directory rather than the site-packages directory, because
 that's where are sos/dlls are.
+---
+ torch/utils/cpp_extension.py | 13 ++++++++++++-
+ 1 file changed, 12 insertions(+), 1 deletion(-)
 
 diff --git a/torch/utils/cpp_extension.py b/torch/utils/cpp_extension.py
-index 902d2fe6ce0..cfa5431cc34 100644
+index 3863ee0be52..49af1639052 100644
 --- a/torch/utils/cpp_extension.py
 +++ b/torch/utils/cpp_extension.py
-@@ -39,7 +39,18 @@ SHARED_FLAG = '/DLL' if IS_WINDOWS else '-shared'
+@@ -40,7 +40,18 @@ SHARED_FLAG = '/DLL' if IS_WINDOWS else '-shared'
  
  _HERE = os.path.abspath(__file__)
  _TORCH_PATH = os.path.dirname(os.path.dirname(_HERE))
@@ -30,3 +34,6 @@ index 902d2fe6ce0..cfa5431cc34 100644
  
  
  SUBPROCESS_DECODE_ARGS = ('oem',) if IS_WINDOWS else ()
+-- 
+2.50.1 (Apple Git-155)
+

@@ -1,7 +1,7 @@
-From cdb2e4b52e2b41b8810cc858b01f6c04a7f438bf Mon Sep 17 00:00:00 2001
+From 4c02be2606a986b3eef983a82d0b27183c9f62b6 Mon Sep 17 00:00:00 2001
 From: Yukio Siraichi <yukio.siraichi@gmail.com>
 Date: Tue, 30 Sep 2025 01:10:13 +0000
-Subject: [PATCH 14/17] Add USE_SYSTEM options for KLEIDI, CUDNN_FRONTEND,
+Subject: [PATCH 10/13] Add USE_SYSTEM options for KLEIDI, CUDNN_FRONTEND,
  CUTLASS, and FMT
 
 This commit adds CMake options to allow users to use system-installed versions of four libraries instead of the bundled versions
@@ -10,16 +10,16 @@ Fixes #153863
 PR: https://github.com/pytorch/pytorch/pull/166824
 ---
  CMakeLists.txt               |  8 +++++
- aten/src/ATen/CMakeLists.txt | 17 +++++++--
- cmake/Dependencies.cmake     | 67 ++++++++++++++++++++++++++++--------
+ aten/src/ATen/CMakeLists.txt | 17 ++++++++--
+ cmake/Dependencies.cmake     | 65 ++++++++++++++++++++++++++----------
  cmake/Summary.cmake          |  4 +++
- 4 files changed, 79 insertions(+), 17 deletions(-)
+ 4 files changed, 75 insertions(+), 19 deletions(-)
 
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index ce7890f002d..6d55828e61e 100644
+index 5304d054e84..a45da811631 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -467,6 +467,10 @@ option(USE_SYSTEM_BENCHMARK "Use system-provided google benchmark." OFF)
+@@ -487,6 +487,10 @@ option(USE_SYSTEM_BENCHMARK "Use system-provided google benchmark." OFF)
  option(USE_SYSTEM_ONNX "Use system-provided onnx." OFF)
  option(USE_SYSTEM_XNNPACK "Use system-provided xnnpack." OFF)
  option(USE_SYSTEM_NVTX "Use system-provided nvtx." OFF)
@@ -30,7 +30,7 @@ index ce7890f002d..6d55828e61e 100644
  option(USE_GOLD_LINKER "Use ld.gold to link" OFF)
  if(USE_SYSTEM_LIBS)
    set(USE_SYSTEM_CPUINFO ON)
-@@ -486,6 +490,10 @@ if(USE_SYSTEM_LIBS)
+@@ -506,6 +510,10 @@ if(USE_SYSTEM_LIBS)
      set(USE_SYSTEM_NCCL ON)
    endif()
    set(USE_SYSTEM_NVTX ON)
@@ -42,10 +42,10 @@ index ce7890f002d..6d55828e61e 100644
  
  # /Z7 override option When generating debug symbols, CMake default to use the
 diff --git a/aten/src/ATen/CMakeLists.txt b/aten/src/ATen/CMakeLists.txt
-index 6c095680733..9760ee728cf 100644
+index a3e841ca22a..de4926b1fb4 100644
 --- a/aten/src/ATen/CMakeLists.txt
 +++ b/aten/src/ATen/CMakeLists.txt
-@@ -666,8 +666,21 @@ if(USE_CUDA AND NOT USE_ROCM)
+@@ -704,8 +704,21 @@ if(USE_CUDA AND NOT USE_ROCM)
    add_definitions(-DCUTLASS_ENABLE_TENSOR_CORE_MMA=1)
    add_definitions(-DCUTLASS_ENABLE_SM90_EXTENDED_MMA_SHAPES=1)
    add_definitions(-DCUTE_SM90_EXTENDED_MMA_SHAPES_ENABLED)
@@ -67,13 +67,13 @@ index 6c095680733..9760ee728cf 100644
 +    endif()
 +  endif()
  
-   # Add FBGEMM_GENAI include directories for torch_ops.h
-   if(USE_FBGEMM_GENAI)
+   if($ENV{ATEN_STATIC_CUDA})
+     if(CUDA_VERSION VERSION_LESS_EQUAL 12.9)
 diff --git a/cmake/Dependencies.cmake b/cmake/Dependencies.cmake
-index ef5c2fd4e97..3fe28d21b5e 100644
+index ecf8669649b..7677d5c313b 100644
 --- a/cmake/Dependencies.cmake
 +++ b/cmake/Dependencies.cmake
-@@ -946,7 +946,14 @@ if(USE_CUDNN)
+@@ -960,7 +960,14 @@ if(USE_CUDNN)
    if(CUDNN_VERSION VERSION_LESS 8.5)
      message(FATAL_ERROR "PyTorch needs CuDNN-8.5 or above, but found ${CUDNN_VERSION}. Builds are still possible with `USE_CUDNN=0`")
    endif()
@@ -89,7 +89,7 @@ index ef5c2fd4e97..3fe28d21b5e 100644
    target_include_directories(torch::cudnn INTERFACE ${CUDNN_FRONTEND_INCLUDE_DIR})
  endif()
  
-@@ -1491,7 +1498,7 @@ if(NOT INTERN_BUILD_MOBILE)
+@@ -1524,7 +1531,7 @@ if(NOT INTERN_BUILD_MOBILE)
      message("disabling MKLDNN because USE_MKLDNN is not set")
    endif()
  
@@ -98,7 +98,7 @@ index ef5c2fd4e97..3fe28d21b5e 100644
      set(TEMP_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
      set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared libs" FORCE)
      set(AT_KLEIDIAI_ENABLED 1)
-@@ -1501,6 +1508,22 @@ if(NOT INTERN_BUILD_MOBILE)
+@@ -1534,6 +1541,22 @@ if(NOT INTERN_BUILD_MOBILE)
      list(APPEND Caffe2_DEPENDENCY_LIBS kleidiai)
      # Recover build options.
      set(BUILD_SHARED_LIBS ${TEMP_BUILD_SHARED_LIBS} CACHE BOOL "Build shared libs" FORCE)
@@ -121,13 +121,19 @@ index ef5c2fd4e97..3fe28d21b5e 100644
    endif()
  
    if(UNIX AND NOT APPLE)
-@@ -1544,21 +1567,35 @@ endif()
- #
- # End ATen checks
- #
+@@ -1587,22 +1610,30 @@ endif()
+ # This was the default behavior before version 12.0.0.
+ # Since PyTorch C API depends on it, make it available for projects that
+ # depend on PyTorch.
+-set(FMT_INSTALL ON)
 -set(TEMP_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
 -set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared libs" FORCE)
 -add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/fmt)
++if(NOT USE_SYSTEM_FMT)
++  set(FMT_INSTALL ON)
++  set(TEMP_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
++  set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared libs" FORCE)
++  add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/fmt)
  
 -# Disable compiler feature checks for `fmt`.
 -#
@@ -140,16 +146,6 @@ index ef5c2fd4e97..3fe28d21b5e 100644
 -
 -list(APPEND Caffe2_DEPENDENCY_LIBS fmt::fmt-header-only)
 -set(BUILD_SHARED_LIBS ${TEMP_BUILD_SHARED_LIBS} CACHE BOOL "Build shared libs" FORCE)
-+# Install `fmtlib` header.
-+# This was the default behavior before version 12.0.0.
-+# Since PyTorch C API depends on it, make it available for projects that
-+# depend on PyTorch.
-+if(NOT USE_SYSTEM_FMT)
-+  set(FMT_INSTALL ON)
-+  set(TEMP_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
-+  set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared libs" FORCE)
-+  add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/fmt)
-+
 +  # Disable compiler feature checks for `fmt`.
 +  #
 +  # CMake compiles a little program to check compiler features. Some of our build
@@ -172,10 +168,10 @@ index ef5c2fd4e97..3fe28d21b5e 100644
  # ---[ Kineto
  # edge profiler depends on KinetoProfiler but it only does cpu
 diff --git a/cmake/Summary.cmake b/cmake/Summary.cmake
-index 745d9ea0586..6c8c63a7bdd 100644
+index 60951d6c686..2765ec799fb 100644
 --- a/cmake/Summary.cmake
 +++ b/cmake/Summary.cmake
-@@ -80,7 +80,9 @@ function(caffe2_print_configuration_summary)
+@@ -81,7 +81,9 @@ function(caffe2_print_configuration_summary)
      message(STATUS "    USE_MEM_EFF_ATTENTION : ${USE_MEM_EFF_ATTENTION}")
      if(${USE_CUDNN})
        message(STATUS "    cuDNN version       : ${CUDNN_VERSION}")
@@ -185,15 +181,15 @@ index 745d9ea0586..6c8c63a7bdd 100644
      if(${USE_CUSPARSELT})
        message(STATUS "    cuSPARSELt version  : ${CUSPARSELT_VERSION}")
      endif()
-@@ -156,6 +158,7 @@ function(caffe2_print_configuration_summary)
+@@ -159,6 +161,7 @@ function(caffe2_print_configuration_summary)
    endif()
    if(${USE_KLEIDIAI})
      message(STATUS "  USE_KLEIDIAI          : ${USE_KLEIDIAI}")
 +    message(STATUS "    USE_SYSTEM_KLEIDIAI : ${USE_SYSTEM_KLEIDIAI}")
    endif()
+   message(STATUS "  USE_PRIORITIZED_TEXT_FOR_LD : ${USE_PRIORITIZED_TEXT_FOR_LD}")
    message(STATUS "  USE_UCC               : ${USE_UCC}")
-   if(${USE_UCC})
-@@ -187,6 +190,7 @@ function(caffe2_print_configuration_summary)
+@@ -191,6 +194,7 @@ function(caffe2_print_configuration_summary)
      message(STATUS "    USE_VULKAN_FP16_INFERENCE    : ${USE_VULKAN_FP16_INFERENCE}")
      message(STATUS "    USE_VULKAN_RELAXED_PRECISION : ${USE_VULKAN_RELAXED_PRECISION}")
    endif()
@@ -201,3 +197,6 @@ index 745d9ea0586..6c8c63a7bdd 100644
    message(STATUS "  USE_PROF              : ${USE_PROF}")
    message(STATUS "  USE_PYTORCH_QNNPACK   : ${USE_PYTORCH_QNNPACK}")
    message(STATUS "  USE_XNNPACK           : ${USE_XNNPACK}")
+-- 
+2.50.1 (Apple Git-155)
+

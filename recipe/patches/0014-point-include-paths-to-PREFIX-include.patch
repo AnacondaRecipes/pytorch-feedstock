@@ -1,7 +1,7 @@
-From 26c5a577a1948083c4b570527f84a14d8676cec2 Mon Sep 17 00:00:00 2001
+From 09b1bd94a0d9ab633b536e362c2b0227ebcf0cd4 Mon Sep 17 00:00:00 2001
 From: "H. Vetinari" <h.vetinari@gmx.com>
 Date: Thu, 23 Jan 2025 22:58:14 +1100
-Subject: [PATCH 06/17] point include paths to Conda prefix include dir
+Subject: [PATCH 08/13] Point include paths to Conda prefix include dir
 
 Updated to use `sysconfig.get_config_vars("prefix")` per
 https://github.com/conda-forge/pytorch-cpu-feedstock/issues/424
@@ -10,14 +10,14 @@ and https://github.com/conda-forge/pytorch-cpu-feedstock/issues/447.
 Refreshed for PyTorch 2.10.0 where include_paths() gained a
 torch_include_dirs parameter.
 ---
- torch/utils/cpp_extension.py | 18 +++++-------------
- 1 file changed, 5 insertions(+), 13 deletions(-)
+ torch/utils/cpp_extension.py | 19 +++++--------------
+ 1 file changed, 5 insertions(+), 14 deletions(-)
 
 diff --git a/torch/utils/cpp_extension.py b/torch/utils/cpp_extension.py
-index 902d2fe6ce0..d473799f090 100644
+index f29c382f0e3..3863ee0be52 100644
 --- a/torch/utils/cpp_extension.py
 +++ b/torch/utils/cpp_extension.py
-@@ -1568,27 +1568,19 @@ def include_paths(device_type: str = "cpu", torch_include_dirs=True) -> list[str
+@@ -1569,29 +1569,20 @@ def include_paths(device_type: str = "cpu", torch_include_dirs=True) -> list[str
      """
      paths = []
      lib_include = os.path.join(_TORCH_PATH, 'include')
@@ -45,9 +45,13 @@ index 902d2fe6ce0..d473799f090 100644
 -        # Support CUDA_INC_PATH env variable supported by CMake files
 -        if (cuda_inc_path := os.environ.get("CUDA_INC_PATH", None)) and \
 -                cuda_inc_path != '/usr/include':
+-
 -            paths.append(cuda_inc_path)
 -        if CUDNN_HOME is not None:
 -            paths.append(os.path.join(CUDNN_HOME, 'include'))
      elif device_type == "xpu":
          paths.append(_join_sycl_home('include'))
          paths.append(_join_sycl_home('include', 'sycl'))
+-- 
+2.50.1 (Apple Git-155)
+

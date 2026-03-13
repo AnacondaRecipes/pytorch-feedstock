@@ -1,10 +1,15 @@
-From 4952a137558731fd8e80bb8b5c0d08a86abc6153 Mon Sep 17 00:00:00 2001
+From 7a0b48cfbf396a41041e51458eb1107bac0105b7 Mon Sep 17 00:00:00 2001
 From: Jean-Christophe Morin <jcmorin@anaconda.com>
 Date: Mon, 6 Nov 2023 13:45:24 -0500
-Subject: [PATCH] Fix FindMKL to make it use _dll suffix for libraries
+Subject: [PATCH 01/13] Fix FindMKL to make it use _dll suffix for libraries
 
 This is required because our mdl-devel package contains libraries named like
 "mkl_intel_lp64_dll.lib" instead of "mkl_intel_lp64.lib".
+---
+ cmake/Modules/FindMKL.cmake | 15 +++++++++------
+ third_party/fbgemm          |  2 +-
+ third_party/tensorpipe      |  2 +-
+ 3 files changed, 11 insertions(+), 8 deletions(-)
 
 diff --git a/cmake/Modules/FindMKL.cmake b/cmake/Modules/FindMKL.cmake
 index 7c4647f3746..ff24c9787ad 100644
@@ -58,3 +63,20 @@ index 7c4647f3746..ff24c9787ad 100644
          MARK_AS_ADVANCED(MKL_CDFT_LIBRARIES)
        ENDIF (NOT MKL_CDFT_LIBRARIES)
      ENDFOREACH(mkls)
+diff --git a/third_party/fbgemm b/third_party/fbgemm
+index a4a112c26ac..4b39c551efe 160000
+--- a/third_party/fbgemm
++++ b/third_party/fbgemm
+@@ -1 +1 @@
+-Subproject commit a4a112c26ac01c78a86317cf54c69481478d95d2
++Subproject commit 4b39c551efe15e6bbade20565b0ceb2d8ce3352d
+diff --git a/third_party/tensorpipe b/third_party/tensorpipe
+index 2b4cd91092d..af0118d13e5 160000
+--- a/third_party/tensorpipe
++++ b/third_party/tensorpipe
+@@ -1 +1 @@
+-Subproject commit 2b4cd91092d335a697416b2a3cb398283246849d
++Subproject commit af0118d13e52f5a08841464a768e01a0bf3e3075
+-- 
+2.50.1 (Apple Git-155)
+
