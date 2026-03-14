@@ -135,13 +135,6 @@ export USE_SYSTEM_SLEEF=1
 export BUILD_CUSTOM_PROTOBUF=OFF
 export USE_SYSTEM_PYBIND11=1
 export USE_SYSTEM_EIGEN_INSTALL=1
-# TODO:Unvendor onnx. Requires our package to provide ONNXConfig.cmake etc first
-# Breakpad is missing a ppc64 and s390x port
-case "$build_platform" in
-    linux-ppc64le|linux-s390x)
-        export USE_BREAKPAD=OFF
-    ;;
-esac
 
 rm -rf $PREFIX/bin/protoc
 
@@ -241,11 +234,12 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
     if [[ "$target_platform" == "linux-aarch64" ]]; then
         # aarch64 CUDA systems are datacenter-only (no consumer GPUs).
         # Fewer archs also reduces peak memory during compilation.
-        export TORCH_CUDA_ARCH_LIST="8.0;9.0;10.0+PTX"
+        export TORCH_CUDA_ARCH_LIST="8.0;9.0;10.0;10.3;12.0;12.1+PTX"
     elif [[ ${cuda_compiler_version} == 12.* ]]; then
-        export TORCH_CUDA_ARCH_LIST="5.0;6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0;10.0+PTX"
+        # 10.3 and 12.1 require CUDA 12.9+; our 12.x builds use 12.8
+        export TORCH_CUDA_ARCH_LIST="5.0;6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0;10.0;12.0+PTX"
     elif [[ ${cuda_compiler_version} == 13.* ]]; then
-        export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;8.9;9.0;10.0+PTX"
+        export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;8.9;9.0;10.0;10.3;12.0;12.1+PTX"
     else
         echo "No CUDA architecture list exists for CUDA v${cuda_compiler_version}"
         echo "in build.sh. Use https://en.wikipedia.org/wiki/CUDA#GPUs_supported to make one."
