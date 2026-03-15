@@ -59,27 +59,21 @@ if "%gpu_variant:~0,4%" == "cuda" (
     set USE_NCCL=0
     set USE_STATIC_NCCL=0
 
-    @REM CUDA Architecture List
-    @REM  5.0 = Maxwell    (GTX 9xx)           -- dropped in CUDA 13
-    @REM  6.0 = Pascal HPC (P100)              -- dropped in CUDA 13
-    @REM  6.1 = Pascal     (GTX 10xx)          -- dropped in CUDA 13
-    @REM  7.0 = Volta      (V100)              -- dropped in CUDA 13
+    @REM CUDA Architecture List (aligned with upstream PyTorch CI)
+    @REM  7.0 = Volta      (V100)              -- kept for 12.8, dropped in CUDA 13
     @REM  7.5 = Turing     (RTX 20xx, T4)
     @REM  8.0 = Ampere HPC (A100)
     @REM  8.6 = Ampere     (RTX 30xx)
-    @REM  8.9 = Ada        (RTX 40xx, L4, L40)
     @REM  9.0 = Hopper     (H100, H200)
     @REM 10.0 = Blackwell  (GB200, B200)
-    @REM 10.3 = Blackwell  (GB300, B300)       -- requires CUDA 12.9+
     @REM 12.0 = Blackwell  (RTX 50xx, RTX PRO)
-    @REM 12.1 = Blackwell  (GB10, DGX Spark)   -- requires CUDA 12.9+
     @REM +PTX = forward compat via JIT for future archs
     set "cuda_major=%cuda_compiler_version:~0,2%"
     if "!cuda_major!" == "12" (
-        @REM 10.3 and 12.1 require CUDA 12.9+; our 12.x builds use 12.8
-        set "TORCH_CUDA_ARCH_LIST=5.0;6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0;10.0;12.0+PTX"
+        @REM sm_50-sm_61 deprecated in 12.8; keep sm_70 per pytorch/pytorch#157517
+        set "TORCH_CUDA_ARCH_LIST=7.0;7.5;8.0;8.6;9.0;10.0;12.0+PTX"
     ) else if "!cuda_major!" == "13" (
-        set "TORCH_CUDA_ARCH_LIST=7.5;8.0;8.6;8.9;9.0;10.0;10.3;12.0;12.1+PTX"
+        set "TORCH_CUDA_ARCH_LIST=7.5;8.0;8.6;9.0;10.0;12.0+PTX"
     ) else (
         echo [ERROR] No CUDA architecture list exists for CUDA v%cuda_compiler_version%
         echo Use https://en.wikipedia.org/wiki/CUDA#GPUs_supported to make one.
