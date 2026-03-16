@@ -252,7 +252,6 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
         export CUDA_TOOLKIT_ROOT=${PREFIX}
     fi
     export TORCH_NVCC_FLAGS="-Xfatbin -compress-all"
-    export BUILD_BUNDLE_PTXAS=1
     export NCCL_ROOT_DIR=$PREFIX
     export NCCL_INCLUDE_DIR=$PREFIX/include
     export USE_SYSTEM_NCCL=1
