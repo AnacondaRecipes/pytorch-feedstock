@@ -241,7 +241,7 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
         export TORCH_CUDA_ARCH_LIST="7.0;7.5;8.0;8.6;8.9;9.0;10.0;12.0+PTX"
     elif [[ ${cuda_compiler_version} == 13.* ]]; then
         # sm_70 dropped in CUDA 13; list matches upstream PyTorch CI for CUDA 13.
-        export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;8.9;9.0;10.0;10.3;12.0;+PTX"
+        export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;8.9;9.0;10.0;10.3;12.0+PTX"
     else
         echo "No CUDA architecture list exists for CUDA v${cuda_compiler_version}"
         echo "in build.sh. Use https://en.wikipedia.org/wiki/CUDA#GPUs_supported to make one."
