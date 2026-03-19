@@ -178,8 +178,8 @@ requirements:
     - pybind11 2.13.6
     - pybind11-abi
     - eigen 3.3.7
-    - zlib
-    - fmt
+    - zlib {{ zlib }}
+    - fmt {{ fmt }}
   # satisfy overlinking checks
   run:
     - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
@@ -400,7 +400,7 @@ outputs:
         - expecttest
         # unittest-xml-reporting provides xmlrunner
         - unittest-xml-reporting
-        # pytest <9 due to deprecation warnings in 2.10.0
+        # pytest <9 due to deprecation warnings in 2.10.0 breaking collections
         - pytest <9
         - pytest-rerunfailures
         - pytest-flakefinder
