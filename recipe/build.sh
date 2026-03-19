@@ -234,14 +234,14 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
     if [[ "$target_platform" == "linux-aarch64" ]]; then
         # aarch64 CUDA systems are datacenter-only (no consumer GPUs).
         # 12.1 = DGX Spark (GB10), which is ARM-based.
-        export TORCH_CUDA_ARCH_LIST="8.0;9.0;10.0;10.3;12.0;12.1+PTX"
+        export TORCH_CUDA_ARCH_LIST="8.0;9.0;10.0;12.0;12.1+PTX"
     elif [[ ${cuda_compiler_version} == 12.* ]]; then
         # Arch list aligned with upstream PyTorch CI.
         # sm_50-sm_61 deprecated in CUDA 12.8; keep sm_70 per pytorch/pytorch#157517.
-        export TORCH_CUDA_ARCH_LIST="7.0;7.5;8.0;8.6;8.9;9.0;10.0;12.0+PTX"
+        export TORCH_CUDA_ARCH_LIST="7.0;7.5;8.0;8.6;9.0;10.0;12.0+PTX"
     elif [[ ${cuda_compiler_version} == 13.* ]]; then
         # sm_70 dropped in CUDA 13; list matches upstream PyTorch CI for CUDA 13.
-        export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;8.9;9.0;10.0;10.3;12.0+PTX"
+        export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;9.0;10.0;12.0+PTX"
     else
         echo "No CUDA architecture list exists for CUDA v${cuda_compiler_version}"
         echo "in build.sh. Use https://en.wikipedia.org/wiki/CUDA#GPUs_supported to make one."

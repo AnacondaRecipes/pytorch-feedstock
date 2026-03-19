@@ -400,6 +400,7 @@ outputs:
         - expecttest
         # unittest-xml-reporting provides xmlrunner
         - unittest-xml-reporting
+        # pytest <9 due to deprecation warnings in 2.10.0
         - pytest <9
         - pytest-rerunfailures
         - pytest-flakefinder
