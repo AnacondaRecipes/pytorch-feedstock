@@ -1,9 +1,7 @@
-Index: pytorch/cmake/Modules/FindMKL.cmake
-===================================================================
-diff --git cmake/Modules/FindMKL.cmake cmake/Modules/FindMKL.cmake
-index ff24c97..797cb4c 100644
---- a/cmake/Modules/cmake/Modules/FindMKL.cmake
-+++ b/cmake/Modules/cmake/Modules/FindMKL.cmake
+diff --git a/cmake/Modules/FindMKL.cmake b/cmake/Modules/FindMKL.cmake
+index 7c4647f3746..51f4bc8cdae 100644
+--- a/cmake/Modules/FindMKL.cmake
++++ b/cmake/Modules/FindMKL.cmake
 @@ -113,8 +113,8 @@ ELSE(WIN32)
        SET(mklthreads "mkl_tbb_thread")
        SET(mklrtls "tbb")

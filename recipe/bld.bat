@@ -50,7 +50,7 @@ set USE_SYSTEM_SLEEF=1
 if EXIST .gitmodules del .gitmodules
 
 @REM ========================= CUDA SETUP =======================================
-if not "%cuda_compiler_version%" == "None" (
+if "%gpu_variant:~0,4%" == "cuda" (
     set USE_CUDA=1
     set "USE_MKLDNN=1"
     set USE_STATIC_CUDNN=0
@@ -59,19 +59,36 @@ if not "%cuda_compiler_version%" == "None" (
     set USE_NCCL=0
     set USE_STATIC_NCCL=0
 
-    @REM CUDA Architecture List
+    @REM CUDA Architecture List (aligned with upstream PyTorch CI)
+    @REM  7.0 = Volta      (V100)              -- kept for 12.8, dropped in CUDA 13
     @REM  7.5 = Turing     (RTX 20xx, T4)
     @REM  8.0 = Ampere HPC (A100)
     @REM  8.6 = Ampere     (RTX 30xx)
-    @REM  8.9 = Ada        (RTX 40xx, L4, L40)
     @REM  9.0 = Hopper     (H100, H200)
-    @REM 10.0 = Blackwell  (B100, B200, RTX 50xx)
+    @REM 10.0 = Blackwell  (GB200, B200)
+    @REM 12.0 = Blackwell  (RTX 50xx, RTX PRO)
     @REM +PTX = forward compat via JIT for future archs
-    set "TORCH_CUDA_ARCH_LIST=7.5;8.0;8.6;8.9;9.0;10.0+PTX"
+    set "cuda_major=%cuda_compiler_version:~0,2%"
+    if "!cuda_major!" == "12" (
+        @REM sm_50-sm_61 deprecated in 12.8; keep sm_70 per pytorch/pytorch#157517
+        set "TORCH_CUDA_ARCH_LIST=7.0;7.5;8.0;8.6;9.0;10.0;12.0+PTX"
+    ) else if "!cuda_major!" == "13" (
+        set "TORCH_CUDA_ARCH_LIST=7.5;8.0;8.6;9.0;10.0;12.0+PTX"
+    ) else (
+        echo [ERROR] No CUDA architecture list exists for CUDA v%cuda_compiler_version%
+        echo Use https://en.wikipedia.org/wiki/CUDA#GPUs_supported to make one.
+        exit /b 1
+    )
     set "TORCH_NVCC_FLAGS=-Xfatbin -compress-all"
 
     @REM Suppress extremely noisy ptxas advisories that bloat logs
     set "CMAKE_CUDA_FLAGS=-w -Xptxas -w"
+    @REM Disable cuSPARSELt: the conda package doesn't exist in defaults channels,
+    @REM and it's only needed for semi-structured (2:4) sparsity ops which most users don't need.
+    set USE_CUSPARSELT=0
+    @REM Disable cuDSS: the conda package (libcudss-dev) doesn't exist in defaults channels,
+    @REM and it's only needed for sparse direct solvers on CSR tensors which most users don't need.
+    set USE_CUDSS=0
 
     set MAGMA_HOME=%LIBRARY_PREFIX%
     set "PATH=%CUDA_BIN_PATH%;%PATH%"
@@ -149,7 +166,7 @@ if "%PKG_NAME%" == "libtorch" (
     @REM Move non-Python binaries into conda Library locations
     robocopy /NP /NFL /NDL /NJH /E torch\bin\ %LIBRARY_BIN%\ torch*.dll c10.dll shm.dll asmjit.dll fbgemm.dll dnnl.dll
     robocopy /NP /NFL /NDL /NJH /E torch\lib\ %LIBRARY_LIB%\ torch*.lib c10.lib shm.lib asmjit.lib fbgemm.lib dnnl.lib
-    if not "%cuda_compiler_version%" == "None" (
+    if "%gpu_variant:~0,4%" == "cuda" (
         robocopy /NP /NFL /NDL /NJH /E torch\bin\ %LIBRARY_BIN%\ c10_cuda.dll caffe2_nvrtc.dll
         robocopy /NP /NFL /NDL /NJH /E torch\lib\ %LIBRARY_LIB%\ c10_cuda.lib caffe2_nvrtc.lib
     )

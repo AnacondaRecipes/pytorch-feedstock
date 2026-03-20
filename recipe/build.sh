@@ -69,11 +69,6 @@ fi
 LDFLAGS="${LDFLAGS//-Wl,-z,now/-Wl,-z,lazy}"
 
 ################ CONFIGURE CMAKE FOR CONDA ENVIRONMENT ###################
-if [[ "$OSTYPE" != "darwin"* ]]; then
-    export CMAKE_SYSROOT=$CONDA_BUILD_SYSROOT
-else
-    export CMAKE_OSX_SYSROOT=$CONDA_BUILD_SYSROOT
-fi
 # Required to make the right SDK found on Anaconda's CI system. Ideally should be fixed in the CI or conda-build
 if [[ "${build_platform}" = "osx-arm64" ]]; then
     export USE_NCCL=0
@@ -114,6 +109,17 @@ for ARG in $CMAKE_ARGS; do
   fi
 done
 unset CMAKE_INSTALL_PREFIX
+
+# On macOS, the compiler activation overrides CONDA_BUILD_SYSROOT with the
+# base CBC's SDK (e.g. 12.1), and CMAKE_ARGS also carries that stale value.
+# Reconstruct the correct sysroot from MACOSX_SDK_VERSION, which is
+# preserved from the recipe CBC's zip_keys and not touched by activation.
+if [[ "$OSTYPE" != "darwin"* ]]; then
+    export CMAKE_SYSROOT=$CONDA_BUILD_SYSROOT
+else
+    export CMAKE_OSX_SYSROOT="/Library/Developer/CommandLineTools/SDKs/MacOSX${MACOSX_SDK_VERSION}.sdk"
+    export CONDA_BUILD_SYSROOT="${CMAKE_OSX_SYSROOT}"
+fi
 #export TH_BINARY_BUILD=1
 # Use our build version and number for inserting into binaries
 export PYTORCH_BUILD_VERSION=$PKG_VERSION
@@ -129,13 +135,6 @@ export USE_SYSTEM_SLEEF=1
 export BUILD_CUSTOM_PROTOBUF=OFF
 export USE_SYSTEM_PYBIND11=1
 export USE_SYSTEM_EIGEN_INSTALL=1
-# TODO:Unvendor onnx. Requires our package to provide ONNXConfig.cmake etc first
-# Breakpad is missing a ppc64 and s390x port
-case "$build_platform" in
-    linux-ppc64le|linux-s390x)
-        export USE_BREAKPAD=OFF
-    ;;
-esac
 
 rm -rf $PREFIX/bin/protoc
 
@@ -159,6 +158,10 @@ if [[ "${CI}" == "github_actions" ]]; then
     # h-vetinari/hmaarrfk -- May 2024
     # reduce parallelism to avoid getting OOM-killed on
     # cirun-openstack-gpu-2xlarge, which has 32GB RAM, 8 CPUs
+    export MAX_JOBS=4
+elif [[ "$target_platform" == "linux-aarch64" && ${gpu_variant} == "cuda"* ]]; then
+    # CUDA template instantiation (flash attention / cutlass) is extremely
+    # memory-hungry on aarch64. Cap parallelism to avoid OOM.
     export MAX_JOBS=4
 else
     # Leave a spare core for other tasks. This may need to be reduced further
@@ -228,48 +231,25 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
     if [[ "${target_platform}" != "${build_platform}" ]]; then
         export CUDA_TOOLKIT_ROOT=${CUDA_HOME}
     fi
-    # Warning from pytorch v1.12.1: In the future we will require one to
-    # explicitly pass TORCH_CUDA_ARCH_LIST to cmake instead of implicitly
-    # setting it as an env variable.
-    #
-    # +PTX should go to the oldest arch. There's a modest runtime performance
-    # hit for (unlisted) newer arches on doing this, but that must be set
-    # when wide compatibility is a concern.
-    #
-    # https://pytorch.org/docs/stable/cpp_extension.html (Compute capabilities)
-    # https://github.com/pytorch/builder/blob/c85da84005b44041b75e1eb3221ea7dcbd1b28aa/conda/pytorch-nightly/build.sh#L53-L89
-    if [[ ${cuda_compiler_version} == 9.0* ]]; then
-        export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;7.0"
-        export CUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME
-    elif [[ ${cuda_compiler_version} == 9.2* ]]; then
-        export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0"
-        export CUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME
-    elif [[ ${cuda_compiler_version} == 10.* ]]; then
-        export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5"
-        export CUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME
-    elif [[ ${cuda_compiler_version} == 11.0* ]]; then
-        export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5;8.0"
-        export CUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME
-    elif [[ ${cuda_compiler_version} == 11.1 ]]; then
-        export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5;8.0;8.6"
-        export CUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME
-    elif [[ ${cuda_compiler_version} == 11.2 ]]; then
-        export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5;8.0;8.6"
-        export CUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME
-    elif [[ ${cuda_compiler_version} == 11.8 ]]; then
-        export TORCH_CUDA_ARCH_LIST="3.5+PTX;5.0;6.0;6.1;7.0;7.5;8.0;8.6;8.9"
-        export CUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME
-    elif [[ ${cuda_compiler_version} == 12.[0-8] ]]; then
-        export TORCH_CUDA_ARCH_LIST="5.0;6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0+PTX"
-        # $CUDA_HOME not set in CUDA 12.0. Using $PREFIX
-        export CUDA_TOOLKIT_ROOT_DIR="${PREFIX}"
-        if [[ "${target_platform}" != "${build_platform}" ]]; then
-            export CUDA_TOOLKIT_ROOT=${PREFIX}
-        fi
+    if [[ "$target_platform" == "linux-aarch64" ]]; then
+        # aarch64 CUDA systems are datacenter-only (no consumer GPUs).
+        # 12.1 = DGX Spark (GB10), which is ARM-based.
+        export TORCH_CUDA_ARCH_LIST="8.0;9.0;10.0;12.0;12.1+PTX"
+    elif [[ ${cuda_compiler_version} == 12.* ]]; then
+        # Arch list aligned with upstream PyTorch CI.
+        # sm_50-sm_61 deprecated in CUDA 12.8; keep sm_70 per pytorch/pytorch#157517.
+        export TORCH_CUDA_ARCH_LIST="7.0;7.5;8.0;8.6;9.0;10.0;12.0+PTX"
+    elif [[ ${cuda_compiler_version} == 13.* ]]; then
+        # sm_70 dropped in CUDA 13; list matches upstream PyTorch CI for CUDA 13.
+        export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;9.0;10.0;12.0+PTX"
     else
         echo "No CUDA architecture list exists for CUDA v${cuda_compiler_version}"
         echo "in build.sh. Use https://en.wikipedia.org/wiki/CUDA#GPUs_supported to make one."
         exit 1
+    fi
+    export CUDA_TOOLKIT_ROOT_DIR="${PREFIX}"
+    if [[ "${target_platform}" != "${build_platform}" ]]; then
+        export CUDA_TOOLKIT_ROOT=${PREFIX}
     fi
     export TORCH_NVCC_FLAGS="-Xfatbin -compress-all"
     export NCCL_ROOT_DIR=$PREFIX
@@ -278,9 +258,15 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
     export USE_STATIC_NCCL=0
     export USE_STATIC_CUDNN=0
     export USE_CUFILE=0
+    # Disable cuSPARSELt: the conda package doesn't exist in defaults channels,
+    # and it's only needed for semi-structured (2:4) sparsity ops which most users don't need.
+    export USE_CUSPARSELT=0
+    # Disable cuDSS: the conda package (libcudss-dev) doesn't exist in defaults channels,
+    # and it's only needed for sparse direct solvers on CSR tensors which most users don't need.
+    export USE_CUDSS=0
     export USE_SYSTEM_NVTX=1
     export MAGMA_HOME="${PREFIX}"
-    export CUDA_INC_PATH="${PREFIX}/targets/x86_64-linux/include/"  # Point cmake to the header files
+    export CUDA_INC_PATH="${PREFIX}/targets/$(uname -m)-linux/include/"
 else
     # MKLDNN is an Apache-2.0 licensed library for DNNs and is used
     # for CPU builds. Not to be confused with MKL.

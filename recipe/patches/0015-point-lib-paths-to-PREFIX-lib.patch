@@ -6,13 +6,11 @@ Point cpp_extension, which is used in cpp_builder to compile at runtime,
 towards the lib directory rather than the site-packages directory, because
 that's where are sos/dlls are.
 
-Index: pytorch/torch/utils/cpp_extension.py
-===================================================================
-diff --git torch/utils/cpp_extension.py torch/utils/cpp_extension.py
-index 8a1bd5d..e1eccf5 100644
---- a/torch/utils/torch/utils/cpp_extension.py
-+++ b/torch/utils/torch/utils/cpp_extension.py
-@@ -40,7 +40,18 @@ SHARED_FLAG = '/DLL' if IS_WINDOWS else '-shared'
+diff --git a/torch/utils/cpp_extension.py b/torch/utils/cpp_extension.py
+index 902d2fe6ce0..cfa5431cc34 100644
+--- a/torch/utils/cpp_extension.py
++++ b/torch/utils/cpp_extension.py
+@@ -39,7 +39,18 @@ SHARED_FLAG = '/DLL' if IS_WINDOWS else '-shared'
  
  _HERE = os.path.abspath(__file__)
  _TORCH_PATH = os.path.dirname(os.path.dirname(_HERE))
