@@ -66,7 +66,7 @@ source:
 
 build:
   number: {{ build }}
-  skip: True  # [not win and not py==313]
+  skip: True  # [not win or not py==313]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
@@ -355,8 +355,8 @@ outputs:
         - pybind11 2.13.6
         - pybind11-abi
         - eigen 3.3.7
-        - zlib
-        - fmt
+        - zlib {{ zlib }}
+        - fmt {{ fmt }}
       run:
         - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
         - llvm-openmp                            # [osx and not (blas_impl == "mkl")]
@@ -392,7 +392,7 @@ outputs:
         - {{ compiler('cxx') }}
         - boto3
         - hypothesis
-        - pytest
+        - pytest <9
         - tabulate
         - pydot
         - mock  # [linux]
