@@ -54,6 +54,7 @@ source:
       - patches/0007-continue-tests-on-failure.patch
       - patches/0008-add-missing-includes.patch
       - patches/0009-use-prefix-include-for-inductor.patch
+      - patches/0011-remove-DESTINATION-lib-from-CMake-install-TARGETS-di.patch             # [win]
       - patches/0014-point-include-paths-to-PREFIX-include.patch
       - patches/0015-point-lib-paths-to-PREFIX-lib.patch
       - patches/0021-fix-onednn-cuda-include.patch
@@ -399,6 +400,8 @@ outputs:
         - expecttest
         # unittest-xml-reporting provides xmlrunner
         - unittest-xml-reporting
+        # pytest <9 due to deprecations in 2.10.0 breaking collections
+        - pytest <9
         - pytest-rerunfailures
         - pytest-flakefinder
         - pytest-xdist
@@ -414,7 +417,7 @@ outputs:
         # as of pytorch=2.0.0, there is a bug when trying to run tests without the tools
         - tools
         - smoke_test
-        # See files needed: https://github.com/pytorch/pytorch/blob/main/test/test_ops.py#L271-L274
+        # See files needed: https://github.com/pytorch/pytorch/blob/main/test/test_ops.py#350-L351
         - aten/src/ATen/native
       commands:
         # the smoke test script takes a bunch of env variables, defined below

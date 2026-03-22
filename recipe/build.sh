@@ -135,13 +135,6 @@ export USE_SYSTEM_SLEEF=1
 export BUILD_CUSTOM_PROTOBUF=OFF
 export USE_SYSTEM_PYBIND11=1
 export USE_SYSTEM_EIGEN_INSTALL=1
-# TODO:Unvendor onnx. Requires our package to provide ONNXConfig.cmake etc first
-# Breakpad is missing a ppc64 and s390x port
-case "$build_platform" in
-    linux-ppc64le|linux-s390x)
-        export USE_BREAKPAD=OFF
-    ;;
-esac
 
 rm -rf $PREFIX/bin/protoc
 
@@ -166,9 +159,9 @@ if [[ "${CI}" == "github_actions" ]]; then
     # reduce parallelism to avoid getting OOM-killed on
     # cirun-openstack-gpu-2xlarge, which has 32GB RAM, 8 CPUs
     export MAX_JOBS=4
-elif [[ "$target_platform" == "linux-aarch64" && ${gpu_variant} == "cuda"* ]]; then
+elif [[ ${gpu_variant} == "cuda"* ]]; then
     # CUDA template instantiation (flash attention / cutlass) is extremely
-    # memory-hungry on aarch64. Cap parallelism to avoid OOM.
+    # memory-hungry. Cap parallelism to avoid OOM.
     export MAX_JOBS=4
 else
     # Leave a spare core for other tasks. This may need to be reduced further
@@ -240,12 +233,15 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
     fi
     if [[ "$target_platform" == "linux-aarch64" ]]; then
         # aarch64 CUDA systems are datacenter-only (no consumer GPUs).
-        # Fewer archs also reduces peak memory during compilation.
-        export TORCH_CUDA_ARCH_LIST="8.0;9.0;10.0+PTX"
+        # 12.1 = DGX Spark (GB10), which is ARM-based.
+        export TORCH_CUDA_ARCH_LIST="8.0;9.0;10.0;12.0;12.1+PTX"
     elif [[ ${cuda_compiler_version} == 12.* ]]; then
-        export TORCH_CUDA_ARCH_LIST="5.0;6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0;10.0+PTX"
+        # Arch list aligned with upstream PyTorch CI.
+        # sm_50-sm_61 deprecated in CUDA 12.8; keep sm_70 per pytorch/pytorch#157517.
+        export TORCH_CUDA_ARCH_LIST="7.0;7.5;8.0;8.6;9.0;10.0;12.0+PTX"
     elif [[ ${cuda_compiler_version} == 13.* ]]; then
-        export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;8.9;9.0;10.0+PTX"
+        # sm_70 dropped in CUDA 13; list matches upstream PyTorch CI for CUDA 13.
+        export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;9.0;10.0;12.0+PTX"
     else
         echo "No CUDA architecture list exists for CUDA v${cuda_compiler_version}"
         echo "in build.sh. Use https://en.wikipedia.org/wiki/CUDA#GPUs_supported to make one."
