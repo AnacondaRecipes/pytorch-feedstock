@@ -59,6 +59,7 @@ source:
       - patches/0015-point-lib-paths-to-PREFIX-lib.patch
       - patches/0021-fix-onednn-cuda-include.patch
       - patches/0022-force-bundled-mkldnn.patch
+      - patches/0023-remove-conftest-extra-param.patch
 {% endif %}
   - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.ci/pytorch/smoke_test/smoke_test.py
     folder: smoke_test
@@ -67,6 +68,7 @@ source:
 
 build:
   number: {{ build }}
+  skip: True  # [not linux or not x86_64 or gpu_variant != "cuda"]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
@@ -392,7 +394,6 @@ outputs:
         - {{ compiler('cxx') }}
         - boto3
         - hypothesis
-        - pytest <9
         - tabulate
         - pydot
         - mock  # [linux]
@@ -400,8 +401,7 @@ outputs:
         - expecttest
         # unittest-xml-reporting provides xmlrunner
         - unittest-xml-reporting
-        # pytest <9 due to deprecations in 2.10.0 breaking collections
-        - pytest <9
+        - pytest
         - pytest-rerunfailures
         - pytest-flakefinder
         - pytest-xdist
