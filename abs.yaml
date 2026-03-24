@@ -11,5 +11,5 @@ build_env_vars:
 # build_parameters:
 #  - "--no-test"
 
-staging_channels:
+channels:
   - https://staging.continuum.io/pbp/fs/triton-feedstock/pr10/b89d14e
