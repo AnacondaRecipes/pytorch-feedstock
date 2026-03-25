@@ -177,7 +177,6 @@ requirements:
     - typing_extensions
     - packaging
     - pybind11 2.13.6
-    - pybind11-abi
     - eigen 3.3.7
     - zlib {{ zlib }}
     - fmt {{ fmt }}
