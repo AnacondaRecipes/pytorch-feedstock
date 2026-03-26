@@ -68,7 +68,7 @@ source:
 
 build:
   number: {{ build }}
-  skip: True  # [not linux or not x86_64 or gpu_variant != "cuda"]
+  skip: True  # [not linux or not x86_64 or gpu_variant == "cuda"]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
