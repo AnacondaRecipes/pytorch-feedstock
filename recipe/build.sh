@@ -232,9 +232,11 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
         export CUDA_TOOLKIT_ROOT=${CUDA_HOME}
     fi
     if [[ "$target_platform" == "linux-aarch64" ]]; then
-        # aarch64 CUDA systems are datacenter-only (no consumer GPUs).
-        # 12.1 = DGX Spark (GB10), which is ARM-based.
-        export TORCH_CUDA_ARCH_LIST="8.0;9.0;10.0;12.0;12.1+PTX"
+        # CUDA 13+ aarch64 builds (see conda_build_config): match upstream PyTorch CUDA 13
+        # arches, plus SKUs common on ARM (Orin sm_87, Ada sm_89) and sm_12.1+PTX for GB10
+        # (DGX Spark). CUDA 13 dropped Volta offline compilation (sm_70/72), so Jetson Xavier
+        # is not targetable with this toolchain—use a CUDA 12-based build for that hardware.
+        export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;8.7;8.9;9.0;10.0;12.0;12.1+PTX"
     elif [[ ${cuda_compiler_version} == 12.* ]]; then
         # Arch list aligned with upstream PyTorch CI.
         # sm_50-sm_61 deprecated in CUDA 12.8; keep sm_70 per pytorch/pytorch#157517.
