@@ -2,7 +2,7 @@
 {% set sha256 = "e17504700ebc4c87f9b57059df1c4d790b769458c04db144c7a92aea90f2c92b" %}
 # Set the RC number to build release candidates. Set to None otherwise
 {% set rc = None %}
-{% set build = 0 %}
+{% set build = 1 %}
 
 
 # Keep this in sync with the release
@@ -176,7 +176,6 @@ requirements:
     - pkg-config  # [unix]
     - typing_extensions
     - pybind11 2.13.6
-    - pybind11-abi
     - eigen 3.3.7
     - zlib {{ zlib }}
     - fmt {{ fmt }}
@@ -380,7 +379,7 @@ outputs:
         - fsspec
         # Required to support torch.compile. This is tested in smoke_test.py, which is required to pass
         - triton =={{ triton }}       # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
-        - libtorch {{ version }}
+        - {{ pin_subpackage('libtorch', exact=True) }}
         - setuptools
       run_constrained:
         # current intel-openmp builds are incompatible with llvm-openmp on osx-64
