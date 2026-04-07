@@ -68,6 +68,7 @@ source:
 
 build:
   number: {{ build }}
+  skip: true  # [gpu_variant == "cpu" or not (linux and x86_64) or py!=313]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
@@ -392,6 +393,8 @@ outputs:
         - {{ compiler('cxx') }}
         - boto3
         - hypothesis
+        # SciPy optional upstream; nn.functional.pdist numpy-ref still calls scipy (seen on win+cuda).
+        - scipy  # [win]
         - tabulate
         - pydot
         - mock  # [linux]
@@ -407,6 +410,17 @@ outputs:
         - pybind11 2.13.6
         # the inductor "test_aoti_eager..." tests require objcopy
         - binutils  # [linux]
+        # Triton JIT links cuda_utils.c against libcuda; use driver stubs from the env (no system /lib64 driver in many builders)
+        - cuda-driver-dev  # [linux and (gpu_variant or "").startswith("cuda")]
+        # Inductor/triton JIT-builds cuda_utils.c and needs cuda.h under PREFIX/targets/*/include (see triton runtime/build.py).
+        # cuda-nvcc alone does not populate that tree in the test env; cuda-cudart-dev does (same as global host: for CUDA 12+).
+        - {{ compiler('cuda') }}    # [(gpu_variant or "").startswith("cuda")]
+        - cuda-version {{ cuda_compiler_version }}   # [(gpu_variant or "").startswith("cuda")]
+        - cuda-nvcc ={{ cuda_compiler_version }}     # [(gpu_variant or "").startswith("cuda")]
+        {% if cuda_major >= 12 %}
+        - cuda-cudart-dev           # [(gpu_variant or "").startswith("cuda")]
+        {% endif %}
+        - cuda-nvrtc-dev            # [(gpu_variant or "").startswith("cuda")]
       imports:
         - torch
       source_files:
@@ -462,6 +476,7 @@ outputs:
         # torch.compile isn't supported on python 3.12 yet
         # These following tests have been disbaled due to GPU architecture needing to be very new on CI. And the others are disbled due to https://github.com/conda-forge/pytorch-cpu-feedstock/issues/380
         # this also aligns with their meta.yaml testing strategy
+        - export LIBRARY_PATH="${PREFIX}/targets/x86_64-linux/lib/stubs:${PREFIX}/lib/stubs:${LIBRARY_PATH:-}"   # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
         - python test/run_test.py -i inductor/test_torchinductor.py --continue-through-error -k "not (test_isinf_cuda or test_donated_buffer_inplace_gpt or test_sdpa_inference_mode_aot_compile)" || true   # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
         - python ./test/run_test.py --mps --continue-through-error || true                                           # [(gpu_variant == "metal")]
         # Run pip check so as to ensure that all pytorch packages are installed
