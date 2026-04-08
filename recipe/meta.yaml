@@ -68,7 +68,6 @@ source:
 
 build:
   number: {{ build }}
-  skip: true  # [gpu_variant == "cpu" or not (linux and x86_64) or py!=313]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
@@ -186,6 +185,7 @@ requirements:
     - libuv                                  # [win]
     - {{ pin_compatible('magma') }}          # [(gpu_variant or "").startswith("cuda")]
     - {{ pin_compatible('libcudnn') }}          # [(gpu_variant or "").startswith("cuda")]
+    - __cuda                                    # [(gpu_variant or "").startswith("cuda")] 
 
 # these tests are for the libtorch output below, but due to
 # a particularity of conda-build, that output is defined in
