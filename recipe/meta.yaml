@@ -158,6 +158,7 @@ requirements:
     - numpy >=1.26.0,<3.0.0
     - pip
     - setuptools
+    - wheel
     - pyyaml
     - requests
     - six
@@ -335,6 +336,7 @@ outputs:
         - numpy >=1.26.0,<3.0.0
         - pip
         - setuptools
+        - wheel
         - pyyaml
         - requests
         - six
