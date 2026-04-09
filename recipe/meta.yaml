@@ -251,9 +251,11 @@ outputs:
         # The are dynamically loaded from %SP_DIR%\torch\lib\
         - "**/asmjit.dll"             # [win]
         - "**/c10.dll"                # [win]
+        - "**/c10_cuda.dll"           # [win]
         - "**/fbgemm.dll"             # [win]
         - "**/shm.dll"                # [win]
         - "**/torch_cpu.dll"          # [win]
+        - "**/torch_cuda.dll"         # [win]
         - "**/torch_python.dll"       # [win]
         - "**/libtorch_cpu.so*"       # [aarch64]
         - "**/libc10.so*"             # [aarch64]
