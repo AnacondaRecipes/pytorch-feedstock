@@ -1,7 +1,7 @@
-From 4c02be2606a986b3eef983a82d0b27183c9f62b6 Mon Sep 17 00:00:00 2001
+From cf7cb253294cabb9e460de8ce99f41e3dbf35360 Mon Sep 17 00:00:00 2001
 From: Yukio Siraichi <yukio.siraichi@gmail.com>
 Date: Tue, 30 Sep 2025 01:10:13 +0000
-Subject: [PATCH 10/13] Add USE_SYSTEM options for KLEIDI, CUDNN_FRONTEND,
+Subject: [PATCH 12/15] Add USE_SYSTEM options for KLEIDI, CUDNN_FRONTEND,
  CUTLASS, and FMT
 
 This commit adds CMake options to allow users to use system-installed versions of four libraries instead of the bundled versions
@@ -42,7 +42,7 @@ index 5304d054e84..a45da811631 100644
  
  # /Z7 override option When generating debug symbols, CMake default to use the
 diff --git a/aten/src/ATen/CMakeLists.txt b/aten/src/ATen/CMakeLists.txt
-index a3e841ca22a..de4926b1fb4 100644
+index c413b589b5f..e8076cae834 100644
 --- a/aten/src/ATen/CMakeLists.txt
 +++ b/aten/src/ATen/CMakeLists.txt
 @@ -704,8 +704,21 @@ if(USE_CUDA AND NOT USE_ROCM)
@@ -70,10 +70,10 @@ index a3e841ca22a..de4926b1fb4 100644
    if($ENV{ATEN_STATIC_CUDA})
      if(CUDA_VERSION VERSION_LESS_EQUAL 12.9)
 diff --git a/cmake/Dependencies.cmake b/cmake/Dependencies.cmake
-index ecf8669649b..7677d5c313b 100644
+index e8d8bc58096..cccfc4c5538 100644
 --- a/cmake/Dependencies.cmake
 +++ b/cmake/Dependencies.cmake
-@@ -960,7 +960,14 @@ if(USE_CUDNN)
+@@ -962,7 +962,14 @@ if(USE_CUDNN)
    if(CUDNN_VERSION VERSION_LESS 8.5)
      message(FATAL_ERROR "PyTorch needs CuDNN-8.5 or above, but found ${CUDNN_VERSION}. Builds are still possible with `USE_CUDNN=0`")
    endif()
@@ -89,7 +89,7 @@ index ecf8669649b..7677d5c313b 100644
    target_include_directories(torch::cudnn INTERFACE ${CUDNN_FRONTEND_INCLUDE_DIR})
  endif()
  
-@@ -1524,7 +1531,7 @@ if(NOT INTERN_BUILD_MOBILE)
+@@ -1526,7 +1533,7 @@ if(NOT INTERN_BUILD_MOBILE)
      message("disabling MKLDNN because USE_MKLDNN is not set")
    endif()
  
@@ -98,7 +98,7 @@ index ecf8669649b..7677d5c313b 100644
      set(TEMP_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
      set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared libs" FORCE)
      set(AT_KLEIDIAI_ENABLED 1)
-@@ -1534,6 +1541,22 @@ if(NOT INTERN_BUILD_MOBILE)
+@@ -1536,6 +1543,22 @@ if(NOT INTERN_BUILD_MOBILE)
      list(APPEND Caffe2_DEPENDENCY_LIBS kleidiai)
      # Recover build options.
      set(BUILD_SHARED_LIBS ${TEMP_BUILD_SHARED_LIBS} CACHE BOOL "Build shared libs" FORCE)
@@ -121,7 +121,7 @@ index ecf8669649b..7677d5c313b 100644
    endif()
  
    if(UNIX AND NOT APPLE)
-@@ -1587,22 +1610,30 @@ endif()
+@@ -1589,22 +1612,30 @@ endif()
  # This was the default behavior before version 12.0.0.
  # Since PyTorch C API depends on it, make it available for projects that
  # depend on PyTorch.
@@ -168,7 +168,7 @@ index ecf8669649b..7677d5c313b 100644
  # ---[ Kineto
  # edge profiler depends on KinetoProfiler but it only does cpu
 diff --git a/cmake/Summary.cmake b/cmake/Summary.cmake
-index 60951d6c686..2765ec799fb 100644
+index b6e2ce888dc..b6e6a65441d 100644
 --- a/cmake/Summary.cmake
 +++ b/cmake/Summary.cmake
 @@ -81,7 +81,9 @@ function(caffe2_print_configuration_summary)
@@ -197,6 +197,3 @@ index 60951d6c686..2765ec799fb 100644
    message(STATUS "  USE_PROF              : ${USE_PROF}")
    message(STATUS "  USE_PYTORCH_QNNPACK   : ${USE_PYTORCH_QNNPACK}")
    message(STATUS "  USE_XNNPACK           : ${USE_XNNPACK}")
--- 
-2.50.1 (Apple Git-155)
-
