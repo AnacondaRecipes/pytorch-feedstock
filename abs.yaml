@@ -5,11 +5,5 @@ extra_labels_for_os:
 
 task_timeout: 72000
 
-build_env_vars:
-  ANACONDA_ROCKET_ENABLE_PY314: yes
-
 # build_parameters:
 #  - "--no-test"
-
-channels:
-  - https://staging.continuum.io/pbp/fs/triton-feedstock/pr10/b89d14e

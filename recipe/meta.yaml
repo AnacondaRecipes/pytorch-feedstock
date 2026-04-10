@@ -57,6 +57,7 @@ source:
       - patches/0011-remove-DESTINATION-lib-from-CMake-install-TARGETS-di.patch             # [win]
       - patches/0014-point-include-paths-to-PREFIX-include.patch
       - patches/0015-point-lib-paths-to-PREFIX-lib.patch
+      - patches/0018-Add-USE_SYSTEM-options-for-KLEIDI-CUDNN_FRONTEND-CUTLASS-and-FMT.patch
       - patches/0021-fix-onednn-cuda-include.patch
       - patches/0022-force-bundled-mkldnn.patch
       - patches/0023-remove-conftest-extra-param.patch
@@ -358,8 +359,7 @@ outputs:
         - packaging
         - {{ pin_subpackage('libtorch', exact=True) }}
         - pybind11 2.13.6
-        - pybind11-abi
-        - eigen 3.3.7
+        - eigen {{ eigen }}
         - zlib {{ zlib }}
         - fmt {{ fmt }}
       run:
@@ -480,7 +480,6 @@ outputs:
         # torch.compile isn't supported on python 3.12 yet
         # These following tests have been disbaled due to GPU architecture needing to be very new on CI. And the others are disbled due to https://github.com/conda-forge/pytorch-cpu-feedstock/issues/380
         # this also aligns with their meta.yaml testing strategy
-        - export LIBRARY_PATH="${PREFIX}/targets/x86_64-linux/lib/stubs:${PREFIX}/lib/stubs:${LIBRARY_PATH:-}"   # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
         - python test/run_test.py -i inductor/test_torchinductor.py --continue-through-error -k "not (test_isinf_cuda or test_donated_buffer_inplace_gpt or test_sdpa_inference_mode_aot_compile)" || true   # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
         - python ./test/run_test.py --mps --continue-through-error || true                                           # [(gpu_variant == "metal")]
         # Run pip check so as to ensure that all pytorch packages are installed

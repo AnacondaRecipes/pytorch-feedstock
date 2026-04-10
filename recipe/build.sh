@@ -159,10 +159,14 @@ if [[ "${CI}" == "github_actions" ]]; then
     # reduce parallelism to avoid getting OOM-killed on
     # cirun-openstack-gpu-2xlarge, which has 32GB RAM, 8 CPUs
     export MAX_JOBS=4
-elif [[ ${gpu_variant} == "cuda"* ]]; then
+elif [[ "$target_platform" == "linux-aarch64" && ${gpu_variant} == "cuda"* ]]; then
     # CUDA template instantiation (flash attention / cutlass) is extremely
     # memory-hungry. Cap parallelism to avoid OOM.
     export MAX_JOBS=4
+elif [[ "$target_platform" == "linux-x86_64" && ${gpu_variant} == "cuda"* ]]; then
+    # CUDA template instantiation (flash attention / cutlass) is extremely
+    # memory-hungry. Cap parallelism to avoid OOM.
+    export MAX_JOBS=10
 else
     # Leave a spare core for other tasks. This may need to be reduced further
     # if we get out of memory errors. (Each job uses a certain amount of memory.)
@@ -236,7 +240,7 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
         # arches, plus SKUs common on ARM (Orin sm_87, Ada sm_89) and sm_12.1+PTX for GB10
         # (DGX Spark). CUDA 13 dropped Volta offline compilation (sm_70/72), so Jetson Xavier
         # is not targetable with this toolchain—use a CUDA 12-based build for that hardware.
-        export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;8.7;8.9;9.0;10.0;12.0;12.1+PTX"
+        export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;10.0;12.0;12.1+PTX"
     elif [[ ${cuda_compiler_version} == 12.* ]]; then
         # Arch list aligned with upstream PyTorch CI.
         # sm_50-sm_61 deprecated in CUDA 12.8; keep sm_70 per pytorch/pytorch#157517.
