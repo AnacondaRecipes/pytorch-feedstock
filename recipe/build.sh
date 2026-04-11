@@ -166,7 +166,8 @@ elif [[ "$target_platform" == "linux-aarch64" && ${gpu_variant} == "cuda"* ]]; t
 elif [[ "$target_platform" == "linux-x86_64" && ${gpu_variant} == "cuda"* ]]; then
     # CUDA template instantiation (flash attention / cutlass) is extremely
     # memory-hungry. Cap parallelism to avoid OOM.
-    export MAX_JOBS=10
+    # 8 seems to be the sweet spot for the CI runners (April 2026)
+    export MAX_JOBS=8
 else
     # Leave a spare core for other tasks. This may need to be reduced further
     # if we get out of memory errors. (Each job uses a certain amount of memory.)
@@ -235,12 +236,12 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
     if [[ "${target_platform}" != "${build_platform}" ]]; then
         export CUDA_TOOLKIT_ROOT=${CUDA_HOME}
     fi
-    if [[ "$target_platform" == "linux-aarch64" ]]; then
-        # CUDA 13+ aarch64 builds (see conda_build_config): match upstream PyTorch CUDA 13
-        # arches, plus SKUs common on ARM (Orin sm_87, Ada sm_89) and sm_12.1+PTX for GB10
-        # (DGX Spark). CUDA 13 dropped Volta offline compilation (sm_70/72), so Jetson Xavier
-        # is not targetable with this toolchain—use a CUDA 12-based build for that hardware.
-        export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;10.0;12.0;12.1+PTX"
+    if [[ "$target_platform" == "linux-aarch64" && ${cuda_compiler_version} == 13.* ]]; then
+        # aarch64 CUDA 12: upstream filters out <8.0 and 8.6 (x86_64-only SKUs).
+        # Keeps 8.0 (A100), 9.0 (Grace Hopper), 10.0+12.0 (Blackwell).
+        # aarch64 CUDA 13: same filter plus sm_11.0 added upstream specifically for aarch64.
+        # https://github.com/pytorch/pytorch/blob/v2.10.0/.ci/manywheel/build_cuda.sh
+        export TORCH_CUDA_ARCH_LIST="8.0;9.0;10.0;11.0;12.0;12.1+PTX"
     elif [[ ${cuda_compiler_version} == 12.* ]]; then
         # Arch list aligned with upstream PyTorch CI.
         # sm_50-sm_61 deprecated in CUDA 12.8; keep sm_70 per pytorch/pytorch#157517.
