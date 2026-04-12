@@ -482,7 +482,7 @@ outputs:
         {% set inductor_skips = "test_isinf_cuda" %}
         {% set inductor_skips = inductor_skips ~ " or test_donated_buffer_inplace_gpt" %}
         {% set inductor_skips = inductor_skips ~ " or test_sdpa_inference_mode_aot_compile" %}
-        # "Attempt to trace generator" - upstream Dynamo bug, also skipped by conda-forge
+        # "Attempt to trace generator" - upstream Dynamo bug
         {% set inductor_skips = inductor_skips ~ " or test_lite_regional_compile_flex_attention_cuda" %}
         - python test/run_test.py -i inductor/test_torchinductor.py --continue-through-error -k "not ({{ inductor_skips }})" || true   # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
         - python ./test/run_test.py --mps --continue-through-error || true                                           # [(gpu_variant == "metal")]
