@@ -166,8 +166,8 @@ elif [[ "$target_platform" == "linux-aarch64" && ${gpu_variant} == "cuda"* ]]; t
 elif [[ "$target_platform" == "linux-x86_64" && ${gpu_variant} == "cuda"* ]]; then
     # CUDA template instantiation (flash attention / cutlass) is extremely
     # memory-hungry. Cap parallelism to avoid OOM.
-    # 8 seems to be the sweet spot for the CI runners (April 2026)
-    export MAX_JOBS=8
+    # 6 seems to be the sweet spot for the CI runners (April 2026)
+    export MAX_JOBS=6
 else
     # Leave a spare core for other tasks. This may need to be reduced further
     # if we get out of memory errors. (Each job uses a certain amount of memory.)
@@ -237,7 +237,7 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
         export CUDA_TOOLKIT_ROOT=${CUDA_HOME}
     fi
     if [[ "$target_platform" == "linux-aarch64" && ${cuda_compiler_version} == 13.* ]]; then
-        # aarch64 CUDA 12: upstream filters out <8.0 and 8.6 (x86_64-only SKUs).
+        # aarch64: upstream filters out <8.0 and 8.6 (x86_64-only SKUs).
         # Keeps 8.0 (A100), 9.0 (Grace Hopper), 10.0+12.0 (Blackwell).
         # aarch64 CUDA 13: same filter plus sm_11.0 added upstream specifically for aarch64.
         # https://github.com/pytorch/pytorch/blob/v2.10.0/.ci/manywheel/build_cuda.sh
