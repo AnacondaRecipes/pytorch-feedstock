@@ -178,7 +178,7 @@ requirements:
     - typing_extensions
     - packaging
     - pybind11 2.13.6
-    - eigen 3.3.7
+    - eigen {{ eigen }}
     - zlib {{ zlib }}
     - fmt {{ fmt }}
   # satisfy overlinking checks
@@ -370,7 +370,7 @@ outputs:
         # other requirements
         - python
         - numpy >=1.24.0,<3.0.0
-        - typing_extensions >=4.15.0
+        - typing_extensions >=4.10.0
         # To stop the compiler pulling in an openmp implementation itself (although I'm not sure this mutex works anyway)
         - _openmp_mutex                                       # [linux]
         - {{ pin_compatible('magma') }}                       # [(gpu_variant or "").startswith("cuda")]
