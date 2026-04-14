@@ -1,9 +1,18 @@
+From ac569bd0ba27d222e26fc2dd5671e47e4dcbd7cc Mon Sep 17 00:00:00 2001
+From: conda-forge <conda-forge@users.noreply.github.com>
+Date: Mon, 6 Nov 2023 13:48:00 -0500
+Subject: [PATCH 05/13] Add missing includes for Handlers.hpp
+
 These stdlib functions are required in Handlers.cpp but not present.
 
 It won't compile for osx-arm64 metal; unsure why it can on linux-64, but in any
 case, they should be present.
+---
+ torch/csrc/distributed/c10d/control_plane/Handlers.hpp | 2 ++
+ 1 file changed, 2 insertions(+)
+
 diff --git a/torch/csrc/distributed/c10d/control_plane/Handlers.hpp b/torch/csrc/distributed/c10d/control_plane/Handlers.hpp
-index 70333a3a484..aa9619e0f04 100644
+index 58ae9368ea2..a7dd16e1117 100644
 --- a/torch/csrc/distributed/c10d/control_plane/Handlers.hpp
 +++ b/torch/csrc/distributed/c10d/control_plane/Handlers.hpp
 @@ -4,6 +4,8 @@
@@ -15,3 +24,6 @@ index 70333a3a484..aa9619e0f04 100644
  
  #include <c10/macros/Export.h>
  
+-- 
+2.50.1 (Apple Git-155)
+

@@ -21,7 +21,7 @@ diff --git a/torch/_inductor/cpp_builder.py b/torch/_inductor/cpp_builder.py
 index e2cb445ed10..92513ea0c3d 100644
 --- a/torch/_inductor/cpp_builder.py
 +++ b/torch/_inductor/cpp_builder.py
-@@ -1410,10 +1410,12 @@ def get_cpp_torch_options(
+@@ -1518,10 +1518,12 @@ def get_cpp_torch_options(
          + python_include_dirs
          + torch_include_dirs
          + omp_include_dir_paths

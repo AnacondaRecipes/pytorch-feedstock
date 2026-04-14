@@ -1,7 +1,7 @@
-From 9b7034c3fa6759792633610845fb80bc6deada1a Mon Sep 17 00:00:00 2001
+From 942b90029508ee1b7c8c6c83fa78d78e0c5216d6 Mon Sep 17 00:00:00 2001
 From: "H. Vetinari" <h.vetinari@gmx.com>
 Date: Tue, 28 Jan 2025 10:58:29 +1100
-Subject: [PATCH 09/17] remove `DESTINATION lib` from CMake `install(TARGETS`
+Subject: [PATCH] remove `DESTINATION lib` from CMake `install(TARGETS`
  directives
 
 Suggested-By: Silvio Traversaro <silvio@traversaro.it>
@@ -10,10 +10,10 @@ Suggested-By: Silvio Traversaro <silvio@traversaro.it>
  c10/cuda/CMakeLists.txt                 |  2 +-
  c10/hip/CMakeLists.txt                  |  2 +-
  c10/xpu/CMakeLists.txt                  |  2 +-
- caffe2/CMakeLists.txt                   | 18 +++++++++---------
+ caffe2/CMakeLists.txt                   | 20 ++++++++++----------
  torch/CMakeLists.txt                    |  2 +-
  torch/lib/libshm_windows/CMakeLists.txt |  2 +-
- 7 files changed, 15 insertions(+), 15 deletions(-)
+ 7 files changed, 16 insertions(+), 16 deletions(-)
 
 diff --git a/c10/CMakeLists.txt b/c10/CMakeLists.txt
 index f82e460cafc..d5df53938c3 100644
@@ -55,10 +55,10 @@ index ef24471dba8..a410383de27 100644
  endif()
  
 diff --git a/c10/xpu/CMakeLists.txt b/c10/xpu/CMakeLists.txt
-index 95b9f031c3e..f1ce6d1ad14 100644
+index c2fa65ba35e..3a384395e4a 100644
 --- a/c10/xpu/CMakeLists.txt
 +++ b/c10/xpu/CMakeLists.txt
-@@ -46,7 +46,7 @@ if(NOT BUILD_LIBTORCHLESS)
+@@ -47,7 +47,7 @@ if(NOT BUILD_LIBTORCHLESS)
        $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
        $<INSTALL_INTERFACE:include>
        )
@@ -68,10 +68,10 @@ index 95b9f031c3e..f1ce6d1ad14 100644
    add_subdirectory(test)
  endif()
 diff --git a/caffe2/CMakeLists.txt b/caffe2/CMakeLists.txt
-index 6ab41b6c847..a78ad102aa6 100644
+index 6cbaecc5d2e..fa7107180ef 100644
 --- a/caffe2/CMakeLists.txt
 +++ b/caffe2/CMakeLists.txt
-@@ -567,7 +567,7 @@ if(USE_CUDA)
+@@ -575,7 +575,7 @@ if(USE_CUDA)
    endif()
  
    target_link_libraries(caffe2_nvrtc PRIVATE caffe2::nvrtc ${DELAY_LOAD_FLAGS})
@@ -80,7 +80,7 @@ index 6ab41b6c847..a78ad102aa6 100644
    if(USE_NCCL)
      list(APPEND Caffe2_GPU_SRCS
        ${TORCH_SRC_DIR}/csrc/cuda/nccl.cpp)
-@@ -642,7 +642,7 @@ if(USE_ROCM)
+@@ -656,7 +656,7 @@ if(USE_ROCM)
    target_link_libraries(caffe2_nvrtc hip::amdhip64 hiprtc::hiprtc)
    target_include_directories(caffe2_nvrtc PRIVATE ${CMAKE_BINARY_DIR})
    target_compile_definitions(caffe2_nvrtc PRIVATE USE_ROCM __HIP_PLATFORM_AMD__)
@@ -89,7 +89,16 @@ index 6ab41b6c847..a78ad102aa6 100644
  endif()
  
  if(NOT NO_API AND NOT BUILD_LITE_INTERPRETER)
-@@ -1112,7 +1112,7 @@ elseif(USE_CUDA)
+@@ -1056,7 +1056,7 @@ elseif(USE_CUDA)
+     target_compile_definitions(torch_cuda PUBLIC USE_NVSHMEM)
+     target_compile_definitions(torch_nvshmem PUBLIC USE_NVSHMEM)
+     target_link_libraries(torch_cuda PRIVATE torch_nvshmem)
+-    install(TARGETS torch_nvshmem EXPORT Caffe2Targets DESTINATION "${TORCH_INSTALL_LIB_DIR}")
++    install(TARGETS torch_nvshmem EXPORT Caffe2Targets)
+   else()
+     message(STATUS "NVSHMEM not found, not building with NVSHMEM support.")
+   endif()
+@@ -1119,7 +1119,7 @@ elseif(USE_CUDA)
            CUDA::culibos ${CMAKE_DL_LIBS})
      endif()
      set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/../aten/src/ATen/native/cuda/LinearAlgebraStubs.cpp PROPERTIES COMPILE_FLAGS "-DBUILD_LAZY_CUDA_LINALG")
@@ -98,7 +107,7 @@ index 6ab41b6c847..a78ad102aa6 100644
    endif()
  
    if(USE_PRECOMPILED_HEADERS)
-@@ -1590,17 +1590,17 @@ endif()
+@@ -1594,17 +1594,17 @@ endif()
  
  caffe2_interface_library(torch torch_library)
  
@@ -121,7 +130,7 @@ index 6ab41b6c847..a78ad102aa6 100644
  
  target_link_libraries(torch PUBLIC torch_cpu_library)
  
-@@ -1743,7 +1743,7 @@ if(BUILD_SHARED_LIBS)
+@@ -1747,7 +1747,7 @@ if(BUILD_SHARED_LIBS)
        target_link_libraries(torch_global_deps torch::nvtoolsext)
      endif()
    endif()
@@ -131,10 +140,10 @@ index 6ab41b6c847..a78ad102aa6 100644
  
  # ---[ Caffe2 HIP sources.
 diff --git a/torch/CMakeLists.txt b/torch/CMakeLists.txt
-index 1632147f022..ca8a193adb5 100644
+index 3a3ca0f1236..0e2c682fd97 100644
 --- a/torch/CMakeLists.txt
 +++ b/torch/CMakeLists.txt
-@@ -468,7 +468,7 @@ if(NOT TORCH_PYTHON_LINK_FLAGS STREQUAL "")
+@@ -466,7 +466,7 @@ if(NOT TORCH_PYTHON_LINK_FLAGS STREQUAL "")
      set_target_properties(torch_python PROPERTIES LINK_FLAGS ${TORCH_PYTHON_LINK_FLAGS})
  endif()
  
@@ -156,3 +165,6 @@ index df2a1064938..5fa15e6be31 100644
  install(FILES libshm.h DESTINATION "include")
  
  if(MSVC AND BUILD_SHARED_LIBS)
+-- 
+2.50.1 (Apple Git-155)
+

@@ -1,15 +1,15 @@
-{% set version = "2.9.1" %}
-{% set sha256 = "e17504700ebc4c87f9b57059df1c4d790b769458c04db144c7a92aea90f2c92b" %}
+{% set version = "2.10.0" %}
+{% set sha256 = "fa8ccbe87f83f48735505371c1c313b4aa6db400b0ae4f8a02844d1e150c695f" %}
 # Set the RC number to build release candidates. Set to None otherwise
 {% set rc = None %}
 {% set build = 1 %}
 
 
 # Keep this in sync with the release
-{% set smoke_test_commit = "d38164a545b4a4e4e0cf73ce67173f70574890b6" %}
+{% set smoke_test_commit = "449b1768410104d3ed79d3bcfe4ba1d65c7f22c0" %}
 
 # see https://github.com/pytorch/pytorch/blame/v{{ version }}/.ci/docker/ci_commit_pins/triton.txt
-{% set triton = "3.5.1" %}
+{% set triton = "3.6.0" %}
 
 # Use a higher build number for the CUDA variant, to ensure that it's
 # preferred by conda's solver, and it's preferentially
@@ -57,10 +57,10 @@ source:
       - patches/0011-remove-DESTINATION-lib-from-CMake-install-TARGETS-di.patch             # [win]
       - patches/0014-point-include-paths-to-PREFIX-include.patch
       - patches/0015-point-lib-paths-to-PREFIX-lib.patch
-      # backport https://github.com/pytorch/pytorch/pull/166824
       - patches/0018-Add-USE_SYSTEM-options-for-KLEIDI-CUDNN_FRONTEND-CUT.patch
       - patches/0021-fix-onednn-cuda-include.patch
       - patches/0022-force-bundled-mkldnn.patch
+      - patches/0023-remove-conftest-extra-param.patch
 {% endif %}
   - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.ci/pytorch/smoke_test/smoke_test.py
     folder: smoke_test
@@ -159,6 +159,7 @@ requirements:
     - numpy >=1.26.0,<3.0.0
     - pip
     - setuptools
+    - wheel
     - pyyaml
     - requests
     - six
@@ -175,8 +176,9 @@ requirements:
     - libuv
     - pkg-config  # [unix]
     - typing_extensions
+    - packaging
     - pybind11 2.13.6
-    - eigen 3.3.7
+    - eigen {{ eigen }}
     - zlib {{ zlib }}
     - fmt {{ fmt }}
   # satisfy overlinking checks
@@ -185,6 +187,7 @@ requirements:
     - libuv                                  # [win]
     - {{ pin_compatible('magma') }}          # [(gpu_variant or "").startswith("cuda")]
     - {{ pin_compatible('libcudnn') }}          # [(gpu_variant or "").startswith("cuda")]
+    - __cuda                                    # [(gpu_variant or "").startswith("cuda")] 
 
 # these tests are for the libtorch output below, but due to
 # a particularity of conda-build, that output is defined in
@@ -249,9 +252,11 @@ outputs:
         # The are dynamically loaded from %SP_DIR%\torch\lib\
         - "**/asmjit.dll"             # [win]
         - "**/c10.dll"                # [win]
+        - "**/c10_cuda.dll"           # [win]
         - "**/fbgemm.dll"             # [win]
         - "**/shm.dll"                # [win]
         - "**/torch_cpu.dll"          # [win]
+        - "**/torch_cuda.dll"         # [win]
         - "**/torch_python.dll"       # [win]
         - "**/libtorch_cpu.so*"       # [aarch64]
         - "**/libc10.so*"             # [aarch64]
@@ -334,6 +339,7 @@ outputs:
         - numpy >=1.26.0,<3.0.0
         - pip
         - setuptools
+        - wheel
         - pyyaml
         - requests
         - six
@@ -350,12 +356,12 @@ outputs:
         - libuv
         - pkg-config  # [unix]
         - typing_extensions
+        - packaging
         - {{ pin_subpackage('libtorch', exact=True) }}
         - pybind11 2.13.6
-        - pybind11-abi
-        - eigen 3.3.7
-        - zlib
-        - fmt
+        - eigen {{ eigen }}
+        - zlib {{ zlib }}
+        - fmt {{ fmt }}
       run:
         - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
         - llvm-openmp                            # [osx and not (blas_impl == "mkl")]
@@ -364,7 +370,7 @@ outputs:
         # other requirements
         - python
         - numpy >=1.24.0,<3.0.0
-        - typing_extensions
+        - typing_extensions >=4.10.0
         # To stop the compiler pulling in an openmp implementation itself (although I'm not sure this mutex works anyway)
         - _openmp_mutex                                       # [linux]
         - {{ pin_compatible('magma') }}                       # [(gpu_variant or "").startswith("cuda")]
@@ -391,7 +397,8 @@ outputs:
         - {{ compiler('cxx') }}
         - boto3
         - hypothesis
-        - pytest
+        # SciPy optional upstream; nn.functional.pdist numpy-ref still calls scipy (seen on win+cuda).
+        - scipy  # [win]
         - tabulate
         - pydot
         - mock  # [linux]
@@ -399,8 +406,7 @@ outputs:
         - expecttest
         # unittest-xml-reporting provides xmlrunner
         - unittest-xml-reporting
-        # pytest <9 due to deprecations in 2.10.0 breaking collections
-        - pytest <9
+        - pytest
         - pytest-rerunfailures
         - pytest-flakefinder
         - pytest-xdist
@@ -408,6 +414,17 @@ outputs:
         - pybind11 2.13.6
         # the inductor "test_aoti_eager..." tests require objcopy
         - binutils  # [linux]
+        # Triton JIT links cuda_utils.c against libcuda; use driver stubs from the env (no system /lib64 driver in many builders)
+        - cuda-driver-dev  # [linux and (gpu_variant or "").startswith("cuda")]
+        # Inductor/triton JIT-builds cuda_utils.c and needs cuda.h under PREFIX/targets/*/include (see triton runtime/build.py).
+        # cuda-nvcc alone does not populate that tree in the test env; cuda-cudart-dev does (same as global host: for CUDA 12+).
+        - {{ compiler('cuda') }}    # [(gpu_variant or "").startswith("cuda")]
+        - cuda-version {{ cuda_compiler_version }}   # [(gpu_variant or "").startswith("cuda")]
+        - cuda-nvcc ={{ cuda_compiler_version }}     # [(gpu_variant or "").startswith("cuda")]
+        {% if cuda_major >= 12 %}
+        - cuda-cudart-dev           # [(gpu_variant or "").startswith("cuda")]
+        {% endif %}
+        - cuda-nvrtc-dev            # [(gpu_variant or "").startswith("cuda")]
       imports:
         - torch
       source_files:
@@ -460,10 +477,14 @@ outputs:
         # The inductor tests test the torch.compile backend. Using the options below avoids running distributed tests,
         # which would be run if we used the --inductor option. (Distributed tests would only be correctly run on a multi-gpu test platform,
         # which we don't have.)
-        # torch.compile isn't supported on python 3.12 yet
         # These following tests have been disbaled due to GPU architecture needing to be very new on CI. And the others are disbled due to https://github.com/conda-forge/pytorch-cpu-feedstock/issues/380
         # this also aligns with their meta.yaml testing strategy
-        - python test/run_test.py -i inductor/test_torchinductor.py --continue-through-error -k "not (test_isinf_cuda or test_donated_buffer_inplace_gpt or test_sdpa_inference_mode_aot_compile)" || true   # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
+        {% set inductor_skips = "test_isinf_cuda" %}
+        {% set inductor_skips = inductor_skips ~ " or test_donated_buffer_inplace_gpt" %}
+        {% set inductor_skips = inductor_skips ~ " or test_sdpa_inference_mode_aot_compile" %}
+        # "Attempt to trace generator" - upstream Dynamo bug
+        {% set inductor_skips = inductor_skips ~ " or test_lite_regional_compile_flex_attention_cuda" %}
+        - python test/run_test.py -i inductor/test_torchinductor.py --continue-through-error -k "not ({{ inductor_skips }})" || true   # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
         - python ./test/run_test.py --mps --continue-through-error || true                                           # [(gpu_variant == "metal")]
         # Run pip check so as to ensure that all pytorch packages are installed
         # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/24

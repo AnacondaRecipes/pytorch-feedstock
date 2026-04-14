@@ -1,5 +1,13 @@
+From ac186a7b629043009abde727666c5bb307e7a76a Mon Sep 17 00:00:00 2001
+From: conda-forge <conda-forge@users.noreply.github.com>
+Date: Mon, 6 Nov 2023 13:46:00 -0500
+Subject: [PATCH 02/13] Swap OpenMP search precedence to prefer Intel over GNU
+---
+ cmake/Modules/FindMKL.cmake | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
 diff --git a/cmake/Modules/FindMKL.cmake b/cmake/Modules/FindMKL.cmake
-index 7c4647f3746..51f4bc8cdae 100644
+index ff24c9787ad..797cb4c25e8 100644
 --- a/cmake/Modules/FindMKL.cmake
 +++ b/cmake/Modules/FindMKL.cmake
 @@ -113,8 +113,8 @@ ELSE(WIN32)
@@ -13,3 +21,6 @@ index 7c4647f3746..51f4bc8cdae 100644
      ENDIF()
      SET(mklifaces  "intel" "gf")
    ELSE(CMAKE_COMPILER_IS_GNUCC)
+-- 
+2.50.1 (Apple Git-155)
+
