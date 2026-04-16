@@ -1,12 +1,23 @@
+# --- TEMP narrow matrix (linux-64, py3.10, CUDA 12.8, openblas) — revert commented blocks below ---
+# TEMP: python / numpy / blas (restore from aggregate base cbc or uncomment typical lists)
+python:
+  - 3.10
+numpy:
+  - '2.1'
+blas_impl:
+  - openblas
+
 gpu_variant:
-  - cpu
-  - metal                    # [(osx and arm64)]
+  # - cpu
+  # - metal                    # [(osx and arm64)]
   - cuda                     # [win or linux]
+
+# --- TEMP: skip aarch64 pins for this run (restore for full matrix) ---
 # Linux aarch64 needs gcc 15.2.0 due to a bug with 14.3 with vector instructions
-c_compiler_version:          # [linux and aarch64]
-  - 15.2.0                   # [linux and aarch64]
-cxx_compiler_version:        # [linux and aarch64]
-  - 15.2.0                   # [linux and aarch64]
+# c_compiler_version:          # [linux and aarch64]
+#   - 15.2.0                   # [linux and aarch64]
+# cxx_compiler_version:        # [linux and aarch64]
+#   - 15.2.0                   # [linux and aarch64]
 # Linux x86_64 needs gcc 14 due to CUDA 12.8 compatibility
 c_compiler_version:          # [linux and x86_64]
   - 14                       # [linux and x86_64]
@@ -14,24 +25,27 @@ cxx_compiler_version:        # [linux and x86_64]
   - 14                       # [linux and x86_64]
 cuda_compiler_version:       # [win or (linux and x86_64)]
   - 12.8                     # [win or (linux and x86_64)]
-  - 13.0                     # [win or (linux and x86_64)]
+  # - 13.0                     # [win or (linux and x86_64)]
 # aarch64 only supports CUDA 13.0+ (CUDA 12.8 requires gcc <15, but aarch64 needs gcc 15.2.0)
-cuda_compiler_version:       # [linux and aarch64]
-  - 13.0                     # [linux and aarch64]
+# cuda_compiler_version:       # [linux and aarch64]
+#   - 13.0                     # [linux and aarch64]
+
+# --- TEMP: skip osx-arm64 GPU/SDK zip (restore for osx metal builds) ---
 # CONDA_BUILD_SYSROOT is defined in the base cbc.yaml, but it's reflected here so we can zip the keys and
 # build GPU and CPU at the same time for osx-arm64. It'll need to be manually updated here if the base cbc is changed.
 # This could be done using extend_keys instead, with a change to the base cbc.yaml.
 # However there's currently a conda-forge bug that prevents this: https://github.com/conda/conda-build/issues/5048
-MACOSX_SDK_VERSION:          # [(osx and arm64)]
-  - 13.3                     # [(osx and arm64)]
-  - 14.5                     # [(osx and arm64)]
-CONDA_BUILD_SYSROOT:         # [(osx and arm64)]
-  - /Library/Developer/CommandLineTools/SDKs/MacOSX13.3.sdk  # [(osx and arm64)]
-  - /Library/Developer/CommandLineTools/SDKs/MacOSX14.5.sdk  # [(osx and arm64)]
-zip_keys:                    # [(osx and arm64)]
-  - gpu_variant              # [(osx and arm64)]
-  - MACOSX_SDK_VERSION       # [(osx and arm64)]
-  - CONDA_BUILD_SYSROOT      # [(osx and arm64)]
+# MACOSX_SDK_VERSION:          # [(osx and arm64)]
+#   - 13.3                     # [(osx and arm64)]
+#   - 14.5                     # [(osx and arm64)]
+# CONDA_BUILD_SYSROOT:         # [(osx and arm64)]
+#   - /Library/Developer/CommandLineTools/SDKs/MacOSX13.3.sdk  # [(osx and arm64)]
+#   - /Library/Developer/CommandLineTools/SDKs/MacOSX14.5.sdk  # [(osx and arm64)]
+# zip_keys:                    # [(osx and arm64)]
+#   - gpu_variant              # [(osx and arm64)]
+#   - MACOSX_SDK_VERSION       # [(osx and arm64)]
+#   - CONDA_BUILD_SYSROOT      # [(osx and arm64)]
+
 # megabuild is disabled as our CI runners work on each python version separately.
 megabuild:
 - false
