@@ -4,7 +4,6 @@
 {% set rc = None %}
 {% set build = 1 %}
 
-
 # Keep this in sync with the release
 {% set smoke_test_commit = "449b1768410104d3ed79d3bcfe4ba1d65c7f22c0" %}
 
