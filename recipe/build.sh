@@ -162,7 +162,7 @@ if [[ "${CI}" == "github_actions" ]]; then
 elif [[ "$target_platform" == "linux-aarch64" && ${gpu_variant} == "cuda"* ]]; then
     # CUDA template instantiation (flash attention / cutlass) is extremely
     # memory-hungry. Cap parallelism to avoid OOM.
-    export MAX_JOBS=4
+    export MAX_JOBS=2
 elif [[ "$target_platform" == "linux-x86_64" && ${gpu_variant} == "cuda"* ]]; then
     # CUDA template instantiation (flash attention / cutlass) is extremely
     # memory-hungry. Cap parallelism to avoid OOM.
