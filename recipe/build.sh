@@ -162,12 +162,12 @@ if [[ "${CI}" == "github_actions" ]]; then
 elif [[ "$target_platform" == "linux-aarch64" && ${gpu_variant} == "cuda"* ]]; then
     # CUDA template instantiation (flash attention / cutlass) is extremely
     # memory-hungry. Cap parallelism to avoid OOM.
-    export MAX_JOBS=2
+    export MAX_JOBS=4
 elif [[ "$target_platform" == "linux-x86_64" && ${gpu_variant} == "cuda"* ]]; then
     # CUDA template instantiation (flash attention / cutlass) is extremely
     # memory-hungry. Cap parallelism to avoid OOM.
     # 6 seems to be the sweet spot for the CI runners (April 2026)
-    export MAX_JOBS=6
+    export MAX_JOBS=4
 else
     # Leave a spare core for other tasks. This may need to be reduced further
     # if we get out of memory errors. (Each job uses a certain amount of memory.)
