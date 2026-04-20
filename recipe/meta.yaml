@@ -1,12 +1,12 @@
-{% set version = "2.10.0" %}
-{% set sha256 = "fa8ccbe87f83f48735505371c1c313b4aa6db400b0ae4f8a02844d1e150c695f" %}
+{% set version = "2.11.0" %}
+{% set sha256 = "ab3fde9e7e382f45ac942be6ea2c2ef362c5ccd6f55ed6d5f35e6ea81d3ab88e" %}
 # Set the RC number to build release candidates. Set to None otherwise
 {% set rc = None %}
-{% set build = 1 %}
+{% set build = 0 %}
 
 
 # Keep this in sync with the release
-{% set smoke_test_commit = "449b1768410104d3ed79d3bcfe4ba1d65c7f22c0" %}
+{% set smoke_test_commit = "70d99e998b4955e0049d13a98d77ae1b14db1f45" %}
 
 # see https://github.com/pytorch/pytorch/blame/v{{ version }}/.ci/docker/ci_commit_pins/triton.txt
 {% set triton = "3.6.0" %}
@@ -69,6 +69,10 @@ source:
 
 build:
   number: {{ build }}
+  # First-pass 2.11 smoke build: restrict to linux-64 CPU / py3.13 only.
+  skip: true  # [not (linux and x86_64)]
+  skip: true  # [gpu_variant != "cpu"]
+  skip: true  # [py != 313]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
@@ -132,8 +136,8 @@ requirements:
     - cuda-version {{ cuda_compiler_version }} # [(gpu_variant or "").startswith("cuda")]
     - nvtx-c                                   # [(gpu_variant or "").startswith("cuda")]
     {% if cuda_major < 13 %}
-    - cudnn 9.15.1.9                           # [(gpu_variant or "").startswith("cuda")]
-    - nccl 2.21.5.1                            # [(gpu_variant or "").startswith("cuda") and linux]
+    - cudnn 9.17.0.29                          # [(gpu_variant or "").startswith("cuda")]
+    - nccl 2.29.3.1                            # [(gpu_variant or "").startswith("cuda") and linux]
     {% else %}    
     - cudnn                  # [(gpu_variant or "").startswith("cuda")]
     - nccl                   # [(gpu_variant or "").startswith("cuda") and linux]
@@ -177,7 +181,8 @@ requirements:
     - pkg-config  # [unix]
     - typing_extensions
     - packaging
-    - pybind11 2.13.6
+    # https://github.com/pytorch/pytorch/pull/175115 caps pybind11 below 3.0.2
+    - pybind11 <3.0.2
     - eigen {{ eigen }}
     - zlib {{ zlib }}
     - fmt {{ fmt }}
@@ -310,8 +315,8 @@ outputs:
       host:
         # GPU requirements
         {% if cuda_major < 13 %}
-        - cudnn 9.15.1.9                  # [(gpu_variant or "").startswith("cuda")]
-        - nccl 2.21.5.1                   # [(gpu_variant or "").startswith("cuda") and linux]
+        - cudnn 9.17.0.29                 # [(gpu_variant or "").startswith("cuda")]
+        - nccl 2.29.3.1                   # [(gpu_variant or "").startswith("cuda") and linux]
         {% else %}
         - cudnn                           # [(gpu_variant or "").startswith("cuda")]
         - nccl                            # [(gpu_variant or "").startswith("cuda") and linux]
@@ -358,7 +363,8 @@ outputs:
         - typing_extensions
         - packaging
         - {{ pin_subpackage('libtorch', exact=True) }}
-        - pybind11 2.13.6
+        # https://github.com/pytorch/pytorch/pull/175115 caps pybind11 below 3.0.2
+        - pybind11 <3.0.2
         - eigen {{ eigen }}
         - zlib {{ zlib }}
         - fmt {{ fmt }}
@@ -411,7 +417,7 @@ outputs:
         - pytest-flakefinder
         - pytest-xdist
         # Needed for test_autograd.py
-        - pybind11 2.13.6
+        - pybind11 <3.0.2
         # the inductor "test_aoti_eager..." tests require objcopy
         - binutils  # [linux]
         # Triton JIT links cuda_utils.c against libcuda; use driver stubs from the env (no system /lib64 driver in many builders)
