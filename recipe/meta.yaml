@@ -70,8 +70,7 @@ source:
 build:
   number: {{ build }}
   # First-pass 2.11 smoke build: restrict to linux-aarch64 CPU / py3.13 only.
-  skip: true  # [not (linux and aarch64)]
-  skip: true  # [gpu_variant != "cpu"]
+  skip: true  # [not osx]
   skip: true  # [py != 313]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
