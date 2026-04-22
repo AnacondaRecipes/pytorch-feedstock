@@ -166,8 +166,8 @@ elif [[ "$target_platform" == "linux-aarch64" && ${gpu_variant} == "cuda"* ]]; t
 elif [[ "$target_platform" == "linux-x86_64" && ${gpu_variant} == "cuda"* ]]; then
     # CUDA template instantiation (flash attention / cutlass) is extremely
     # memory-hungry. Cap parallelism to avoid OOM.
-    # 4 seems to be the sweet spot for the CI runners (April 2026)
-    export MAX_JOBS=4
+    # 8 seems to be the sweet spot for the CI runners (April 2026)
+    export MAX_JOBS=8
 else
     # Leave a spare core for other tasks. This may need to be reduced further
     # if we get out of memory errors. (Each job uses a certain amount of memory.)
@@ -258,7 +258,8 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
     if [[ "${target_platform}" != "${build_platform}" ]]; then
         export CUDA_TOOLKIT_ROOT=${PREFIX}
     fi
-    export TORCH_NVCC_FLAGS="-Xfatbin -compress-all"
+    export TORCH_NVCC_FLAGS="-Xfatbin -compress-all \
+        -Xptxas=--allow-expensive-optimizations=false"
     export NCCL_ROOT_DIR=$PREFIX
     export NCCL_INCLUDE_DIR=$PREFIX/include
     export USE_SYSTEM_NCCL=1
