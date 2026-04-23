@@ -164,10 +164,8 @@ elif [[ "$target_platform" == "linux-aarch64" && ${gpu_variant} == "cuda"* ]]; t
     # memory-hungry. Cap parallelism to avoid OOM.
     export MAX_JOBS=4
 elif [[ "$target_platform" == "linux-x86_64" && ${gpu_variant} == "cuda"* ]]; then
-    # CUDA template instantiation (flash attention / cutlass) is extremely
-    # memory-hungry. Cap parallelism to avoid OOM.
-    # 8 seems to be the sweet spot for the CI runners (April 2026)
-    export MAX_JOBS=8
+    # 4 has been observed to stay inside the memory budget (April 2026).
+    export MAX_JOBS=4
 else
     # Leave a spare core for other tasks. This may need to be reduced further
     # if we get out of memory errors. (Each job uses a certain amount of memory.)
@@ -258,8 +256,18 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
     if [[ "${target_platform}" != "${build_platform}" ]]; then
         export CUDA_TOOLKIT_ROOT=${PREFIX}
     fi
-    export TORCH_NVCC_FLAGS="-Xfatbin -compress-all \
+    # --threads 1 prevents nvcc from compiling multiple gencode arches in
+    # parallel within a single nvcc invocation (each parallel arch spawns its
+    # own cicc, multiplying peak RSS per process). Combined with a capped
+    # MAX_JOBS this keeps concurrent cicc instances predictable.
+    # -Xptxas=--allow-expensive-optimizations=false keeps per-kernel SASS at
+    # -O3 while skipping the memory-hungry optional ptxas passes.
+    export TORCH_NVCC_FLAGS="-Xfatbin -compress-all --threads 1 \
         -Xptxas=--allow-expensive-optimizations=false"
+    # Reduce glibc per-thread malloc arenas. nvcc/cicc/host-gcc can otherwise
+    # hold several hundred MB of fragmented arenas per process; capping to 2
+    # noticeably cuts peak RSS of long-running C++ compiler processes.
+    export MALLOC_ARENA_MAX=2
     export NCCL_ROOT_DIR=$PREFIX
     export NCCL_INCLUDE_DIR=$PREFIX/include
     export USE_SYSTEM_NCCL=1
