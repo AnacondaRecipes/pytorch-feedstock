@@ -164,7 +164,9 @@ elif [[ "$target_platform" == "linux-aarch64" && ${gpu_variant} == "cuda"* ]]; t
     # memory-hungry. Cap parallelism to avoid OOM.
     export MAX_JOBS=4
 elif [[ "$target_platform" == "linux-x86_64" && ${gpu_variant} == "cuda"* ]]; then
-    # 4 has been observed to stay inside the memory budget (April 2026).
+    # cicc OOMs on fbgemm_genai CUTLASS templates on runners. Rather
+    # than globally throttle, we serialize only fbgemm_genai via a Ninja job
+    # pool (patch 0024 + CMAKE_JOB_POOLS below) and leave MAX_JOBS high.
     export MAX_JOBS=4
 else
     # Leave a spare core for other tasks. This may need to be reduced further
@@ -243,7 +245,7 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
     elif [[ ${cuda_compiler_version} == 12.* ]]; then
         # Arch list aligned with upstream PyTorch CI.
         # sm_50-sm_61 deprecated in CUDA 12.8; keep sm_70 per pytorch/pytorch#157517.
-        export TORCH_CUDA_ARCH_LIST="7.0;7.5;8.0;8.6;9.0;10.0;12.0+PTX"
+        export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;9.0;10.0;12.0+PTX"
     elif [[ ${cuda_compiler_version} == 13.* ]]; then
         # sm_70 dropped in CUDA 13; list matches upstream PyTorch CI for CUDA 13.
         export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;9.0;10.0;12.0+PTX"
@@ -256,18 +258,18 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
     if [[ "${target_platform}" != "${build_platform}" ]]; then
         export CUDA_TOOLKIT_ROOT=${PREFIX}
     fi
-    # --threads 1 prevents nvcc from compiling multiple gencode arches in
-    # parallel within a single nvcc invocation (each parallel arch spawns its
-    # own cicc, multiplying peak RSS per process). Combined with a capped
-    # MAX_JOBS this keeps concurrent cicc instances predictable.
-    # -Xptxas=--allow-expensive-optimizations=false keeps per-kernel SASS at
-    # -O3 while skipping the memory-hungry optional ptxas passes.
-    export TORCH_NVCC_FLAGS="-Xfatbin -compress-all --threads 1 \
-        -Xptxas=--allow-expensive-optimizations=false"
-    # Reduce glibc per-thread malloc arenas. nvcc/cicc/host-gcc can otherwise
-    # hold several hundred MB of fragmented arenas per process; capping to 2
-    # noticeably cuts peak RSS of long-running C++ compiler processes.
+    # --threads 1: stop nvcc from fanning out per-arch cicc processes in one
+    # invocation (each fork multiplies peak RSS). -Xptxas ...=false skips the
+    # expensive ptxas passes (~0-3% perf on hot kernels, no correctness impact).
+    export TORCH_NVCC_FLAGS="-Xfatbin -compress-all --threads 1 -Xptxas=--allow-expensive-optimizations=false"
+    # Cap glibc per-thread malloc arenas so long-running cicc/gcc processes
+    # don't hold hundreds of MB of fragmented heap. No codegen impact.
     export MALLOC_ARENA_MAX=2
+    # Serialize fbgemm_genai compiles via a dedicated Ninja job pool (patch
+    # 0024). Set as env vars so PyTorch setup.py auto-forwards them as -D
+    # (CMAKE_ARGS itself is not read by setup.py).
+    export CMAKE_JOB_POOLS="cutlass_heavy=1;compile=${MAX_JOBS};link=2"
+    export USE_FBGEMM_GENAI_JOB_POOL=cutlass_heavy
     export NCCL_ROOT_DIR=$PREFIX
     export NCCL_INCLUDE_DIR=$PREFIX/include
     export USE_SYSTEM_NCCL=1

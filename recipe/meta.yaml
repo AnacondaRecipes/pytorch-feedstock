@@ -61,6 +61,7 @@ source:
       - patches/0021-fix-onednn-cuda-include.patch
       - patches/0022-force-bundled-mkldnn.patch
       - patches/0023-remove-conftest-extra-param.patch
+      - patches/0024-Allow-fbgemm_genai-to-be-assigned-to-a-Ninja-job-pool.patch
 {% endif %}
   - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.ci/pytorch/smoke_test/smoke_test.py
     folder: smoke_test
