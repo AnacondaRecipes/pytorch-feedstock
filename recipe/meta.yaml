@@ -61,7 +61,7 @@ source:
       - patches/0021-fix-onednn-cuda-include.patch
       - patches/0022-force-bundled-mkldnn.patch
       - patches/0023-remove-conftest-extra-param.patch
-      - patches/0024-Allow-fbgemm_genai-to-be-assigned-to-a-Ninja-job-pool.patch
+      - patches/0024-Allow-fbgemm_genai-to-be-assigned-to-a-Ninja-job-pool.patch    # [linux and gpu_variant == "cuda"]
 {% endif %}
   - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.ci/pytorch/smoke_test/smoke_test.py
     folder: smoke_test
@@ -70,8 +70,6 @@ source:
 
 build:
   number: {{ build }}
-  skip: true  # [not (linux and x86_64)]
-  skip: true  # [gpu_variant != "cuda"]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
