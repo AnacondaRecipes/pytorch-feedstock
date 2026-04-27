@@ -79,8 +79,10 @@ source:
 {% endif %}
   - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.ci/pytorch/smoke_test/smoke_test.py
     folder: smoke_test
-  # The .gitignore is needed in order to run upstreams `setup.py clean`
-  - url: https://raw.githubusercontent.com/pytorch/pytorch/refs/tags/v{{ version }}/.gitignore
+  # The .gitignore is needed in order to run upstreams `setup.py clean`.
+  # Pin to smoke_test_commit so this works for both RC and GA; the v{{ version }}
+  # tag doesn't exist yet during pre-GA (rc != None).
+  - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.gitignore
 
 build:
   number: {{ build }}
