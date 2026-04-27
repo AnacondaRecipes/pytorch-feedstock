@@ -11,10 +11,10 @@ case, they should be present.
  torch/csrc/distributed/c10d/control_plane/Handlers.hpp | 2 ++
  1 file changed, 2 insertions(+)
 
-diff --git a/torch/csrc/distributed/c10d/control_plane/Handlers.hpp b/torch/csrc/distributed/c10d/control_plane/Handlers.hpp
-index 58ae9368ea2..a7dd16e1117 100644
---- a/torch/csrc/distributed/c10d/control_plane/Handlers.hpp
-+++ b/torch/csrc/distributed/c10d/control_plane/Handlers.hpp
+Index: pytorch-2.12.0-rc3/torch/csrc/distributed/c10d/control_plane/Handlers.hpp
+===================================================================
+--- pytorch-2.12.0-rc3.orig/torch/csrc/distributed/c10d/control_plane/Handlers.hpp
++++ pytorch-2.12.0-rc3/torch/csrc/distributed/c10d/control_plane/Handlers.hpp
 @@ -4,6 +4,8 @@
  #include <map>
  #include <string>
@@ -24,6 +24,3 @@ index 58ae9368ea2..a7dd16e1117 100644
  
  #include <c10/macros/Export.h>
  
--- 
-2.50.1 (Apple Git-155)
-

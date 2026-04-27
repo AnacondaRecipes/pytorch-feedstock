@@ -7,11 +7,11 @@ Subject: [PATCH 01/16] Force usage of python 3 and error without numpy
  cmake/Dependencies.cmake | 6 +++---
  1 file changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/cmake/Dependencies.cmake b/cmake/Dependencies.cmake
-index 903c212de81..ecf8669649b 100644
---- a/cmake/Dependencies.cmake
-+++ b/cmake/Dependencies.cmake
-@@ -818,9 +818,9 @@ if(BUILD_PYTHON)
+Index: pytorch-2.12.0-rc3/cmake/Dependencies.cmake
+===================================================================
+--- pytorch-2.12.0-rc3.orig/cmake/Dependencies.cmake
++++ pytorch-2.12.0-rc3/cmake/Dependencies.cmake
+@@ -824,9 +824,9 @@ if(BUILD_PYTHON)
    if(USE_NUMPY)
      list(APPEND PYTHON_COMPONENTS NumPy)
    endif()
@@ -23,7 +23,7 @@ index 903c212de81..ecf8669649b 100644
  endif()
  
  if(NOT Python_Interpreter_FOUND)
-@@ -837,7 +837,7 @@ if(BUILD_PYTHON)
+@@ -843,7 +843,7 @@ if(BUILD_PYTHON)
    if(Python_Development.Module_FOUND)
      if(USE_NUMPY)
        if(NOT Python_NumPy_FOUND)

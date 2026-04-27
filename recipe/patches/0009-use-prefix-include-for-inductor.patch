@@ -17,11 +17,11 @@ and https://github.com/conda-forge/pytorch-cpu-feedstock/issues/447.
  torch/_inductor/cpp_builder.py | 4 +++-
  1 file changed, 3 insertions(+), 1 deletion(-)
 
-diff --git a/torch/_inductor/cpp_builder.py b/torch/_inductor/cpp_builder.py
-index e2cb445ed10..92513ea0c3d 100644
---- a/torch/_inductor/cpp_builder.py
-+++ b/torch/_inductor/cpp_builder.py
-@@ -1518,10 +1518,12 @@ def get_cpp_torch_options(
+Index: pytorch-2.12.0-rc3/torch/_inductor/cpp_builder.py
+===================================================================
+--- pytorch-2.12.0-rc3.orig/torch/_inductor/cpp_builder.py
++++ pytorch-2.12.0-rc3/torch/_inductor/cpp_builder.py
+@@ -1590,10 +1590,12 @@ def get_cpp_torch_options(
          + python_include_dirs
          + torch_include_dirs
          + omp_include_dir_paths
@@ -29,7 +29,7 @@ index e2cb445ed10..92513ea0c3d 100644
 +        + [sysconfig.get_config_var('prefix') + '/targets/@CUDA_TARGET@/include']
      )
      cflags = sys_libs_cflags + omp_cflags
-     ldflags = omp_ldflags
+     ldflags = sys_libs_ldflags + omp_ldflags
 -    libraries_dirs = python_libraries_dirs + torch_libraries_dirs + omp_lib_dir_paths
 +    libraries_dirs = python_libraries_dirs + torch_libraries_dirs + omp_lib_dir_paths + [sysconfig.get_config_var('prefix') + '/targets/@CUDA_TARGET@/lib/stubs']
      libraries = torch_libraries + omp_lib

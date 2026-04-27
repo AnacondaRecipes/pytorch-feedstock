@@ -6,10 +6,10 @@ Subject: [PATCH 02/13] Swap OpenMP search precedence to prefer Intel over GNU
  cmake/Modules/FindMKL.cmake | 4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/cmake/Modules/FindMKL.cmake b/cmake/Modules/FindMKL.cmake
-index ff24c9787ad..797cb4c25e8 100644
---- a/cmake/Modules/FindMKL.cmake
-+++ b/cmake/Modules/FindMKL.cmake
+Index: pytorch-2.12.0-rc3/cmake/Modules/FindMKL.cmake
+===================================================================
+--- pytorch-2.12.0-rc3.orig/cmake/Modules/FindMKL.cmake
++++ pytorch-2.12.0-rc3/cmake/Modules/FindMKL.cmake
 @@ -113,8 +113,8 @@ ELSE(WIN32)
        SET(mklthreads "mkl_tbb_thread")
        SET(mklrtls "tbb")
@@ -21,6 +21,3 @@ index ff24c9787ad..797cb4c25e8 100644
      ENDIF()
      SET(mklifaces  "intel" "gf")
    ELSE(CMAKE_COMPILER_IS_GNUCC)
--- 
-2.50.1 (Apple Git-155)
-

@@ -1,15 +1,19 @@
-{% set version = "2.11.0" %}
-{% set sha256 = "ab3fde9e7e382f45ac942be6ea2c2ef362c5ccd6f55ed6d5f35e6ea81d3ab88e" %}
-# Set the RC number to build release candidates. Set to None otherwise
-{% set rc = None %}
+{% set version = "2.12.0" %}
+{% set sha256 = "2d01cb1f6de449baa2880bc8242098240b0bdeb7abe2101dd9fb6e7c7d4b51de" %}
+# Set the RC number to build release candidates. Set to None otherwise.
+# When rc != None, the GitHub auto-archive tarball is used (submodules included).
+# At GA (~2026-05-13), set rc = None and bump sha256 to the official release
+# tarball (pytorch-v{{ version }}.tar.gz from the releases endpoint).
+{% set rc = "3" %}
 {% set build = 0 %}
 
 
 # Keep this in sync with the release
-{% set smoke_test_commit = "70d99e998b4955e0049d13a98d77ae1b14db1f45" %}
+{% set smoke_test_commit = "4bd029011e0cef6881f439fb244d0369a8942e40" %}
 
 # see https://github.com/pytorch/pytorch/blame/v{{ version }}/.ci/docker/ci_commit_pins/triton.txt
-{% set triton = "3.6.0" %}
+# 2.12 pins triton to release/3.7.x (commit b4e20bbe) — needs triton 3.7.0 in pkgs/main.
+{% set triton = "3.7.0" %}
 
 # Use a higher build number for the CUDA variant, to ensure that it's
 # preferred by conda's solver, and it's preferentially
@@ -34,16 +38,27 @@ package:
 
 source:
 {% if rc != None %}
-  # - git_url: https://github.com/pytorch/pytorch.git
-  #   git_rev: v{{ version.replace(".rc", "-rc") }}
-  # we cannot apply patches to submodules when checking out with git_url, because
-  # then conda switches the patch-application to use git, which cannot construct
-  # a usable ancestor from outside the submodule; the only option then is to
-  # pull in the submodules separately.
-  - url: https://github.com/pytorch/pytorch/archive/refs/tags/v{{ version }}.tar.gz
-    sha256: 04ae0a8babdc9cb9dfc4f8746b2b8aa0f8ed0f9e92835cc4af0bcb01e3969e51
+  # GitHub auto-archive tarball (includes vendored submodules — verified for v2.12.0-rc3).
+  # Patches apply against this tarball the same way as against the release tarball.
+  - url: https://github.com/pytorch/pytorch/archive/refs/tags/v{{ version }}-rc{{ rc }}.tar.gz
+    sha256: {{ sha256 }}
+    patches:
+      - patches/0001-windows-FindMKL-add-library-suffix.patch                  # [win]
+      - patches/0002-swap-openmp-search-precedence.patch                       # [blas_impl == "mkl"]
+      - patches/0003-Force-usage-of-python-3-and-error-without-numpy.patch
+      # https://github.com/pytorch/pytorch/issues/150918 - continue tests on failure due to flaky tests
+      - patches/0007-continue-tests-on-failure.patch
+      - patches/0008-add-missing-includes.patch
+      - patches/0009-use-prefix-include-for-inductor.patch
+      - patches/0011-remove-DESTINATION-lib-from-CMake-install-TARGETS-di.patch             # [win]
+      - patches/0014-point-include-paths-to-PREFIX-include.patch
+      - patches/0015-point-lib-paths-to-PREFIX-lib.patch
+      - patches/0018-Add-USE_SYSTEM-options-for-KLEIDI-CUDNN_FRONTEND-CUT.patch
+      - patches/0021-fix-onednn-cuda-include.patch
+      - patches/0022-force-bundled-mkldnn.patch
+      - patches/0023-remove-conftest-extra-param.patch
 {% else %}
-  # The "pytorch-v" tarballs contain submodules; the "pytorch-" ones don't.
+  # The "pytorch-v" release tarballs contain submodules; the "pytorch-" ones don't.
   - url: https://github.com/pytorch/pytorch/releases/download/v{{ version }}/pytorch-v{{ version }}.tar.gz
     sha256: {{ sha256 }}
     patches:

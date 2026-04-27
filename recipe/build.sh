@@ -163,11 +163,13 @@ elif [[ "$target_platform" == "linux-aarch64" && ${gpu_variant} == "cuda"* ]]; t
     # CUDA template instantiation (flash attention / cutlass) is extremely
     # memory-hungry. Cap parallelism to avoid OOM.
     export MAX_JOBS=4
-elif [[ "$target_platform" == "linux-x86_64" && ${gpu_variant} == "cuda"* ]]; then
+elif [[ "$target_platform" == "linux-64" && ${gpu_variant} == "cuda"* ]]; then
     # CUDA template instantiation (flash attention / cutlass) is extremely
     # memory-hungry. Cap parallelism to avoid OOM.
-    # 6 seems to be the sweet spot for the CI runners (April 2026)
-    export MAX_JOBS=6
+    # MAX_JOBS=15 (CPU_COUNT-1) verified safe on g4dn.4xlarge (16 vCPU / 64GB) in 2.10.0.
+    # NOTE: target_platform is "linux-64" on conda; the previous "linux-x86_64"
+    # literal never matched and silently fell through to the else branch.
+    export MAX_JOBS=$((CPU_COUNT > 1 ? CPU_COUNT - 1 : 1))
 else
     # Leave a spare core for other tasks. This may need to be reduced further
     # if we get out of memory errors. (Each job uses a certain amount of memory.)
@@ -236,19 +238,20 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
     if [[ "${target_platform}" != "${build_platform}" ]]; then
         export CUDA_TOOLKIT_ROOT=${CUDA_HOME}
     fi
+    # CUDA arch lists aligned with upstream PyTorch v2.12.0 .ci/manywheel/build_cuda.sh.
+    # 2.12 supports CUDA 12.6/12.8/12.9/13.0/13.2; we ship 12.9 and 13.0
+    # (pkgs/main has cuda-nvcc 13.0 but not 13.2 yet — see CBC).
     if [[ "$target_platform" == "linux-aarch64" && ${cuda_compiler_version} == 13.* ]]; then
-        # aarch64: upstream filters out <8.0 and 8.6 (x86_64-only SKUs).
-        # Keeps 8.0 (A100), 9.0 (Grace Hopper), 10.0+12.0 (Blackwell).
-        # aarch64 CUDA 13: same filter plus sm_11.0 added upstream specifically for aarch64.
-        # https://github.com/pytorch/pytorch/blob/v2.10.0/.ci/manywheel/build_cuda.sh
-        export TORCH_CUDA_ARCH_LIST="8.0;9.0;10.0;11.0;12.0;12.1+PTX"
+        # aarch64 CUDA 13: upstream filters out <8.0, 7.5, 8.6 (x86_64-only SKUs)
+        # and adds sm_11.0 (Jetson Thor) only on aarch64.
+        # Keeps 8.0 (A100), 9.0 (Grace Hopper), 10.0+12.0 (Blackwell), 11.0 (Thor).
+        export TORCH_CUDA_ARCH_LIST="8.0;9.0;10.0;11.0;12.0"
     elif [[ ${cuda_compiler_version} == 12.* ]]; then
-        # Arch list aligned with upstream PyTorch CI.
-        # sm_50-sm_61 deprecated in CUDA 12.8; sm_70 dropped upstream in 2.11.
-        export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;9.0;10.0;12.0+PTX"
+        # CUDA 12: sm_50-sm_61 deprecated in 12.8; sm_70 dropped upstream in 2.11.
+        export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;9.0;10.0;12.0"
     elif [[ ${cuda_compiler_version} == 13.* ]]; then
-        # sm_70 dropped in CUDA 13; list matches upstream PyTorch CI for CUDA 13.
-        export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;9.0;10.0;12.0+PTX"
+        # CUDA 13: sm_70 dropped; same arch list as 12.x for x86_64.
+        export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;9.0;10.0;12.0"
     else
         echo "No CUDA architecture list exists for CUDA v${cuda_compiler_version}"
         echo "in build.sh. Use https://en.wikipedia.org/wiki/CUDA#GPUs_supported to make one."
@@ -258,7 +261,14 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
     if [[ "${target_platform}" != "${build_platform}" ]]; then
         export CUDA_TOOLKIT_ROOT=${PREFIX}
     fi
-    export TORCH_NVCC_FLAGS="-Xfatbin -compress-all"
+    # TORCH_NVCC_FLAGS: --threads 2 parallelizes nvcc within each translation unit.
+    # CUDA 13 also gets -compress-mode=size and BUILD_BUNDLE_PTXAS=1 (matches upstream
+    # 2.12 .ci/manywheel/build_cuda.sh).
+    export TORCH_NVCC_FLAGS="-Xfatbin -compress-all --threads 2"
+    if [[ ${cuda_compiler_version} == 13.* ]]; then
+        export TORCH_NVCC_FLAGS="${TORCH_NVCC_FLAGS} -compress-mode=size"
+        export BUILD_BUNDLE_PTXAS=1
+    fi
     export NCCL_ROOT_DIR=$PREFIX
     export NCCL_INCLUDE_DIR=$PREFIX/include
     export USE_SYSTEM_NCCL=1
