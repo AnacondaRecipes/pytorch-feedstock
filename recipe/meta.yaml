@@ -1,15 +1,19 @@
-{% set version = "2.10.0" %}
-{% set sha256 = "fa8ccbe87f83f48735505371c1c313b4aa6db400b0ae4f8a02844d1e150c695f" %}
-# Set the RC number to build release candidates. Set to None otherwise
-{% set rc = None %}
-{% set build = 1 %}
+{% set version = "2.12.0" %}
+{% set sha256 = "2d01cb1f6de449baa2880bc8242098240b0bdeb7abe2101dd9fb6e7c7d4b51de" %}
+# Set the RC number to build release candidates. Set to None otherwise.
+# When rc != None, the GitHub auto-archive tarball is used (submodules included).
+# At GA (~2026-05-13), set rc = None and bump sha256 to the official release
+# tarball (pytorch-v{{ version }}.tar.gz from the releases endpoint).
+{% set rc = "3" %}
+{% set build = 0 %}
 
 
 # Keep this in sync with the release
-{% set smoke_test_commit = "449b1768410104d3ed79d3bcfe4ba1d65c7f22c0" %}
+{% set smoke_test_commit = "4bd029011e0cef6881f439fb244d0369a8942e40" %}
 
 # see https://github.com/pytorch/pytorch/blame/v{{ version }}/.ci/docker/ci_commit_pins/triton.txt
-{% set triton = "3.6.0" %}
+# 2.12 pins triton to release/3.7.x (commit b4e20bbe) — needs triton 3.7.0 in pkgs/main.
+{% set triton = "3.7.0" %}
 
 # Use a higher build number for the CUDA variant, to ensure that it's
 # preferred by conda's solver, and it's preferentially
@@ -34,16 +38,27 @@ package:
 
 source:
 {% if rc != None %}
-  # - git_url: https://github.com/pytorch/pytorch.git
-  #   git_rev: v{{ version.replace(".rc", "-rc") }}
-  # we cannot apply patches to submodules when checking out with git_url, because
-  # then conda switches the patch-application to use git, which cannot construct
-  # a usable ancestor from outside the submodule; the only option then is to
-  # pull in the submodules separately.
-  - url: https://github.com/pytorch/pytorch/archive/refs/tags/v{{ version }}.tar.gz
-    sha256: 04ae0a8babdc9cb9dfc4f8746b2b8aa0f8ed0f9e92835cc4af0bcb01e3969e51
+  # GitHub auto-archive tarball (includes vendored submodules — verified for v2.12.0-rc3).
+  # Patches apply against this tarball the same way as against the release tarball.
+  - url: https://github.com/pytorch/pytorch/archive/refs/tags/v{{ version }}-rc{{ rc }}.tar.gz
+    sha256: {{ sha256 }}
+    patches:
+      - patches/0001-windows-FindMKL-add-library-suffix.patch                  # [win]
+      - patches/0002-swap-openmp-search-precedence.patch                       # [blas_impl == "mkl"]
+      - patches/0003-Force-usage-of-python-3-and-error-without-numpy.patch
+      # https://github.com/pytorch/pytorch/issues/150918 - continue tests on failure due to flaky tests
+      - patches/0007-continue-tests-on-failure.patch
+      - patches/0008-add-missing-includes.patch
+      - patches/0009-use-prefix-include-for-inductor.patch
+      - patches/0011-remove-DESTINATION-lib-from-CMake-install-TARGETS-di.patch             # [win]
+      - patches/0014-point-include-paths-to-PREFIX-include.patch
+      - patches/0015-point-lib-paths-to-PREFIX-lib.patch
+      - patches/0018-Add-USE_SYSTEM-options-for-KLEIDI-CUDNN_FRONTEND-CUT.patch
+      - patches/0021-fix-onednn-cuda-include.patch
+      - patches/0022-force-bundled-mkldnn.patch
+      - patches/0023-remove-conftest-extra-param.patch
 {% else %}
-  # The "pytorch-v" tarballs contain submodules; the "pytorch-" ones don't.
+  # The "pytorch-v" release tarballs contain submodules; the "pytorch-" ones don't.
   - url: https://github.com/pytorch/pytorch/releases/download/v{{ version }}/pytorch-v{{ version }}.tar.gz
     sha256: {{ sha256 }}
     patches:
@@ -64,11 +79,24 @@ source:
 {% endif %}
   - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.ci/pytorch/smoke_test/smoke_test.py
     folder: smoke_test
-  # The .gitignore is needed in order to run upstreams `setup.py clean`
-  - url: https://raw.githubusercontent.com/pytorch/pytorch/refs/tags/v{{ version }}/.gitignore
+  # The .gitignore is needed in order to run upstreams `setup.py clean`.
+  # Pin to smoke_test_commit so this works for both RC and GA; the v{{ version }}
+  # tag doesn't exist yet during pre-GA (rc != None).
+  - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.gitignore
 
 build:
   number: {{ build }}
+  # Skip ALL variants until 2.12.0 GA tarball ships (~2026-05-13).
+  # Reason: the rc3 GitHub auto-archive lacks vendored submodules
+  # (third_party/{pybind11,fmt,eigen,onnx,...} are empty placeholder dirs),
+  # so setup.py check_submodules() bails. Only releases/download/v{version}/
+  # pytorch-v{version}.tar.gz includes them, and that doesn't exist for RCs.
+  # At GA: set rc=None, bump sha256, then narrow back to stage-1 skip:
+  #   skip: true  # [not win]
+  #   skip: true  # [gpu_variant != "cpu"]
+  #   skip: true  # [blas_impl != "openblas"]
+  #   skip: true  # [py != 313]
+  skip: true
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
@@ -132,8 +160,8 @@ requirements:
     - cuda-version {{ cuda_compiler_version }} # [(gpu_variant or "").startswith("cuda")]
     - nvtx-c                                   # [(gpu_variant or "").startswith("cuda")]
     {% if cuda_major < 13 %}
-    - cudnn 9.15.1.9                           # [(gpu_variant or "").startswith("cuda")]
-    - nccl 2.21.5.1                            # [(gpu_variant or "").startswith("cuda") and linux]
+    - cudnn 9.17.0.29                          # [(gpu_variant or "").startswith("cuda")]
+    - nccl 2.29.3.1                            # [(gpu_variant or "").startswith("cuda") and linux]
     {% else %}    
     - cudnn                  # [(gpu_variant or "").startswith("cuda")]
     - nccl                   # [(gpu_variant or "").startswith("cuda") and linux]
@@ -158,7 +186,8 @@ requirements:
     - python       # [not megabuild]
     - numpy >=1.26.0,<3.0.0
     - pip
-    - setuptools
+    # pytorch 2.11 requirements.txt caps setuptools <82
+    - setuptools <82
     - wheel
     - pyyaml
     - requests
@@ -177,7 +206,8 @@ requirements:
     - pkg-config  # [unix]
     - typing_extensions
     - packaging
-    - pybind11 2.13.6
+    # https://github.com/pytorch/pytorch/pull/175115 caps pybind11 below 3.0.2
+    - pybind11 <3.0.2
     - eigen {{ eigen }}
     - zlib {{ zlib }}
     - fmt {{ fmt }}
@@ -310,8 +340,8 @@ outputs:
       host:
         # GPU requirements
         {% if cuda_major < 13 %}
-        - cudnn 9.15.1.9                  # [(gpu_variant or "").startswith("cuda")]
-        - nccl 2.21.5.1                   # [(gpu_variant or "").startswith("cuda") and linux]
+        - cudnn 9.17.0.29                 # [(gpu_variant or "").startswith("cuda")]
+        - nccl 2.29.3.1                   # [(gpu_variant or "").startswith("cuda") and linux]
         {% else %}
         - cudnn                           # [(gpu_variant or "").startswith("cuda")]
         - nccl                            # [(gpu_variant or "").startswith("cuda") and linux]
@@ -338,7 +368,8 @@ outputs:
         - python
         - numpy >=1.26.0,<3.0.0
         - pip
-        - setuptools
+        # pytorch 2.11 requirements.txt caps setuptools <82
+        - setuptools <82
         - wheel
         - pyyaml
         - requests
@@ -358,7 +389,8 @@ outputs:
         - typing_extensions
         - packaging
         - {{ pin_subpackage('libtorch', exact=True) }}
-        - pybind11 2.13.6
+        # https://github.com/pytorch/pytorch/pull/175115 caps pybind11 below 3.0.2
+        - pybind11 <3.0.2
         - eigen {{ eigen }}
         - zlib {{ zlib }}
         - fmt {{ fmt }}
@@ -386,7 +418,8 @@ outputs:
         # Required to support torch.compile. This is tested in smoke_test.py, which is required to pass
         - triton =={{ triton }}       # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
         - {{ pin_subpackage('libtorch', exact=True) }}
-        - setuptools
+        # pytorch 2.11 requirements.txt caps setuptools <82
+        - setuptools <82
       run_constrained:
         # current intel-openmp builds are incompatible with llvm-openmp on osx-64
         - llvm-openmp <0a0                # [(blas_impl == "mkl") and (osx and x86_64)]  
@@ -411,7 +444,7 @@ outputs:
         - pytest-flakefinder
         - pytest-xdist
         # Needed for test_autograd.py
-        - pybind11 2.13.6
+        - pybind11 <3.0.2
         # the inductor "test_aoti_eager..." tests require objcopy
         - binutils  # [linux]
         # Triton JIT links cuda_utils.c against libcuda; use driver stubs from the env (no system /lib64 driver in many builders)

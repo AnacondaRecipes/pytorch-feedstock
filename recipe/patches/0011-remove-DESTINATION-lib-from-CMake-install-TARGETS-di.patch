@@ -15,10 +15,10 @@ Suggested-By: Silvio Traversaro <silvio@traversaro.it>
  torch/lib/libshm_windows/CMakeLists.txt |  2 +-
  7 files changed, 16 insertions(+), 16 deletions(-)
 
-diff --git a/c10/CMakeLists.txt b/c10/CMakeLists.txt
-index f82e460cafc..d5df53938c3 100644
---- a/c10/CMakeLists.txt
-+++ b/c10/CMakeLists.txt
+Index: pytorch-2.12.0-rc3/c10/CMakeLists.txt
+===================================================================
+--- pytorch-2.12.0-rc3.orig/c10/CMakeLists.txt
++++ pytorch-2.12.0-rc3/c10/CMakeLists.txt
 @@ -162,7 +162,7 @@ if(NOT BUILD_LIBTORCHLESS)
    # Note: for now, we will put all export path into one single Caffe2Targets group
    # to deal with the cmake deployment need. Inside the Caffe2Targets set, the
@@ -28,11 +28,11 @@ index f82e460cafc..d5df53938c3 100644
  endif()
  
  install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-diff --git a/c10/cuda/CMakeLists.txt b/c10/cuda/CMakeLists.txt
-index 2604f677858..dcad42167ea 100644
---- a/c10/cuda/CMakeLists.txt
-+++ b/c10/cuda/CMakeLists.txt
-@@ -83,7 +83,7 @@ if(NOT BUILD_LIBTORCHLESS)
+Index: pytorch-2.12.0-rc3/c10/cuda/CMakeLists.txt
+===================================================================
+--- pytorch-2.12.0-rc3.orig/c10/cuda/CMakeLists.txt
++++ pytorch-2.12.0-rc3/c10/cuda/CMakeLists.txt
+@@ -86,7 +86,7 @@ if(NOT BUILD_LIBTORCHLESS)
  # Note: for now, we will put all export path into one single Caffe2Targets group
  # to deal with the cmake deployment need. Inside the Caffe2Targets set, the
  # individual libraries like libc10.so and libcaffe2.so are still self-contained.
@@ -41,10 +41,10 @@ index 2604f677858..dcad42167ea 100644
  
  endif()
  
-diff --git a/c10/hip/CMakeLists.txt b/c10/hip/CMakeLists.txt
-index ef24471dba8..a410383de27 100644
---- a/c10/hip/CMakeLists.txt
-+++ b/c10/hip/CMakeLists.txt
+Index: pytorch-2.12.0-rc3/c10/hip/CMakeLists.txt
+===================================================================
+--- pytorch-2.12.0-rc3.orig/c10/hip/CMakeLists.txt
++++ pytorch-2.12.0-rc3/c10/hip/CMakeLists.txt
 @@ -56,7 +56,7 @@ if(NOT BUILD_LIBTORCHLESS)
        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../..>
        $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
@@ -54,11 +54,11 @@ index ef24471dba8..a410383de27 100644
    set(C10_HIP_LIB c10_hip)
  endif()
  
-diff --git a/c10/xpu/CMakeLists.txt b/c10/xpu/CMakeLists.txt
-index c2fa65ba35e..3a384395e4a 100644
---- a/c10/xpu/CMakeLists.txt
-+++ b/c10/xpu/CMakeLists.txt
-@@ -47,7 +47,7 @@ if(NOT BUILD_LIBTORCHLESS)
+Index: pytorch-2.12.0-rc3/c10/xpu/CMakeLists.txt
+===================================================================
+--- pytorch-2.12.0-rc3.orig/c10/xpu/CMakeLists.txt
++++ pytorch-2.12.0-rc3/c10/xpu/CMakeLists.txt
+@@ -49,7 +49,7 @@ if(NOT BUILD_LIBTORCHLESS)
        $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
        $<INSTALL_INTERFACE:include>
        )
@@ -67,11 +67,11 @@ index c2fa65ba35e..3a384395e4a 100644
    set(C10_XPU_LIB c10_xpu)
    add_subdirectory(test)
  endif()
-diff --git a/caffe2/CMakeLists.txt b/caffe2/CMakeLists.txt
-index 6cbaecc5d2e..fa7107180ef 100644
---- a/caffe2/CMakeLists.txt
-+++ b/caffe2/CMakeLists.txt
-@@ -575,7 +575,7 @@ if(USE_CUDA)
+Index: pytorch-2.12.0-rc3/caffe2/CMakeLists.txt
+===================================================================
+--- pytorch-2.12.0-rc3.orig/caffe2/CMakeLists.txt
++++ pytorch-2.12.0-rc3/caffe2/CMakeLists.txt
+@@ -571,7 +571,7 @@ if(USE_CUDA)
    endif()
  
    target_link_libraries(caffe2_nvrtc PRIVATE caffe2::nvrtc ${DELAY_LOAD_FLAGS})
@@ -80,7 +80,7 @@ index 6cbaecc5d2e..fa7107180ef 100644
    if(USE_NCCL)
      list(APPEND Caffe2_GPU_SRCS
        ${TORCH_SRC_DIR}/csrc/cuda/nccl.cpp)
-@@ -656,7 +656,7 @@ if(USE_ROCM)
+@@ -654,7 +654,7 @@ if(USE_ROCM)
    target_link_libraries(caffe2_nvrtc hip::amdhip64 hiprtc::hiprtc)
    target_include_directories(caffe2_nvrtc PRIVATE ${CMAKE_BINARY_DIR})
    target_compile_definitions(caffe2_nvrtc PRIVATE USE_ROCM __HIP_PLATFORM_AMD__)
@@ -89,7 +89,7 @@ index 6cbaecc5d2e..fa7107180ef 100644
  endif()
  
  if(NOT NO_API AND NOT BUILD_LITE_INTERPRETER)
-@@ -1056,7 +1056,7 @@ elseif(USE_CUDA)
+@@ -1065,7 +1065,7 @@ elseif(USE_CUDA)
      target_compile_definitions(torch_cuda PUBLIC USE_NVSHMEM)
      target_compile_definitions(torch_nvshmem PUBLIC USE_NVSHMEM)
      target_link_libraries(torch_cuda PRIVATE torch_nvshmem)
@@ -98,7 +98,7 @@ index 6cbaecc5d2e..fa7107180ef 100644
    else()
      message(STATUS "NVSHMEM not found, not building with NVSHMEM support.")
    endif()
-@@ -1119,7 +1119,7 @@ elseif(USE_CUDA)
+@@ -1128,7 +1128,7 @@ elseif(USE_CUDA)
            CUDA::culibos ${CMAKE_DL_LIBS})
      endif()
      set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/../aten/src/ATen/native/cuda/LinearAlgebraStubs.cpp PROPERTIES COMPILE_FLAGS "-DBUILD_LAZY_CUDA_LINALG")
@@ -107,7 +107,7 @@ index 6cbaecc5d2e..fa7107180ef 100644
    endif()
  
    if(USE_PRECOMPILED_HEADERS)
-@@ -1594,17 +1594,17 @@ endif()
+@@ -1672,17 +1672,17 @@ endif()
  
  caffe2_interface_library(torch torch_library)
  
@@ -130,7 +130,7 @@ index 6cbaecc5d2e..fa7107180ef 100644
  
  target_link_libraries(torch PUBLIC torch_cpu_library)
  
-@@ -1747,7 +1747,7 @@ if(BUILD_SHARED_LIBS)
+@@ -1825,7 +1825,7 @@ if(BUILD_SHARED_LIBS)
        target_link_libraries(torch_global_deps torch::nvtoolsext)
      endif()
    endif()
@@ -139,11 +139,11 @@ index 6cbaecc5d2e..fa7107180ef 100644
  endif()
  
  # ---[ Caffe2 HIP sources.
-diff --git a/torch/CMakeLists.txt b/torch/CMakeLists.txt
-index 3a3ca0f1236..0e2c682fd97 100644
---- a/torch/CMakeLists.txt
-+++ b/torch/CMakeLists.txt
-@@ -466,7 +466,7 @@ if(NOT TORCH_PYTHON_LINK_FLAGS STREQUAL "")
+Index: pytorch-2.12.0-rc3/torch/CMakeLists.txt
+===================================================================
+--- pytorch-2.12.0-rc3.orig/torch/CMakeLists.txt
++++ pytorch-2.12.0-rc3/torch/CMakeLists.txt
+@@ -464,7 +464,7 @@ if(NOT TORCH_PYTHON_LINK_FLAGS STREQUAL
      set_target_properties(torch_python PROPERTIES LINK_FLAGS ${TORCH_PYTHON_LINK_FLAGS})
  endif()
  
@@ -152,10 +152,10 @@ index 3a3ca0f1236..0e2c682fd97 100644
  
  # Generate torch/version.py from the appropriate CMake cache variables.
  if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-diff --git a/torch/lib/libshm_windows/CMakeLists.txt b/torch/lib/libshm_windows/CMakeLists.txt
-index df2a1064938..5fa15e6be31 100644
---- a/torch/lib/libshm_windows/CMakeLists.txt
-+++ b/torch/lib/libshm_windows/CMakeLists.txt
+Index: pytorch-2.12.0-rc3/torch/lib/libshm_windows/CMakeLists.txt
+===================================================================
+--- pytorch-2.12.0-rc3.orig/torch/lib/libshm_windows/CMakeLists.txt
++++ pytorch-2.12.0-rc3/torch/lib/libshm_windows/CMakeLists.txt
 @@ -19,7 +19,7 @@ target_include_directories(shm PRIVATE
  target_link_libraries(shm torch c10)
  
@@ -165,6 +165,3 @@ index df2a1064938..5fa15e6be31 100644
  install(FILES libshm.h DESTINATION "include")
  
  if(MSVC AND BUILD_SHARED_LIBS)
--- 
-2.50.1 (Apple Git-155)
-

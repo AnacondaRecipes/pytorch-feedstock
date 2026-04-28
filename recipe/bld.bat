@@ -59,27 +59,33 @@ if "%gpu_variant:~0,4%" == "cuda" (
     set USE_NCCL=0
     set USE_STATIC_NCCL=0
 
-    @REM CUDA Architecture List (aligned with upstream PyTorch CI)
-    @REM  7.0 = Volta      (V100)              -- kept for 12.8, dropped in CUDA 13
+    @REM CUDA Architecture List (aligned with upstream PyTorch v2.12.0 .ci/manywheel/build_cuda.sh)
     @REM  7.5 = Turing     (RTX 20xx, T4)
     @REM  8.0 = Ampere HPC (A100)
     @REM  8.6 = Ampere     (RTX 30xx)
     @REM  9.0 = Hopper     (H100, H200)
     @REM 10.0 = Blackwell  (GB200, B200)
     @REM 12.0 = Blackwell  (RTX 50xx, RTX PRO)
-    @REM +PTX = forward compat via JIT for future archs
+    @REM sm_70 (Volta/V100) dropped upstream in 2.11 for CUDA 12 and CUDA 13.
+    @REM Upstream 2.12 dropped trailing +PTX from both lists.
     set "cuda_major=%cuda_compiler_version:~0,2%"
     if "!cuda_major!" == "12" (
-        @REM sm_50-sm_61 deprecated in 12.8; keep sm_70 per pytorch/pytorch#157517
-        set "TORCH_CUDA_ARCH_LIST=7.0;7.5;8.0;8.6;9.0;10.0;12.0+PTX"
+        set "TORCH_CUDA_ARCH_LIST=7.5;8.0;8.6;9.0;10.0;12.0"
     ) else if "!cuda_major!" == "13" (
-        set "TORCH_CUDA_ARCH_LIST=7.5;8.0;8.6;9.0;10.0;12.0+PTX"
+        set "TORCH_CUDA_ARCH_LIST=7.5;8.0;8.6;9.0;10.0;12.0"
     ) else (
         echo [ERROR] No CUDA architecture list exists for CUDA v%cuda_compiler_version%
         echo Use https://en.wikipedia.org/wiki/CUDA#GPUs_supported to make one.
         exit /b 1
     )
-    set "TORCH_NVCC_FLAGS=-Xfatbin -compress-all"
+    @REM TORCH_NVCC_FLAGS: --threads 2 parallelizes nvcc within each translation unit.
+    @REM CUDA 13 also adds -compress-mode=size and BUILD_BUNDLE_PTXAS=1 (matches upstream
+    @REM 2.12 .ci/manywheel/build_cuda.sh).
+    set "TORCH_NVCC_FLAGS=-Xfatbin -compress-all --threads 2"
+    if "!cuda_major!" == "13" (
+        set "TORCH_NVCC_FLAGS=!TORCH_NVCC_FLAGS! -compress-mode=size"
+        set BUILD_BUNDLE_PTXAS=1
+    )
 
     @REM Suppress extremely noisy ptxas advisories that bloat logs
     set "CMAKE_CUDA_FLAGS=-w -Xptxas -w"

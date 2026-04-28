@@ -7,11 +7,11 @@ Subject: [PATCH] Force bundled OneDNN build, enable experimental kernels, and
  cmake/Dependencies.cmake | 24 ++++++++++++++++--------
  1 file changed, 16 insertions(+), 8 deletions(-)
 
-diff --git a/cmake/Dependencies.cmake b/cmake/Dependencies.cmake
-index ef5c2fd4e97..4696cdd4505 100644
---- a/cmake/Dependencies.cmake
-+++ b/cmake/Dependencies.cmake
-@@ -1479,14 +1479,22 @@ if(NOT INTERN_BUILD_MOBILE)
+Index: pytorch-2.12.0-rc3/cmake/Dependencies.cmake
+===================================================================
+--- pytorch-2.12.0-rc3.orig/cmake/Dependencies.cmake
++++ pytorch-2.12.0-rc3/cmake/Dependencies.cmake
+@@ -1522,14 +1522,22 @@ if(NOT INTERN_BUILD_MOBILE)
      endif()
    endif()
    if(USE_MKLDNN)
@@ -42,6 +42,3 @@ index ef5c2fd4e97..4696cdd4505 100644
    else()
      message("disabling MKLDNN because USE_MKLDNN is not set")
    endif()
--- 
-2.50.1 (Apple Git-155)
-

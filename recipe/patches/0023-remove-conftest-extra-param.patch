@@ -11,11 +11,11 @@ This fixes compatibility with pytest 9+.
  test/conftest.py | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/test/conftest.py b/test/conftest.py
-index dd26655b334..f47036b517a 100644
---- a/test/conftest.py
-+++ b/test/conftest.py
-@@ -229,7 +229,7 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
+Index: pytorch-2.12.0-rc3/test/conftest.py
+===================================================================
+--- pytorch-2.12.0-rc3.orig/test/conftest.py
++++ pytorch-2.12.0-rc3/test/conftest.py
+@@ -233,7 +233,7 @@ def pytest_terminal_summary(terminalrepo
  
  
  @pytest.hookimpl(tryfirst=True)
@@ -24,6 +24,3 @@ index dd26655b334..f47036b517a 100644
      if parent.config.getoption("--use-main-module"):
          mod = Module.from_parent(parent, path=module_path)
          mod._getobj = MethodType(lambda x: sys.modules["__main__"], mod)
--- 
-2.50.1 (Apple Git-155)
-

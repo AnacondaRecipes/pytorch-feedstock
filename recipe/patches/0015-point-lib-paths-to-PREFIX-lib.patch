@@ -10,11 +10,11 @@ that's where are sos/dlls are.
  torch/utils/cpp_extension.py | 13 ++++++++++++-
  1 file changed, 12 insertions(+), 1 deletion(-)
 
-diff --git a/torch/utils/cpp_extension.py b/torch/utils/cpp_extension.py
-index 3863ee0be52..49af1639052 100644
---- a/torch/utils/cpp_extension.py
-+++ b/torch/utils/cpp_extension.py
-@@ -40,7 +40,18 @@ SHARED_FLAG = '/DLL' if IS_WINDOWS else '-shared'
+Index: pytorch-2.12.0-rc3/torch/utils/cpp_extension.py
+===================================================================
+--- pytorch-2.12.0-rc3.orig/torch/utils/cpp_extension.py
++++ pytorch-2.12.0-rc3/torch/utils/cpp_extension.py
+@@ -40,7 +40,18 @@ SHARED_FLAG = '/DLL' if IS_WINDOWS else
  
  _HERE = os.path.abspath(__file__)
  _TORCH_PATH = os.path.dirname(os.path.dirname(_HERE))
@@ -34,6 +34,3 @@ index 3863ee0be52..49af1639052 100644
  
  
  SUBPROCESS_DECODE_ARGS = ('oem',) if IS_WINDOWS else ()
--- 
-2.50.1 (Apple Git-155)
-

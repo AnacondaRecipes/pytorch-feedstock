@@ -13,11 +13,11 @@ torch_include_dirs parameter.
  torch/utils/cpp_extension.py | 19 +++++--------------
  1 file changed, 5 insertions(+), 14 deletions(-)
 
-diff --git a/torch/utils/cpp_extension.py b/torch/utils/cpp_extension.py
-index f29c382f0e3..3863ee0be52 100644
---- a/torch/utils/cpp_extension.py
-+++ b/torch/utils/cpp_extension.py
-@@ -1569,29 +1569,20 @@ def include_paths(device_type: str = "cpu", torch_include_dirs=True) -> list[str
+Index: pytorch-2.12.0-rc3/torch/utils/cpp_extension.py
+===================================================================
+--- pytorch-2.12.0-rc3.orig/torch/utils/cpp_extension.py
++++ pytorch-2.12.0-rc3/torch/utils/cpp_extension.py
+@@ -1620,29 +1620,20 @@ def include_paths(device_type: str = "cp
      """
      paths = []
      lib_include = os.path.join(_TORCH_PATH, 'include')
@@ -52,6 +52,3 @@ index f29c382f0e3..3863ee0be52 100644
      elif device_type == "xpu":
          paths.append(_join_sycl_home('include'))
          paths.append(_join_sycl_home('include', 'sycl'))
--- 
-2.50.1 (Apple Git-155)
-

@@ -2,21 +2,25 @@ gpu_variant:
   - cpu
   - metal                    # [(osx and arm64)]
   - cuda                     # [win or linux]
-# Linux aarch64 needs gcc 15.2.0 due to a bug with 14.3 with vector instructions
-c_compiler_version:          # [linux and aarch64]
+
+blas_impl:                   # [win]
+  - mkl                      # [win]
+  - openblas                 # [win]
+# Linux aarch64 needs gcc 15.2.0 due to a bug with 14.3 with vector instructions.
+# Linux x86_64 needs gcc 14 due to CUDA 12.x compatibility.
+c_compiler_version:
   - 15.2.0                   # [linux and aarch64]
-cxx_compiler_version:        # [linux and aarch64]
+  - 14                       # [linux and x86_64]
+cxx_compiler_version:
   - 15.2.0                   # [linux and aarch64]
-# Linux x86_64 needs gcc 14 due to CUDA 12.8 compatibility
-c_compiler_version:          # [linux and x86_64]
   - 14                       # [linux and x86_64]
-cxx_compiler_version:        # [linux and x86_64]
-  - 14                       # [linux and x86_64]
-cuda_compiler_version:       # [win or (linux and x86_64)]
-  - 12.8                     # [win or (linux and x86_64)]
+# Upstream PyTorch v2.12.0 .ci/manywheel/build_cuda.sh supports 12.6/12.8/12.9/13.0/13.2.
+# pkgs/main currently ships cuda-nvcc 12.9 and 13.0 (no 13.2 yet).
+# Intersection: 12.9 and 13.0 — bump to 13.2 once cuda-nvcc 13.2 lands in pkgs/main.
+# aarch64 only supports CUDA 13.x (CUDA 12.x requires gcc <15, but aarch64 needs gcc 15.2.0).
+cuda_compiler_version:
+  - 12.9                     # [win or (linux and x86_64)]
   - 13.0                     # [win or (linux and x86_64)]
-# aarch64 only supports CUDA 13.0+ (CUDA 12.8 requires gcc <15, but aarch64 needs gcc 15.2.0)
-cuda_compiler_version:       # [linux and aarch64]
   - 13.0                     # [linux and aarch64]
 # CONDA_BUILD_SYSROOT is defined in the base cbc.yaml, but it's reflected here so we can zip the keys and
 # build GPU and CPU at the same time for osx-arm64. It'll need to be manually updated here if the base cbc is changed.

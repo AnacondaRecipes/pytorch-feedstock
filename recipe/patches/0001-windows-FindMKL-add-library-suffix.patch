@@ -9,10 +9,10 @@ This is required because our mdl-devel package contains libraries named like
  cmake/Modules/FindMKL.cmake | 15 +++++++++------
  1 file changed, 9 insertions(+), 6 deletions(-)
 
-diff --git a/cmake/Modules/FindMKL.cmake b/cmake/Modules/FindMKL.cmake
-index 7c4647f3746..ff24c9787ad 100644
---- a/cmake/Modules/FindMKL.cmake
-+++ b/cmake/Modules/FindMKL.cmake
+Index: pytorch-2.12.0-rc3/cmake/Modules/FindMKL.cmake
+===================================================================
+--- pytorch-2.12.0-rc3.orig/cmake/Modules/FindMKL.cmake
++++ pytorch-2.12.0-rc3/cmake/Modules/FindMKL.cmake
 @@ -124,6 +124,9 @@ ELSE(WIN32)
      ELSE()
        SET(mklthreads "mkl_intel_thread")
@@ -23,7 +23,7 @@ index 7c4647f3746..ff24c9787ad 100644
      ENDIF()
      SET(mklifaces  "intel")
    ENDIF (CMAKE_COMPILER_IS_GNUCC)
-@@ -273,7 +276,7 @@ MACRO(CHECK_ALL_LIBRARIES LIBRARIES OPENMP_TYPE OPENMP_LIBRARY _name _list _flag
+@@ -273,7 +276,7 @@ MACRO(CHECK_ALL_LIBRARIES LIBRARIES OPEN
            ENDIF(OPENMP_FOUND)
          ELSEIF(${_library} MATCHES "iomp")
            SET(_openmp_type "Intel")
@@ -61,6 +61,3 @@ index 7c4647f3746..ff24c9787ad 100644
          MARK_AS_ADVANCED(MKL_CDFT_LIBRARIES)
        ENDIF (NOT MKL_CDFT_LIBRARIES)
      ENDFOREACH(mkls)
--- 
-2.50.1 (Apple Git-155)
-

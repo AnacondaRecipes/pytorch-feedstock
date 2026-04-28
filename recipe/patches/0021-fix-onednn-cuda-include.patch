@@ -6,11 +6,11 @@ Subject: [PATCH 12/13] Force OneDNN headers for BOTH CPU and CUDA targets
  caffe2/CMakeLists.txt | 13 +++++++++++++
  1 file changed, 13 insertions(+)
 
-diff --git a/caffe2/CMakeLists.txt b/caffe2/CMakeLists.txt
-index fa7107180ef..3e2a1a09b75 100644
---- a/caffe2/CMakeLists.txt
-+++ b/caffe2/CMakeLists.txt
-@@ -2018,3 +2018,16 @@ if(MSVC)
+Index: pytorch-2.12.0-rc3/caffe2/CMakeLists.txt
+===================================================================
+--- pytorch-2.12.0-rc3.orig/caffe2/CMakeLists.txt
++++ pytorch-2.12.0-rc3/caffe2/CMakeLists.txt
+@@ -2104,3 +2104,16 @@ if(MSVC)
    endforeach()
  endif()
  endif()
@@ -27,6 +27,3 @@ index fa7107180ef..3e2a1a09b75 100644
 +  target_include_directories(torch_cuda PRIVATE "${PROJECT_SOURCE_DIR}/third_party/ideep/mkl-dnn/include")
 +  target_include_directories(torch_cuda PRIVATE "${PROJECT_BINARY_DIR}/third_party/ideep/mkl-dnn/include")
 +endif()
--- 
-2.50.1 (Apple Git-155)
-
