@@ -86,11 +86,17 @@ source:
 
 build:
   number: {{ build }}
-  # Smoke build: restrict to win-64 CPU OpenBLAS / py3.13 only.
-  skip: true  # [not win]
-  skip: true  # [gpu_variant != "cpu"]
-  skip: true  # [blas_impl != "openblas"]
-  skip: true  # [py != 313]
+  # Skip ALL variants until 2.12.0 GA tarball ships (~2026-05-13).
+  # Reason: the rc3 GitHub auto-archive lacks vendored submodules
+  # (third_party/{pybind11,fmt,eigen,onnx,...} are empty placeholder dirs),
+  # so setup.py check_submodules() bails. Only releases/download/v{version}/
+  # pytorch-v{version}.tar.gz includes them, and that doesn't exist for RCs.
+  # At GA: set rc=None, bump sha256, then narrow back to stage-1 skip:
+  #   skip: true  # [not win]
+  #   skip: true  # [gpu_variant != "cpu"]
+  #   skip: true  # [blas_impl != "openblas"]
+  #   skip: true  # [py != 313]
+  skip: true
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
