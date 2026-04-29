@@ -9,5 +9,3 @@ upstream_sources:
     packages:
       - libtorch
       - pytorch
-      - pytorch-cpu
-      - pytorch-gpu
