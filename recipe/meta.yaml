@@ -473,9 +473,15 @@ outputs:
         # (for example, in the case of missing imports). There doesn't seem to be a way of making a script exception return
         # non-zero but failing tests return zero.
         # ------------------------------------------------------------------------------------------------
-        # Exclude complex tests that are known to be flaky for -k "not (complex and (linalg_vecdot or dot or vdot))"
-        # https://github.com/pytorch/pytorch/issues/150918
-        - python ./test/run_test.py --core --continue-through-error -k "not (complex and (linalg_vecdot or dot or vdot))" || true # [not win]
+        # Flaky complex linear-algebra cases (see run_test_core_k); https://github.com/pytorch/pytorch/issues/150918
+        {% set run_test_core_k = "not (complex and (linalg_vecdot or dot or vdot))" %}
+        # linux-aarch64 CUDA packages are built with TORCH_CUDA_ARCH_LIST starting at sm_80 (see recipe/build.sh;
+        # upstream aarch wheels omit <8.0 and 8.6). CI GPUs below sm_80 (e.g. some Jetson) hit
+        # cudaErrorNoKernelImageForDevice loading kernels. TestBwdGradientsCUDA / test_inplace_gradgrad* fail from that
+        # mismatch, not from functional PyTorch bugs on supported datacenter GPUs; exclude them only on this matrix.
+        {% set run_test_core_k_aarch64_cuda = run_test_core_k ~ " and not inplace_gradgrad" %}
+        - python ./test/run_test.py --core --continue-through-error -k "{{ run_test_core_k }}" || true # [not win and not (linux and aarch64 and (gpu_variant or "").startswith("cuda"))]
+        - python ./test/run_test.py --core --continue-through-error -k "{{ run_test_core_k_aarch64_cuda }}" || true # [linux and aarch64 and (gpu_variant or "").startswith("cuda")]
         # lgamma or mvlgamma or multigammaln or gammaln all have these issues on a combination of Intel Xeon processors and Windows Server differences.
         # enabling these tests on windows will cause numerical differences in the test suite.
         # This is a non-deterministic issue where between 80-110 tests fail. This has been observed between Pytorch 2.5 and above.
