@@ -1,19 +1,11 @@
-From a4312a33c2f425ed738a63bf4cbf289513f4740c Mon Sep 17 00:00:00 2001
+From c4433218ad09e4d0c794046b42e30e71c62a60c3 Mon Sep 17 00:00:00 2001
 From: Jamie Robertson <jamierobertsongames@gmail.com>
 Date: Thu, 23 Apr 2026 21:37:14 +0100
 Subject: [PATCH] Allow fbgemm_genai to be assigned to a Ninja job pool
 
-The CUTLASS-based f4f4bf16 / mx8mx8bf16 kernels in fbgemm_genai peak at
-multiple GB of RSS per nvcc invocation during cicc template
-instantiation and routinely OOM memory-constrained build hosts
-(~32GB runners). Globally throttling MAX_JOBS to work around this
-penalises the rest of the build, which is cheap by comparison.
+The CUTLASS-based f4f4bf16 / mx8mx8bf16 kernels in fbgemm_genai peak at multiple GB of RSS per nvcc invocation during cicc template instantiation and routinely OOM memory-constrained build hosts (~32GB runners). Globally throttling MAX_JOBS to work around this penalises the rest of the build, which is cheap by comparison.
 
-Expose an optional FBGEMM_GENAI_JOB_POOL CMake variable that, when
-set, tags the fbgemm_genai target with JOB_POOL_COMPILE so Ninja can
-serialize only these compiles via CMAKE_JOB_POOLS while the rest of
-the build continues at normal parallelism. When the variable is not
-set, upstream build behaviour is unchanged.
+Expose an optional FBGEMM_GENAI_JOB_POOL CMake variable that, when set, tags the fbgemm_genai target with JOB_POOL_COMPILE so Ninja can serialize only these compiles via CMAKE_JOB_POOLS while the rest of the build continues at normal parallelism. When the variable is not set, upstream build behaviour is unchanged.
 ---
  aten/src/ATen/CMakeLists.txt | 14 ++++++++++++++
  1 file changed, 14 insertions(+)
