@@ -1,24 +1,24 @@
-From c4433218ad09e4d0c794046b42e30e71c62a60c3 Mon Sep 17 00:00:00 2001
+From 67170d4e398c75e9ce912d6a078ac4a7fe70676b Mon Sep 17 00:00:00 2001
 From: Jamie Robertson <jamierobertsongames@gmail.com>
 Date: Thu, 23 Apr 2026 21:37:14 +0100
 Subject: [PATCH] Allow fbgemm_genai to be assigned to a Ninja job pool
 
-The CUTLASS-based f4f4bf16 / mx8mx8bf16 kernels in fbgemm_genai peak at multiple GB of RSS per nvcc invocation during cicc template instantiation and routinely OOM memory-constrained build hosts (~32GB runners). Globally throttling MAX_JOBS to work around this penalises the rest of the build, which is cheap by comparison.
+The CUTLASS-based f4f4bf16 / mx8mx8bf16 kernels in the MSLK/fbgemm_genai build target peak at multiple GB of RSS per nvcc invocation during cicc template instantiation and routinely OOM memory-constrained build hosts (~32GB runners). Globally throttling MAX_JOBS to work around this penalises the rest of the build, which is cheap by comparison.
 
-Expose an optional FBGEMM_GENAI_JOB_POOL CMake variable that, when set, tags the fbgemm_genai target with JOB_POOL_COMPILE so Ninja can serialize only these compiles via CMAKE_JOB_POOLS while the rest of the build continues at normal parallelism. When the variable is not set, upstream build behaviour is unchanged.
+Expose an optional FBGEMM_GENAI_JOB_POOL CMake variable that, when set, tags the target with JOB_POOL_COMPILE so Ninja can serialize only these compiles via CMAKE_JOB_POOLS while the rest of the build continues at normal parallelism. When the variable is not set, upstream build behaviour is unchanged.
 ---
  aten/src/ATen/CMakeLists.txt | 14 ++++++++++++++
  1 file changed, 14 insertions(+)
 
 diff --git a/aten/src/ATen/CMakeLists.txt b/aten/src/ATen/CMakeLists.txt
-index a3e841ca22a..bbef9285f07 100644
+index 5cc22852618..923af45327a 100644
 --- a/aten/src/ATen/CMakeLists.txt
 +++ b/aten/src/ATen/CMakeLists.txt
-@@ -290,6 +290,20 @@ IF(USE_FBGEMM_GENAI)
+@@ -392,6 +392,20 @@ IF(USE_MSLK)
  
-     set_target_properties(fbgemm_genai PROPERTIES POSITION_INDEPENDENT_CODE ON)
+     set_target_properties(mslk PROPERTIES POSITION_INDEPENDENT_CODE ON)
  
-+    # Optional: assign the fbgemm_genai target to a dedicated Ninja job pool
++    # Optional: assign the mslk target to a dedicated Ninja job pool
 +    # so downstream packagers can serialize the CUTLASS-heavy f4/mx8 compiles.
 +    # These kernels can peak at multiple GB of RSS per nvcc invocation and OOM
 +    # memory-constrained build hosts. The pool name supplied here must also be
@@ -28,13 +28,13 @@ index a3e841ca22a..bbef9285f07 100644
 +    # The USE_ prefix lets PyTorch's setup.py auto-forward the variable from
 +    # the environment. When unset, upstream build behaviour is unchanged.
 +    if(USE_FBGEMM_GENAI_JOB_POOL)
-+      set_target_properties(fbgemm_genai PROPERTIES
++      set_target_properties(mslk PROPERTIES
 +        JOB_POOL_COMPILE "${USE_FBGEMM_GENAI_JOB_POOL}")
 +    endif()
 +
-     set(fbgemm_genai_cuh
-       "${FBGEMM_GENAI_SRCS}/cutlass_extensions/mx8mx8bf16_grouped/"
-       "${FBGEMM_GENAI_SRCS}/cutlass_extensions/f4f4bf16_grouped/"
+     set(mslk_cuh
+       "${MSLK_SRCS}/cutlass/mx8mx8bf16_grouped/"
+       "${MSLK_SRCS}/cutlass/f4f4bf16_grouped/"
 -- 
 2.50.1 (Apple Git-155)
 
