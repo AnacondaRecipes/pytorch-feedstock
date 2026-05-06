@@ -1,12 +1,12 @@
-{% set version = "2.10.0" %}
-{% set sha256 = "fa8ccbe87f83f48735505371c1c313b4aa6db400b0ae4f8a02844d1e150c695f" %}
+{% set version = "2.11.0" %}
+{% set sha256 = "ab3fde9e7e382f45ac942be6ea2c2ef362c5ccd6f55ed6d5f35e6ea81d3ab88e" %}
 # Set the RC number to build release candidates. Set to None otherwise
 {% set rc = None %}
-{% set build = 3 %}
+{% set build = 0 %}
 
 
 # Keep this in sync with the release
-{% set smoke_test_commit = "449b1768410104d3ed79d3bcfe4ba1d65c7f22c0" %}
+{% set smoke_test_commit = "70d99e998b4955e0049d13a98d77ae1b14db1f45" %}
 
 # see https://github.com/pytorch/pytorch/blame/v{{ version }}/.ci/docker/ci_commit_pins/triton.txt
 {% set triton = "3.6.0" %}
@@ -133,8 +133,8 @@ requirements:
     - cuda-version {{ cuda_compiler_version }} # [(gpu_variant or "").startswith("cuda")]
     - nvtx-c                                   # [(gpu_variant or "").startswith("cuda")]
     {% if cuda_major < 13 %}
-    - cudnn 9.15.1.9                           # [(gpu_variant or "").startswith("cuda")]
-    - nccl 2.21.5.1                            # [(gpu_variant or "").startswith("cuda") and linux]
+    - cudnn 9.17.0.29                          # [(gpu_variant or "").startswith("cuda")]
+    - nccl 2.29.3.1                            # [(gpu_variant or "").startswith("cuda") and linux]
     {% else %}    
     - cudnn                  # [(gpu_variant or "").startswith("cuda")]
     - nccl                   # [(gpu_variant or "").startswith("cuda") and linux]
@@ -159,7 +159,8 @@ requirements:
     - python       # [not megabuild]
     - numpy >=1.26.0,<3.0.0
     - pip
-    - setuptools
+    # pytorch 2.11 requirements.txt caps setuptools <82
+    - setuptools <82
     - wheel
     - pyyaml
     - requests
@@ -178,7 +179,8 @@ requirements:
     - pkg-config  # [unix]
     - typing_extensions
     - packaging
-    - pybind11 2.13.6
+    # https://github.com/pytorch/pytorch/pull/175115 caps pybind11 below 3.0.2
+    - pybind11 <3.0.2
     - eigen {{ eigen }}
     - zlib {{ zlib }}
     - fmt {{ fmt }}
@@ -311,8 +313,8 @@ outputs:
       host:
         # GPU requirements
         {% if cuda_major < 13 %}
-        - cudnn 9.15.1.9                  # [(gpu_variant or "").startswith("cuda")]
-        - nccl 2.21.5.1                   # [(gpu_variant or "").startswith("cuda") and linux]
+        - cudnn 9.17.0.29                 # [(gpu_variant or "").startswith("cuda")]
+        - nccl 2.29.3.1                   # [(gpu_variant or "").startswith("cuda") and linux]
         {% else %}
         - cudnn                           # [(gpu_variant or "").startswith("cuda")]
         - nccl                            # [(gpu_variant or "").startswith("cuda") and linux]
@@ -339,7 +341,8 @@ outputs:
         - python
         - numpy >=1.26.0,<3.0.0
         - pip
-        - setuptools
+        # pytorch 2.11 requirements.txt caps setuptools <82
+        - setuptools <82
         - wheel
         - pyyaml
         - requests
@@ -359,7 +362,8 @@ outputs:
         - typing_extensions
         - packaging
         - {{ pin_subpackage('libtorch', exact=True) }}
-        - pybind11 2.13.6
+        # https://github.com/pytorch/pytorch/pull/175115 caps pybind11 below 3.0.2
+        - pybind11 <3.0.2
         - eigen {{ eigen }}
         - zlib {{ zlib }}
         - fmt {{ fmt }}
@@ -387,7 +391,8 @@ outputs:
         # Required to support torch.compile. This is tested in smoke_test.py, which is required to pass
         - triton =={{ triton }}       # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
         - {{ pin_subpackage('libtorch', exact=True) }}
-        - setuptools
+        # pytorch 2.11 requirements.txt caps setuptools <82
+        - setuptools <82
       run_constrained:
         # current intel-openmp builds are incompatible with llvm-openmp on osx-64
         - llvm-openmp <0a0                # [(blas_impl == "mkl") and (osx and x86_64)]  
@@ -412,7 +417,7 @@ outputs:
         - pytest-flakefinder
         - pytest-xdist
         # Needed for test_autograd.py
-        - pybind11 2.13.6
+        - pybind11 <3.0.2
         # the inductor "test_aoti_eager..." tests require objcopy
         - binutils  # [linux]
         # Triton JIT links cuda_utils.c against libcuda; use driver stubs from the env (no system /lib64 driver in many builders)
@@ -468,9 +473,15 @@ outputs:
         # (for example, in the case of missing imports). There doesn't seem to be a way of making a script exception return
         # non-zero but failing tests return zero.
         # ------------------------------------------------------------------------------------------------
-        # Exclude complex tests that are known to be flaky for -k "not (complex and (linalg_vecdot or dot or vdot))"
-        # https://github.com/pytorch/pytorch/issues/150918
-        - python ./test/run_test.py --core --continue-through-error -k "not (complex and (linalg_vecdot or dot or vdot))" || true # [not win]
+        # Flaky complex linear-algebra cases (see run_test_core_k); https://github.com/pytorch/pytorch/issues/150918
+        {% set run_test_core_k = "not (complex and (linalg_vecdot or dot or vdot))" %}
+        # linux-aarch64 CUDA packages are built with TORCH_CUDA_ARCH_LIST starting at sm_80 (see recipe/build.sh;
+        # upstream aarch wheels omit <8.0 and 8.6). CI GPUs below sm_80 (e.g. some Jetson) hit
+        # cudaErrorNoKernelImageForDevice loading kernels. TestBwdGradientsCUDA / test_inplace_gradgrad* fail from that
+        # mismatch, not from functional PyTorch bugs on supported datacenter GPUs; exclude them only on this matrix.
+        {% set run_test_core_k_aarch64_cuda = run_test_core_k ~ " and not inplace_gradgrad" %}
+        - python ./test/run_test.py --core --continue-through-error -k "{{ run_test_core_k }}" || true # [not win and not (linux and aarch64 and (gpu_variant or "").startswith("cuda"))]
+        - python ./test/run_test.py --core --continue-through-error -k "{{ run_test_core_k_aarch64_cuda }}" || true # [linux and aarch64 and (gpu_variant or "").startswith("cuda")]
         # lgamma or mvlgamma or multigammaln or gammaln all have these issues on a combination of Intel Xeon processors and Windows Server differences.
         # enabling these tests on windows will cause numerical differences in the test suite.
         # This is a non-deterministic issue where between 80-110 tests fail. This has been observed between Pytorch 2.5 and above.

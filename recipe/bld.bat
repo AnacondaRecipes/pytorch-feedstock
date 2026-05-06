@@ -60,7 +60,6 @@ if "%gpu_variant:~0,4%" == "cuda" (
     set USE_STATIC_NCCL=0
 
     @REM CUDA Architecture List (aligned with upstream PyTorch CI)
-    @REM  7.0 = Volta      (V100)              -- kept for 12.8, dropped in CUDA 13
     @REM  7.5 = Turing     (RTX 20xx, T4)
     @REM  8.0 = Ampere HPC (A100)
     @REM  8.6 = Ampere     (RTX 30xx)
@@ -68,10 +67,10 @@ if "%gpu_variant:~0,4%" == "cuda" (
     @REM 10.0 = Blackwell  (GB200, B200)
     @REM 12.0 = Blackwell  (RTX 50xx, RTX PRO)
     @REM +PTX = forward compat via JIT for future archs
+    @REM sm_70 (Volta/V100) dropped upstream in 2.11 for CUDA 12 and CUDA 13.
     set "cuda_major=%cuda_compiler_version:~0,2%"
     if "!cuda_major!" == "12" (
-        @REM sm_50-sm_61 deprecated in 12.8; keep sm_70 per pytorch/pytorch#157517
-        set "TORCH_CUDA_ARCH_LIST=7.0;7.5;8.0;8.6;9.0;10.0;12.0+PTX"
+        set "TORCH_CUDA_ARCH_LIST=7.5;8.0;8.6;9.0;10.0;12.0+PTX"
     ) else if "!cuda_major!" == "13" (
         set "TORCH_CUDA_ARCH_LIST=7.5;8.0;8.6;9.0;10.0;12.0+PTX"
     ) else (

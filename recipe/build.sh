@@ -244,8 +244,8 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
         export TORCH_CUDA_ARCH_LIST="8.0;9.0;10.0;11.0;12.0;12.1+PTX"
     elif [[ ${cuda_compiler_version} == 12.* ]]; then
         # Arch list aligned with upstream PyTorch CI.
-        # sm_50-sm_61 deprecated in CUDA 12.8; keep sm_70 per pytorch/pytorch#157517.
-        export TORCH_CUDA_ARCH_LIST="7.0;7.5;8.0;8.6;9.0;10.0;12.0+PTX"
+        # sm_50-sm_61 deprecated in CUDA 12.8; sm_70 dropped upstream in 2.11.
+        export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;9.0;10.0;12.0+PTX"
     elif [[ ${cuda_compiler_version} == 13.* ]]; then
         # sm_70 dropped in CUDA 13; list matches upstream PyTorch CI for CUDA 13.
         export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;9.0;10.0;12.0+PTX"
