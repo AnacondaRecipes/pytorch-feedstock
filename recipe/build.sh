@@ -163,11 +163,11 @@ elif [[ "$target_platform" == "linux-aarch64" && ${gpu_variant} == "cuda"* ]]; t
     # CUDA template instantiation (flash attention / cutlass) is extremely
     # memory-hungry. Cap parallelism to avoid OOM.
     export MAX_JOBS=4
-elif [[ "$target_platform" == "linux-x86_64" && ${gpu_variant} == "cuda"* ]]; then
+elif [[ "$target_platform" == "linux-64" && ${gpu_variant} == "cuda"* ]]; then
     # cicc OOMs on fbgemm_genai CUTLASS templates on runners. Rather
     # than globally throttle, we serialize only fbgemm_genai via a Ninja job
     # pool (patch 0024 + CMAKE_JOB_POOLS below) and leave MAX_JOBS high.
-    export MAX_JOBS=6
+    export MAX_JOBS=$((CPU_COUNT > 1 ? CPU_COUNT - 1 : 1))
 else
     # Leave a spare core for other tasks. This may need to be reduced further
     # if we get out of memory errors. (Each job uses a certain amount of memory.)
@@ -244,8 +244,8 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
         export TORCH_CUDA_ARCH_LIST="8.0;9.0;10.0;11.0;12.0;12.1+PTX"
     elif [[ ${cuda_compiler_version} == 12.* ]]; then
         # Arch list aligned with upstream PyTorch CI.
-        # sm_50-sm_61 deprecated in CUDA 12.8; keep sm_70 per pytorch/pytorch#157517.
-        export TORCH_CUDA_ARCH_LIST="7.0;7.5;8.0;8.6;9.0;10.0;12.0+PTX"
+        # sm_50-sm_61 deprecated in CUDA 12.8; sm_70 dropped upstream in 2.11.
+        export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;9.0;10.0;12.0+PTX"
     elif [[ ${cuda_compiler_version} == 13.* ]]; then
         # sm_70 dropped in CUDA 13; list matches upstream PyTorch CI for CUDA 13.
         export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;9.0;10.0;12.0+PTX"
