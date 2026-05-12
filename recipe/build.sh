@@ -164,11 +164,10 @@ elif [[ "$target_platform" == "linux-aarch64" && ${gpu_variant} == "cuda"* ]]; t
     # memory-hungry. Cap parallelism to avoid OOM.
     export MAX_JOBS=4
 elif [[ "$target_platform" == "linux-64" && ${gpu_variant} == "cuda"* ]]; then
-    # CUDA template instantiation (flash attention / cutlass) is extremely
-    # memory-hungry. Cap parallelism to avoid OOM.
-    # MAX_JOBS=15 (CPU_COUNT-1) verified safe on g4dn.4xlarge (16 vCPU / 64GB) in 2.10.0.
-    # NOTE: target_platform is "linux-64" on conda; the previous "linux-x86_64"
-    # literal never matched and silently fell through to the else branch.
+    # cicc OOMs on fbgemm_genai CUTLASS templates on runners. Rather
+    # than globally throttle, we serialize only fbgemm_genai via a Ninja job
+    # pool (patch 0024 + CMAKE_JOB_POOLS below) and leave MAX_JOBS high.
+    # MAX_JOBS=CPU_COUNT-1 verified safe on g4dn.4xlarge (16 vCPU / 64GB) in 2.10.0.
     export MAX_JOBS=$((CPU_COUNT > 1 ? CPU_COUNT - 1 : 1))
 else
     # Leave a spare core for other tasks. This may need to be reduced further
@@ -261,20 +260,16 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
     if [[ "${target_platform}" != "${build_platform}" ]]; then
         export CUDA_TOOLKIT_ROOT=${PREFIX}
     fi
-    # TORCH_NVCC_FLAGS: --threads 1 (was 2) to bound nvcc internal parallelism per TU;
-    # combined with -Xptxas=--allow-expensive-optimizations=false to cap ptxas peak RAM
-    # on the CUTLASS-heavy fbgemm_genai TUs.
-    # CUDA 13 also gets -compress-mode=size and BUILD_BUNDLE_PTXAS=1 (matches upstream
-    # 2.12 .ci/manywheel/build_cuda.sh).
+    # --threads 1: stop nvcc from fanning out per-arch cicc processes in one
+    # invocation (each fork multiplies peak RSS). -Xptxas ...=false skips the
+    # expensive ptxas passes (~0-3% perf on hot kernels, no correctness impact).
     export TORCH_NVCC_FLAGS="-Xfatbin -compress-all --threads 1 -Xptxas=--allow-expensive-optimizations=false"
-    if [[ ${cuda_compiler_version} == 13.* ]]; then
-        export TORCH_NVCC_FLAGS="${TORCH_NVCC_FLAGS} -compress-mode=size"
-        export BUILD_BUNDLE_PTXAS=1
-    fi
-    # OOM mitigation for fbgemm_genai (CUTLASS-heavy): pair patch 0024 with a Ninja
-    # job pool so only one cutlass_heavy TU compiles at a time. MALLOC_ARENA_MAX
-    # bounds glibc malloc arena fragmentation under heavy parallel nvcc.
+    # Cap glibc per-thread malloc arenas so long-running cicc/gcc processes
+    # don't hold hundreds of MB of fragmented heap. No codegen impact.
     export MALLOC_ARENA_MAX=2
+    # Serialize fbgemm_genai compiles via a dedicated Ninja job pool (patch
+    # 0024). Set as env vars so PyTorch setup.py auto-forwards them as -D
+    # (CMAKE_ARGS itself is not read by setup.py).
     export CMAKE_JOB_POOLS="cutlass_heavy=1;compile=${MAX_JOBS};link=2"
     export USE_FBGEMM_GENAI_JOB_POOL=cutlass_heavy
     export NCCL_ROOT_DIR=$PREFIX
