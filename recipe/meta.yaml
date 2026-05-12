@@ -188,8 +188,8 @@ requirements:
     - python       # [not megabuild]
     - numpy >=1.26.0,<3.0.0
     - pip
-    # upstream requirements.txt caps setuptools <82
-    - setuptools <82
+    # upstream requirements-build.txt: setuptools>=70.1.0,<82
+    - setuptools >=70.1.0,<82
     - wheel
     - pyyaml
     - requests
@@ -374,8 +374,8 @@ outputs:
         - python
         - numpy >=1.26.0,<3.0.0
         - pip
-        # upstream requirements.txt caps setuptools <82
-        - setuptools <82
+        # upstream requirements-build.txt: setuptools>=70.1.0,<82
+        - setuptools >=70.1.0,<82
         - wheel
         - pyyaml
         - requests
@@ -427,8 +427,8 @@ outputs:
         # Required to support torch.compile. This is tested in smoke_test.py, which is required to pass
         - triton =={{ triton }}       # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
         - {{ pin_subpackage('libtorch', exact=True) }}
-        # upstream requirements.txt caps setuptools <82
-        - setuptools <82
+        # upstream requirements-build.txt: setuptools>=70.1.0,<82
+        - setuptools >=70.1.0,<82
       run_constrained:
         # current intel-openmp builds are incompatible with llvm-openmp on osx-64
         - llvm-openmp <0a0                # [(blas_impl == "mkl") and (osx and x86_64)]  
