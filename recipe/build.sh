@@ -237,20 +237,24 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
     if [[ "${target_platform}" != "${build_platform}" ]]; then
         export CUDA_TOOLKIT_ROOT=${CUDA_HOME}
     fi
-    # CUDA arch lists aligned with upstream PyTorch v2.12.0 .ci/manywheel/build_cuda.sh.
+    # CUDA arch lists aligned with upstream PyTorch v2.12.0 .ci/manywheel/build_cuda.sh,
+    # with one deliberate divergence: keep trailing +PTX for forward-compat with future
+    # archs (sm_13+). Upstream 2.11 shipped +PTX; upstream 2.12 dropped it (line 112's
+    # comment still says "+ PTX for forward compatibility" but the code no longer adds it).
+    # We preserve +PTX so users on hardware newer than sm_12 still get JIT-runnable kernels.
     # 2.12 supports CUDA 12.6/12.8/12.9/13.0/13.2; we ship 12.9 and 13.0
     # (pkgs/main has cuda-nvcc 13.0 but not 13.2 yet — see CBC).
     if [[ "$target_platform" == "linux-aarch64" && ${cuda_compiler_version} == 13.* ]]; then
         # aarch64 CUDA 13: upstream filters out <8.0, 7.5, 8.6 (x86_64-only SKUs)
         # and adds sm_11.0 (Jetson Thor) only on aarch64.
         # Keeps 8.0 (A100), 9.0 (Grace Hopper), 10.0+12.0 (Blackwell), 11.0 (Thor).
-        export TORCH_CUDA_ARCH_LIST="8.0;9.0;10.0;11.0;12.0"
+        export TORCH_CUDA_ARCH_LIST="8.0;9.0;10.0;11.0;12.0+PTX"
     elif [[ ${cuda_compiler_version} == 12.* ]]; then
         # CUDA 12: sm_50-sm_61 deprecated in 12.8; sm_70 dropped upstream in 2.11.
-        export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;9.0;10.0;12.0"
+        export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;9.0;10.0;12.0+PTX"
     elif [[ ${cuda_compiler_version} == 13.* ]]; then
         # CUDA 13: sm_70 dropped; same arch list as 12.x for x86_64.
-        export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;9.0;10.0;12.0"
+        export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;9.0;10.0;12.0+PTX"
     else
         echo "No CUDA architecture list exists for CUDA v${cuda_compiler_version}"
         echo "in build.sh. Use https://en.wikipedia.org/wiki/CUDA#GPUs_supported to make one."

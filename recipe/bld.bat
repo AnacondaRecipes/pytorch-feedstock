@@ -67,12 +67,14 @@ if "%gpu_variant:~0,4%" == "cuda" (
     @REM 10.0 = Blackwell  (GB200, B200)
     @REM 12.0 = Blackwell  (RTX 50xx, RTX PRO)
     @REM sm_70 (Volta/V100) dropped upstream in 2.11 for CUDA 12 and CUDA 13.
-    @REM Upstream 2.12 dropped trailing +PTX from both lists.
+    @REM We deliberately keep trailing +PTX for forward-compat with future archs
+    @REM (sm_13+). Upstream 2.11 shipped +PTX; upstream 2.12 dropped it. We preserve
+    @REM it so users on hardware newer than sm_12 still get JIT-runnable kernels.
     set "cuda_major=%cuda_compiler_version:~0,2%"
     if "!cuda_major!" == "12" (
-        set "TORCH_CUDA_ARCH_LIST=7.5;8.0;8.6;9.0;10.0;12.0"
+        set "TORCH_CUDA_ARCH_LIST=7.5;8.0;8.6;9.0;10.0;12.0+PTX"
     ) else if "!cuda_major!" == "13" (
-        set "TORCH_CUDA_ARCH_LIST=7.5;8.0;8.6;9.0;10.0;12.0"
+        set "TORCH_CUDA_ARCH_LIST=7.5;8.0;8.6;9.0;10.0;12.0+PTX"
     ) else (
         echo [ERROR] No CUDA architecture list exists for CUDA v%cuda_compiler_version%
         echo Use https://en.wikipedia.org/wiki/CUDA#GPUs_supported to make one.
