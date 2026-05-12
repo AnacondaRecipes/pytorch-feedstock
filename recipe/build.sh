@@ -261,14 +261,22 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
     if [[ "${target_platform}" != "${build_platform}" ]]; then
         export CUDA_TOOLKIT_ROOT=${PREFIX}
     fi
-    # TORCH_NVCC_FLAGS: --threads 2 parallelizes nvcc within each translation unit.
+    # TORCH_NVCC_FLAGS: --threads 1 (was 2) to bound nvcc internal parallelism per TU;
+    # combined with -Xptxas=--allow-expensive-optimizations=false to cap ptxas peak RAM
+    # on the CUTLASS-heavy fbgemm_genai TUs.
     # CUDA 13 also gets -compress-mode=size and BUILD_BUNDLE_PTXAS=1 (matches upstream
     # 2.12 .ci/manywheel/build_cuda.sh).
-    export TORCH_NVCC_FLAGS="-Xfatbin -compress-all --threads 2"
+    export TORCH_NVCC_FLAGS="-Xfatbin -compress-all --threads 1 -Xptxas=--allow-expensive-optimizations=false"
     if [[ ${cuda_compiler_version} == 13.* ]]; then
         export TORCH_NVCC_FLAGS="${TORCH_NVCC_FLAGS} -compress-mode=size"
         export BUILD_BUNDLE_PTXAS=1
     fi
+    # OOM mitigation for fbgemm_genai (CUTLASS-heavy): pair patch 0024 with a Ninja
+    # job pool so only one cutlass_heavy TU compiles at a time. MALLOC_ARENA_MAX
+    # bounds glibc malloc arena fragmentation under heavy parallel nvcc.
+    export MALLOC_ARENA_MAX=2
+    export CMAKE_JOB_POOLS="cutlass_heavy=1;compile=${MAX_JOBS};link=2"
+    export USE_FBGEMM_GENAI_JOB_POOL=cutlass_heavy
     export NCCL_ROOT_DIR=$PREFIX
     export NCCL_INCLUDE_DIR=$PREFIX/include
     export USE_SYSTEM_NCCL=1

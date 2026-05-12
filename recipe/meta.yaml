@@ -57,6 +57,7 @@ source:
       - patches/0021-fix-onednn-cuda-include.patch
       - patches/0022-force-bundled-mkldnn.patch
       - patches/0023-remove-conftest-extra-param.patch
+      - patches/0024-Allow-fbgemm_genai-to-be-assigned-to-a-Ninja-job-pool.patch    # [linux and gpu_variant == "cuda"]
 {% else %}
   # The "pytorch-v" release tarballs contain submodules; the "pytorch-" ones don't.
   - url: https://github.com/pytorch/pytorch/releases/download/v{{ version }}/pytorch-v{{ version }}.tar.gz
@@ -76,6 +77,7 @@ source:
       - patches/0021-fix-onednn-cuda-include.patch
       - patches/0022-force-bundled-mkldnn.patch
       - patches/0023-remove-conftest-extra-param.patch
+      - patches/0024-Allow-fbgemm_genai-to-be-assigned-to-a-Ninja-job-pool.patch    # [linux and gpu_variant == "cuda"]
 {% endif %}
   - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.ci/pytorch/smoke_test/smoke_test.py
     folder: smoke_test
@@ -186,7 +188,7 @@ requirements:
     - python       # [not megabuild]
     - numpy >=1.26.0,<3.0.0
     - pip
-    # pytorch 2.11 requirements.txt caps setuptools <82
+    # upstream requirements.txt caps setuptools <82
     - setuptools <82
     - wheel
     - pyyaml
@@ -204,10 +206,14 @@ requirements:
     - sleef 3.5.1
     - libuv
     - pkg-config  # [unix]
-    - typing_extensions
+    # upstream requirements-build.txt: typing-extensions>=4.15.0
+    - typing_extensions >=4.15.0
     - packaging
-    # https://github.com/pytorch/pytorch/pull/175115 caps pybind11 below 3.0.2
-    - pybind11 <3.0.2
+    # upstream pytorch 2.12 vendors pybind11 3.0.1 (third_party submodule).
+    # ABI-compatible up to 3.0.x; cap at 4.0 for future safety. pybind11-abi
+    # explicitly included to pin the ABI version (PKG-13552; mamba-feedstock pattern).
+    - pybind11 >=3.0.1,<4
+    - pybind11-abi
     - eigen {{ eigen }}
     - zlib {{ zlib }}
     - fmt {{ fmt }}
@@ -368,7 +374,7 @@ outputs:
         - python
         - numpy >=1.26.0,<3.0.0
         - pip
-        # pytorch 2.11 requirements.txt caps setuptools <82
+        # upstream requirements.txt caps setuptools <82
         - setuptools <82
         - wheel
         - pyyaml
@@ -386,11 +392,14 @@ outputs:
         - sleef 3.5.1
         - libuv
         - pkg-config  # [unix]
-        - typing_extensions
+        # upstream requirements-build.txt: typing-extensions>=4.15.0
+        - typing_extensions >=4.15.0
         - packaging
         - {{ pin_subpackage('libtorch', exact=True) }}
-        # https://github.com/pytorch/pytorch/pull/175115 caps pybind11 below 3.0.2
-        - pybind11 <3.0.2
+        # upstream pytorch 2.12 vendors pybind11 3.0.1; ABI-compatible up to 3.0.x.
+        # pybind11-abi explicit (PKG-13552, mamba pattern).
+        - pybind11 >=3.0.1,<4
+        - pybind11-abi
         - eigen {{ eigen }}
         - zlib {{ zlib }}
         - fmt {{ fmt }}
@@ -418,7 +427,7 @@ outputs:
         # Required to support torch.compile. This is tested in smoke_test.py, which is required to pass
         - triton =={{ triton }}       # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
         - {{ pin_subpackage('libtorch', exact=True) }}
-        # pytorch 2.11 requirements.txt caps setuptools <82
+        # upstream requirements.txt caps setuptools <82
         - setuptools <82
       run_constrained:
         # current intel-openmp builds are incompatible with llvm-openmp on osx-64
@@ -444,7 +453,7 @@ outputs:
         - pytest-flakefinder
         - pytest-xdist
         # Needed for test_autograd.py
-        - pybind11 <3.0.2
+        - pybind11 >=3.0.1,<4
         # the inductor "test_aoti_eager..." tests require objcopy
         - binutils  # [linux]
         # Triton JIT links cuda_utils.c against libcuda; use driver stubs from the env (no system /lib64 driver in many builders)
@@ -500,9 +509,14 @@ outputs:
         # (for example, in the case of missing imports). There doesn't seem to be a way of making a script exception return
         # non-zero but failing tests return zero.
         # ------------------------------------------------------------------------------------------------
-        # Exclude complex tests that are known to be flaky for -k "not (complex and (linalg_vecdot or dot or vdot))"
-        # https://github.com/pytorch/pytorch/issues/150918
-        - python ./test/run_test.py --core --continue-through-error -k "not (complex and (linalg_vecdot or dot or vdot))" || true # [not win]
+        # Flaky complex linear-algebra cases (see run_test_core_k); https://github.com/pytorch/pytorch/issues/150918
+        {% set run_test_core_k = "not (complex and (linalg_vecdot or dot or vdot))" %}
+        # On linux-aarch64 + CUDA, test_ops_gradients::test_inplace_gradgrad_* crashes
+        # consistently (segfault under ASAN-free build); exclude additionally on that
+        # variant only so the rest of --core still runs.
+        {% set run_test_core_k_aarch64_cuda = run_test_core_k ~ " and not inplace_gradgrad" %}
+        - python ./test/run_test.py --core --continue-through-error -k "{{ run_test_core_k }}" || true # [not win and not (linux and aarch64 and (gpu_variant or "").startswith("cuda"))]
+        - python ./test/run_test.py --core --continue-through-error -k "{{ run_test_core_k_aarch64_cuda }}" || true # [linux and aarch64 and (gpu_variant or "").startswith("cuda")]
         # lgamma or mvlgamma or multigammaln or gammaln all have these issues on a combination of Intel Xeon processors and Windows Server differences.
         # enabling these tests on windows will cause numerical differences in the test suite.
         # This is a non-deterministic issue where between 80-110 tests fail. This has been observed between Pytorch 2.5 and above.

@@ -5,5 +5,11 @@ extra_labels_for_os:
 
 task_timeout: 72000
 
+# Dev/staging channel for pre-release pybind11 3.0.4 + triton 3.7.0 builds while
+# PKG-13552 (pybind11-abi rebuild) and triton 3.7 PR #12 are still in scoping.
+# Remove before merging to master.
+channels:
+  - xkong-staging
+
 # build_parameters:
 #  - "--no-test"
