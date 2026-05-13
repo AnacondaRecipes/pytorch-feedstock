@@ -2,7 +2,7 @@
 {% set sha256 = "ab3fde9e7e382f45ac942be6ea2c2ef362c5ccd6f55ed6d5f35e6ea81d3ab88e" %}
 # Set the RC number to build release candidates. Set to None otherwise
 {% set rc = None %}
-{% set build = 0 %}
+{% set build = 1 %}
 
 
 # Keep this in sync with the release
@@ -69,6 +69,7 @@ source:
   - url: https://raw.githubusercontent.com/pytorch/pytorch/refs/tags/v{{ version }}/.gitignore
 
 build:
+  skip: true  # [not (win and x86_64 and gpu_variant == "cpu" and blas_impl == "mkl")]
   number: {{ build }}
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
@@ -222,6 +223,8 @@ test:
     - cd cmake_test
     - cmake -GNinja -DCMAKE_CXX_STANDARD=17 $CMAKE_ARGS .   # [unix]
     - cmake -GNinja -DCMAKE_CXX_STANDARD=17 %CMAKE_ARGS% .  # [win]
+    - dumpbin /dependents "%PREFIX%\Library\bin\dnnl.dll" | findstr /i libiomp5md  # [win and blas_impl == "mkl"]
+    - dumpbin /dependents "%PREFIX%\Library\bin\dnnl.dll" | findstr /i vcomp && exit /b 1 || exit /b 0  # [win and blas_impl == "mkl"]
 
 outputs:
   - name: libtorch
