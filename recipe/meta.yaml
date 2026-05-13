@@ -2,7 +2,7 @@
 {% set sha256 = "ab3fde9e7e382f45ac942be6ea2c2ef362c5ccd6f55ed6d5f35e6ea81d3ab88e" %}
 # Set the RC number to build release candidates. Set to None otherwise
 {% set rc = None %}
-{% set build = 0 %}
+{% set build = 1 %}
 
 
 # Keep this in sync with the release
@@ -62,6 +62,7 @@ source:
       - patches/0022-force-bundled-mkldnn.patch
       - patches/0023-remove-conftest-extra-param.patch
       - patches/0024-Allow-fbgemm_genai-to-be-assigned-to-a-Ninja-job-pool.patch    # [linux and gpu_variant == "cuda"]
+      - patches/0025-Use-Intel-LLVM-openmp.patch # [win]
 {% endif %}
   - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.ci/pytorch/smoke_test/smoke_test.py
     folder: smoke_test
@@ -70,6 +71,10 @@ source:
 
 build:
   number: {{ build }}
+  skip: true  # [not linux]
+  skip: true  # [gpu_variant == "cuda"]
+  skip: true  # [blas_impl != "openblas"]
+  skip: true  # [py != 313]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
