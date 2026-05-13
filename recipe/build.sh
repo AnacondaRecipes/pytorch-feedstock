@@ -186,15 +186,10 @@ else
 fi
 
 if [[ "$PKG_NAME" == "pytorch" ]]; then
-  PIP_ACTION=install
   # Trick Cmake into thinking python hasn't changed
   sed "s/3\.12/$PY_VER/g" build/CMakeCache.txt.orig > build/CMakeCache.txt
   sed -i.bak "s/3;12/${PY_VER%.*};${PY_VER#*.}/g" build/CMakeCache.txt
   sed -i.bak "s/cpython-312/cpython-${PY_VER%.*}${PY_VER#*.}/g" build/CMakeCache.txt
-else
-  # For the main script we just build a wheel for so that the C++/CUDA
-  # parts are built. Then they are reused in each python version.
-  PIP_ACTION=wheel
 fi
 
 # MacOS build is simple, and will not be for CUDA
@@ -295,29 +290,31 @@ fi
 
 echo '${CXX}'=${CXX}
 echo '${PREFIX}'=${PREFIX}
-$PREFIX/bin/python -m pip $PIP_ACTION . --no-deps --no-build-isolation -vvv --no-clean \
-    | sed "s,${CXX},\$\{CXX\},g" \
-    | sed "s,${PREFIX},\$\{PREFIX\},g"
 
 if [[ "$PKG_NAME" == "libtorch" ]]; then
-  mkdir -p $SRC_DIR/dist
-  pushd $SRC_DIR/dist
-  wheel unpack ../torch-*.whl
-  pushd torch-*
-  mv torch/bin/* ${PREFIX}/bin
-  mv torch/lib/* ${PREFIX}/lib
-  # need to merge these now because we're using system pybind11
-  rsync -a torch/share/* ${PREFIX}/share
-  for f in ATen caffe2 tensorpipe torch c10; do
-    mv torch/include/$f ${PREFIX}/include/$f
-  done
-  rm ${PREFIX}/lib/libtorch_python.*
-  popd
-  popd
+  # Run setup.py build directly rather than `pip wheel`. setuptools' bdist_wheel
+  # uses ZipFile.write() which dereferences POSIX symlinks, collapsing OneDNN's
+  # libdnnl.so -> libdnnl.so.3 -> libdnnl.so.3.10 chain (and similar) into three
+  # full-size copies. setup.py build keeps the chain intact in
+  # build/lib.<platform>/torch/lib/, and `mv` preserves it into $PREFIX/lib.
+  # Mirrors conda-forge/pytorch-cpu-feedstock.
+  $PREFIX/bin/python setup.py build \
+      | sed "s,${CXX},\$\{CXX\},g" \
+      | sed "s,${PREFIX},\$\{PREFIX\},g"
 
-  # Keep the original backed up to sed later
+  mv build/lib.*/torch/bin/* ${PREFIX}/bin/
+  mv build/lib.*/torch/lib/* ${PREFIX}/lib/
+  # need to merge these now because we're using system pybind11
+  rsync -a build/lib.*/torch/share/* ${PREFIX}/share/
+  mv build/lib.*/torch/include/{ATen,caffe2,tensorpipe,torch,c10} ${PREFIX}/include/
+  rm ${PREFIX}/lib/libtorch_python.*
+
+  # Keep the original backed up to sed later (pytorch output reuses this cache).
   cp build/CMakeCache.txt build/CMakeCache.txt.orig
 else
+  $PREFIX/bin/python -m pip install . --no-deps --no-build-isolation -vvv --no-clean \
+      | sed "s,${CXX},\$\{CXX\},g" \
+      | sed "s,${PREFIX},\$\{PREFIX\},g"
   # Keep this in ${PREFIX}/lib so that the library can be found by
   # TorchConfig.cmake.
   # With upstream non-split build, `libtorch_python.so`
