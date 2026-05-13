@@ -81,13 +81,12 @@ if "%gpu_variant:~0,4%" == "cuda" (
         exit /b 1
     )
     @REM TORCH_NVCC_FLAGS: --threads 2 parallelizes nvcc within each translation unit.
-    @REM CUDA 13 also adds -compress-mode=size and BUILD_BUNDLE_PTXAS=1 (matches upstream
-    @REM 2.12 .ci/manywheel/build_cuda.sh).
+    @REM Do NOT set BUILD_BUNDLE_PTXAS on Windows: pytorch's CMakeLists.txt:1467
+    @REM does `file(COPY "${CUDAToolkit_BIN_DIR}/ptxas" ...)` with the literal
+    @REM Linux name `ptxas` — on Windows the binary is `ptxas.exe`, so the
+    @REM copy fails with "cannot find ... ptxas: File exists". Master (2.11)
+    @REM never set it on win; we don't need PTXAS bundled on win either.
     set "TORCH_NVCC_FLAGS=-Xfatbin -compress-all --threads 2"
-    if "!cuda_major!" == "13" (
-        set "TORCH_NVCC_FLAGS=!TORCH_NVCC_FLAGS! -compress-mode=size"
-        set BUILD_BUNDLE_PTXAS=1
-    )
 
     @REM Suppress extremely noisy ptxas advisories that bloat logs
     set "CMAKE_CUDA_FLAGS=-w -Xptxas -w"
