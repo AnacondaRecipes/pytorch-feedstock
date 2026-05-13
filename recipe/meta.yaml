@@ -1,10 +1,8 @@
 {% set version = "2.12.0" %}
-{% set sha256 = "2d01cb1f6de449baa2880bc8242098240b0bdeb7abe2101dd9fb6e7c7d4b51de" %}
+{% set sha256 = "7cc1deb309f402ad67e9f45bbe311a40def4db19d66fddb9b01950f9bfc5ccb1" %}
 # Set the RC number to build release candidates. Set to None otherwise.
 # When rc != None, the GitHub auto-archive tarball is used (submodules included).
-# At GA (~2026-05-13), set rc = None and bump sha256 to the official release
-# tarball (pytorch-v{{ version }}.tar.gz from the releases endpoint).
-{% set rc = "3" %}
+{% set rc = None %}
 {% set build = 0 %}
 
 
@@ -88,17 +86,14 @@ source:
 
 build:
   number: {{ build }}
-  # Skip ALL variants until 2.12.0 GA tarball ships (~2026-05-13).
-  # Reason: the rc3 GitHub auto-archive lacks vendored submodules
-  # (third_party/{pybind11,fmt,eigen,onnx,...} are empty placeholder dirs),
-  # so setup.py check_submodules() bails. Only releases/download/v{version}/
-  # pytorch-v{version}.tar.gz includes them, and that doesn't exist for RCs.
-  # At GA: set rc=None, bump sha256, then narrow back to stage-1 skip:
-  #   skip: true  # [not win]
-  #   skip: true  # [gpu_variant != "cpu"]
-  #   skip: true  # [blas_impl != "openblas"]
-  #   skip: true  # [py != 313]
-  skip: true
+  # Stage-1 bootstrap: build only win-64 + CPU + openblas + py3.13 to keep CI
+  # cheap while validating the 2.12 recipe. Expand to more variants once this
+  # passes (drop the [not win] line first → linux-64 CPU; then [gpu_variant !=
+  # "cpu"] → linux-64 CUDA; then [py != 313] for the full py3.10-3.14 matrix).
+  skip: true  # [not win]
+  skip: true  # [gpu_variant != "cpu"]
+  skip: true  # [blas_impl != "openblas"]
+  skip: true  # [py != 313]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
