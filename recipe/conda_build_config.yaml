@@ -1,7 +1,13 @@
+# gpu_variant is zipped with cuda_compiler_version on win/linux (so the CPU
+# variant doesn't duplicate across CUDA versions) and zipped with MACOSX_SDK /
+# CONDA_BUILD_SYSROOT on osx-arm64 (so CPU and Metal builds get separate SDKs).
+# The literal values cpu/metal/cuda are preserved for build-string selectors
+# (e.g. `cpu_{{ blas_impl }}_h…`, `gpu_cuda{{ cuda_compiler_version | replace }}_…`).
 gpu_variant:
-  - cpu
-  - metal                    # [(osx and arm64)]
-  - cuda                     # [win or linux]
+  - cpu                              # all platforms
+  - metal                            # [(osx and arm64)]
+  - cuda                             # [win or (linux and x86_64)]
+  - cuda                             # [win or linux]
 
 blas_impl:                   # [win]
   - mkl                      # [win]
@@ -18,10 +24,13 @@ cxx_compiler_version:
 # pkgs/main currently ships cuda-nvcc 12.9 and 13.0 (no 13.2 yet).
 # Intersection: 12.9 and 13.0 — bump to 13.2 once cuda-nvcc 13.2 lands in pkgs/main.
 # aarch64 only supports CUDA 13.x (CUDA 12.x requires gcc <15, but aarch64 needs gcc 15.2.0).
+# "none" pairs with gpu_variant=cpu/metal under zip_keys; the recipe ignores
+# cuda_compiler_version for non-CUDA variants but the key must align lengthwise.
 cuda_compiler_version:
-  - 12.9                     # [win or (linux and x86_64)]
-  - 13.0                     # [win or (linux and x86_64)]
-  - 13.0                     # [linux and aarch64]
+  - none                             # cpu
+  - none                             # [(osx and arm64)]  # metal pair
+  - 12.9                             # [win or (linux and x86_64)]
+  - 13.0                             # [win or linux]
 # CONDA_BUILD_SYSROOT is defined in the base cbc.yaml, but it's reflected here so we can zip the keys and
 # build GPU and CPU at the same time for osx-arm64. It'll need to be manually updated here if the base cbc is changed.
 # This could be done using extend_keys instead, with a change to the base cbc.yaml.
@@ -32,10 +41,18 @@ MACOSX_SDK_VERSION:          # [(osx and arm64)]
 CONDA_BUILD_SYSROOT:         # [(osx and arm64)]
   - /Library/Developer/CommandLineTools/SDKs/MacOSX13.3.sdk  # [(osx and arm64)]
   - /Library/Developer/CommandLineTools/SDKs/MacOSX14.5.sdk  # [(osx and arm64)]
-zip_keys:                    # [(osx and arm64)]
-  - gpu_variant              # [(osx and arm64)]
-  - MACOSX_SDK_VERSION       # [(osx and arm64)]
-  - CONDA_BUILD_SYSROOT      # [(osx and arm64)]
+# Two zip groups, gated by platform so the shared `gpu_variant` key doesn't conflict:
+#   - osx-arm64: zip gpu_variant with the two SDK keys (cpu↔13.3, metal↔14.5).
+#   - win/linux: zip gpu_variant with cuda_compiler_version so the CPU variant
+#                exists exactly once per platform (no Cartesian-product duplicates).
+zip_keys:
+  -                              # [(osx and arm64)]
+    - gpu_variant                # [(osx and arm64)]
+    - MACOSX_SDK_VERSION         # [(osx and arm64)]
+    - CONDA_BUILD_SYSROOT        # [(osx and arm64)]
+  -                              # [win or linux]
+    - gpu_variant                # [win or linux]
+    - cuda_compiler_version      # [win or linux]
 # megabuild is disabled as our CI runners work on each python version separately.
 megabuild:
 - false

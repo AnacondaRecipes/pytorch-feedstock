@@ -291,6 +291,13 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
     export USE_SYSTEM_NVTX=1
     export MAGMA_HOME="${PREFIX}"
     export CUDA_INC_PATH="${PREFIX}/targets/$(uname -m)-linux/include/"
+    # pytorch 2.12 + CMake 4.x: cmake/public/cuda.cmake creates an INTERFACE
+    # target caffe2::cuda → CUDA::cuda_driver, validated eagerly at generate.
+    # The driver stub from cuda-driver-dev lives under targets/<arch>-linux/lib/stubs/
+    # which FindCUDAToolkit doesn't search by default. Point cmake at it.
+    _arch="$(uname -m)"
+    export CMAKE_LIBRARY_PATH="${BUILD_PREFIX}/targets/${_arch}-linux/lib/stubs:${PREFIX}/targets/${_arch}-linux/lib/stubs:${CMAKE_LIBRARY_PATH}"
+    export CUDA_cuda_driver_LIBRARY="${BUILD_PREFIX}/targets/${_arch}-linux/lib/stubs/libcuda.so"
 else
     # MKLDNN is an Apache-2.0 licensed library for DNNs and is used
     # for CPU builds. Not to be confused with MKL.

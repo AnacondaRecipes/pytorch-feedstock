@@ -94,13 +94,10 @@ build:
   skip: true  # [aarch64]
   skip: true  # [osx]
   skip: true  # [gpu_variant == "metal"]
+  # Stage-1: only build CUDA 13.0 (the new toolchain). zip_keys means CPU
+  # appears exactly once per platform (cuda_compiler_version="none"), so no
+  # CPU dedup skip is needed.
   skip: true  # [gpu_variant == "cuda" and cuda_compiler_version == "12.9"]
-  # Without zip_keys, gpu_variant × cuda_compiler_version is a Cartesian product
-  # and the CPU variant gets duplicated once per CUDA version (cuda_compiler_version
-  # is irrelevant for CPU builds but still bumps PKG_HASH). Collapse to one CPU build
-  # per platform. A cleaner long-term fix is zip_keys-aligning gpu_variant with
-  # cuda_compiler_version (arrow-cpp / lightgbm pattern); tracked as a follow-up.
-  skip: true  # [gpu_variant == "cpu" and cuda_compiler_version == "12.9"]
   skip: true  # [blas_impl != "openblas"]
   skip: true  # [py != 313]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
@@ -132,7 +129,7 @@ requirements:
     - {{ compiler('cxx') }}
     - {{ compiler('cuda') }}                    # [(gpu_variant or "").startswith("cuda")]
     - cuda-version {{ cuda_compiler_version }}  # [(gpu_variant or "").startswith("cuda")]
-    - nvtx-c                                 # [cuda_compiler_version != "None" and build_platform != target_platform]
+    - nvtx-c                                 # [(gpu_variant or "").startswith("cuda") and build_platform != target_platform]
     {% if cuda_major >= 12 %}
     # pytorch 2.12 cmake/public/cuda.cmake:165 link-resolves CUDA::cuda_driver
     # at configure time; need the driver stub in build for native too, not
