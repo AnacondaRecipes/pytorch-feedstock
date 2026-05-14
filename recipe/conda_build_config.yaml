@@ -2,6 +2,7 @@ gpu_variant:
   - cpu
   - metal                    # [(osx and arm64)]
   - cuda                     # [win or linux]
+  - cuda                     # [win or (linux and x86_64)]
 
 # Linux aarch64 needs gcc 15.2.0 due to a bug with 14.3 with vector instructions
 c_compiler_version:          # [linux and aarch64]
@@ -13,12 +14,13 @@ c_compiler_version:          # [linux and x86_64]
   - 14                       # [linux and x86_64]
 cxx_compiler_version:        # [linux and x86_64]
   - 14                       # [linux and x86_64]
-cuda_compiler_version:       # [win or (linux and x86_64)]
-  - 12.9                     # [win or (linux and x86_64)]
-  - 13.0                     # [win or (linux and x86_64)]
+
 # aarch64 only supports CUDA 13.x (CUDA 12.x requires gcc <15, but aarch64 needs gcc 15.2.0)
-cuda_compiler_version:       # [linux and aarch64]
-  - 13.0                     # [linux and aarch64]
+cuda_compiler_version:       # [win or linux]
+  - None                     # [win or linux]
+  - 12.9                     # [win or (linux and x86_64)]
+  - 13.0                     # [win or linux]
+
 # CONDA_BUILD_SYSROOT is defined in the base cbc.yaml, but it's reflected here so we can zip the keys and
 # build GPU and CPU at the same time for osx-arm64. It'll need to be manually updated here if the base cbc is changed.
 # This could be done using extend_keys instead, with a change to the base cbc.yaml.
@@ -29,10 +31,11 @@ MACOSX_SDK_VERSION:          # [(osx and arm64)]
 CONDA_BUILD_SYSROOT:         # [(osx and arm64)]
   - /Library/Developer/CommandLineTools/SDKs/MacOSX13.3.sdk  # [(osx and arm64)]
   - /Library/Developer/CommandLineTools/SDKs/MacOSX14.5.sdk  # [(osx and arm64)]
-zip_keys:                    # [(osx and arm64)]
-  - gpu_variant              # [(osx and arm64)]
+zip_keys:
+  - gpu_variant
   - MACOSX_SDK_VERSION       # [(osx and arm64)]
   - CONDA_BUILD_SYSROOT      # [(osx and arm64)]
+  - cuda_compiler_version    # [win or linux]
 # megabuild is disabled as our CI runners work on each python version separately.
 megabuild:
 - false
