@@ -298,6 +298,16 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
     _arch="$(uname -m)"
     export CMAKE_LIBRARY_PATH="${BUILD_PREFIX}/targets/${_arch}-linux/lib/stubs:${PREFIX}/targets/${_arch}-linux/lib/stubs:${CMAKE_LIBRARY_PATH}"
     export CUDA_cuda_driver_LIBRARY="${BUILD_PREFIX}/targets/${_arch}-linux/lib/stubs/libcuda.so"
+    # pytorch 2.12 still calls find_package(CUB) when CUDA<13 (Dependencies.cmake:1167).
+    # FindCUB.cmake's HINTS=${CUDAToolkit_INCLUDE_DIRS} doesn't resolve to conda's
+    # targets/<arch>-linux/include path, so it fails to find cub/cub.cuh even though
+    # cuda-cccl_linux-64 shipped it there. Inject the path as an extra HINTS entry.
+    # No-op for CUDA 13+, which doesn't call find_package(CUB).
+    if [[ ${cuda_compiler_version} == 12.* ]] && [[ -f cmake/Modules/FindCUB.cmake ]]; then
+        sed -i.bak \
+            's|HINTS "${CUDAToolkit_INCLUDE_DIRS}"|HINTS "${CUDAToolkit_INCLUDE_DIRS}" "'"${PREFIX}/targets/${_arch}-linux/include"'"|' \
+            cmake/Modules/FindCUB.cmake
+    fi
 else
     # MKLDNN is an Apache-2.0 licensed library for DNNs and is used
     # for CPU builds. Not to be confused with MKL.
