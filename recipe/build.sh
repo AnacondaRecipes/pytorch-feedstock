@@ -271,10 +271,15 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
     # Cap glibc per-thread malloc arenas so long-running cicc/gcc processes
     # don't hold hundreds of MB of fragmented heap. No codegen impact.
     export MALLOC_ARENA_MAX=2
-    # Serialize fbgemm_genai compiles via a dedicated Ninja job pool (patch
-    # 0024). Set as env vars so PyTorch setup.py auto-forwards them as -D
+    # Cap fbgemm_genai (CUTLASS) parallelism via a dedicated Ninja job pool
+    # (patch 0024). cutlass_heavy=4 lets 4 heavy CUTLASS TUs compile at once;
+    # observed RSS per cicc on g4dn.4xlarge T4 is ~4 GB, so 4× = ~16 GB peak,
+    # well under the 64 GB host budget. Was 1 (serialized) — that left 56 GB
+    # of RAM idle while MSLK FP4 GEMM kernels and fbgemm_genai TUs (8–9
+    # arches × heavy templates) dominated wall time.
+    # Set as env vars so PyTorch setup.py auto-forwards them as -D
     # (CMAKE_ARGS itself is not read by setup.py).
-    export CMAKE_JOB_POOLS="cutlass_heavy=1;compile=${MAX_JOBS};link=2"
+    export CMAKE_JOB_POOLS="cutlass_heavy=4;compile=${MAX_JOBS};link=2"
     export USE_FBGEMM_GENAI_JOB_POOL=cutlass_heavy
     export NCCL_ROOT_DIR=$PREFIX
     export NCCL_INCLUDE_DIR=$PREFIX/include

@@ -94,9 +94,17 @@ build:
   skip: true  # [osx]
   skip: true  # [gpu_variant == "metal"]
   # CUDA: both 12.9 and 13.0 are enabled. PBP CUDA jobs hit a per-run
-  # timeout (~140 min) and never complete, so CUDA builds happen on EC2
-  # dev instances (see PR description). PBP-CUDA failures are expected
-  # until we can raise the per-run lease or fold the EC2 artifacts in.
+  # claim-expiry (~2h20m) and never complete (TaskCluster worker/service
+  # version skew, SIR-3210), so CUDA builds happen on EC2 dev instances
+  # (see PR description). PBP-CUDA failures are expected until the worker
+  # AMIs are bumped to match TaskCluster 95.1.4.
+  # win-64 + CUDA 12.9 hits a libcudacxx header bug:
+  #   clusterlaunchcontrol.h(191): error: asm operand type size(4) does not
+  #   match type/size implied by constraint 'l'
+  # The bug is in cuda-cccl_win-64 12.9.27's PTX intrinsic generator (fixed
+  # in 13.0). Skip win+12.9 until NVIDIA backports the fix or we patch
+  # the header locally.
+  skip: true  # [win and cuda_compiler_version == "12.9"]
   skip: true  # [blas_impl != "openblas"]
   skip: true  # [py != 313]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
