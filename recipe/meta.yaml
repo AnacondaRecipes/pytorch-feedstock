@@ -106,7 +106,10 @@ build:
   #   match type/size implied by constraint 'l'
   # Worked around inline by bld.bat (sed-replace long2 → longlong2 in the
   # affected header), so we no longer skip the variant.
-  skip: true  # [blas_impl != "openblas"]
+  # Stage-2: both BLAS impls now enabled. mkl is gated to x86_64 in the
+  # aggregate CBC, so this adds 6 builds at py3.13:
+  #   linux-64 (cpu_mkl, cuda12.9_mkl, cuda13.0_mkl) + win-64 (same 3) = 6
+  # linux-aarch64 and osx-arm64 stay on openblas (CBC gating).
   skip: true  # [py != 313]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
