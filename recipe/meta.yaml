@@ -110,7 +110,13 @@ build:
   # aggregate CBC, so this adds 6 builds at py3.13:
   #   linux-64 (cpu_mkl, cuda12.9_mkl, cuda13.0_mkl) + win-64 (same 3) = 6
   # linux-aarch64 and osx-arm64 stay on openblas (CBC gating).
-  skip: true  # [py != 313]
+  # py3.14 sweep: switch from py3.13 to py3.14 to exercise the unverified
+  # dep matrix; py3.13 already validated in the previous CI run.
+  skip: true  # [py != 314]
+  # osx-arm64 metal: AMI rebuild dropped MacOSX14.5.sdk (SIR-3273); skip
+  # the metal variant until SIR-3273 lands so we don't burn the slot on
+  # a known-broken build. CPU variant keeps building.
+  skip: true  # [osx and arm64 and gpu_variant == "metal"]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
@@ -278,6 +284,17 @@ test:
 
 outputs:
   - name: libtorch
+    # Workaround for a win-64 conda-build wrapping change post-Taskcluster 95.x
+    # AMI rebuild (SIR-3210 / SIR-3264): when libtorch has no per-output script,
+    # conda-build inlines the top-level bld.bat into a generated IF-block
+    # wrapper instead of calling it as its own batch process. Inside that
+    # wrapper, CBC variant variables like %blas_impl% are empty, so bld.bat's
+    # BLAS check fails and the libtorch .conda artifact ships with 0 files.
+    # Giving libtorch its own per-output script (mirroring pytorch's
+    # build_pytorch.bat -> bld.bat pattern) forces a separate batch invocation
+    # where %blas_impl% is correctly populated. unix is unaffected; the
+    # top-level build.sh continues to run for the libtorch output there.
+    script: build_libtorch.bat  # [win]
     build:
       missing_dso_whitelist:
         # The are dynamically loaded from %SP_DIR%\torch\lib\
