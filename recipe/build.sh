@@ -299,14 +299,19 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
     export USE_CUDSS=0
     export USE_SYSTEM_NVTX=1
     export MAGMA_HOME="${PREFIX}"
-    export CUDA_INC_PATH="${PREFIX}/targets/$(uname -m)-linux/include/"
+    # NVIDIA's conda CUDA packages use sbsa-linux (Server Base System Architecture)
+    # for aarch64, not aarch64-linux. uname -m returns "aarch64" which doesn't match.
+    case "$(uname -m)" in
+        aarch64) _cuda_arch="sbsa-linux" ;;
+        *)       _cuda_arch="$(uname -m)-linux" ;;
+    esac
+    export CUDA_INC_PATH="${PREFIX}/targets/${_cuda_arch}/include/"
     # pytorch 2.12 + CMake 4.x: cmake/public/cuda.cmake creates an INTERFACE
     # target caffe2::cuda → CUDA::cuda_driver, validated eagerly at generate.
-    # The driver stub from cuda-driver-dev lives under targets/<arch>-linux/lib/stubs/
+    # The driver stub from cuda-driver-dev lives under targets/<arch>/lib/stubs/
     # which FindCUDAToolkit doesn't search by default. Point cmake at it.
-    _arch="$(uname -m)"
-    export CMAKE_LIBRARY_PATH="${BUILD_PREFIX}/targets/${_arch}-linux/lib/stubs:${PREFIX}/targets/${_arch}-linux/lib/stubs:${CMAKE_LIBRARY_PATH}"
-    export CUDA_cuda_driver_LIBRARY="${BUILD_PREFIX}/targets/${_arch}-linux/lib/stubs/libcuda.so"
+    export CMAKE_LIBRARY_PATH="${BUILD_PREFIX}/targets/${_cuda_arch}/lib/stubs:${PREFIX}/targets/${_cuda_arch}/lib/stubs:${CMAKE_LIBRARY_PATH}"
+    export CUDA_cuda_driver_LIBRARY="${BUILD_PREFIX}/targets/${_cuda_arch}/lib/stubs/libcuda.so"
     # pytorch 2.12 still calls find_package(CUB) when CUDA<13 (Dependencies.cmake:1167).
     # FindCUB.cmake's HINTS=${CUDAToolkit_INCLUDE_DIRS} doesn't resolve to conda's
     # targets/<arch>-linux/include path, so it fails to find cub/cub.cuh even though
@@ -314,7 +319,7 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
     # No-op for CUDA 13+, which doesn't call find_package(CUB).
     if [[ ${cuda_compiler_version} == 12.* ]] && [[ -f cmake/Modules/FindCUB.cmake ]]; then
         sed -i.bak \
-            's|HINTS "${CUDAToolkit_INCLUDE_DIRS}"|HINTS "${CUDAToolkit_INCLUDE_DIRS}" "'"${PREFIX}/targets/${_arch}-linux/include"'"|' \
+            's|HINTS "${CUDAToolkit_INCLUDE_DIRS}"|HINTS "${CUDAToolkit_INCLUDE_DIRS}" "'"${PREFIX}/targets/${_cuda_arch}/include"'"|' \
             cmake/Modules/FindCUB.cmake
     fi
 else
