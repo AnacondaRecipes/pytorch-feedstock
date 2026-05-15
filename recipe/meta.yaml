@@ -87,10 +87,16 @@ source:
 build:
   number: {{ build }}
   # Stage-1 bootstrap: minimum useful coverage — CPU + CUDA on win-64 and
-  # linux-64, openblas + py3.13 only. Skip aarch64 (triton 3.7 needs glibc
-  # 2.34, PBP runners are glibc 2.28 per PKG-13219), osx-arm64 (metal stage
-  # later), MKL, and non-py3.13.
-  skip: true  # [aarch64]
+  # linux-64, plus CPU on linux-aarch64; openblas + py3.13 only. Skip
+  # osx-arm64 (metal stage later), MKL, and non-py3.13.
+  #
+  # linux-aarch64 + CUDA is skipped because triton 3.7 (a CUDA-only runtime
+  # dep) needs glibc 2.34 and PBP aarch64 runners ship glibc 2.28 (see
+  # PKG-13219). CPU on aarch64 has no triton dep so it builds fine. 2.11
+  # shipped linux-aarch64 CUDA via triton 3.6, which didn't have the
+  # glibc 2.34 requirement — once PBP runners are bumped (or upstream
+  # backports the fix), we can drop the aarch64+cuda skip.
+  skip: true  # [aarch64 and (gpu_variant or "").startswith("cuda")]
   skip: true  # [osx]
   skip: true  # [gpu_variant == "metal"]
   # CUDA: both 12.9 and 13.0 are enabled. PBP CUDA jobs hit a per-run
