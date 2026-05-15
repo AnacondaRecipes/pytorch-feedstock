@@ -86,18 +86,16 @@ source:
 
 build:
   number: {{ build }}
-  # Stage-1 bootstrap: full platform coverage (win-64, linux-64, linux-aarch64
-  # CPU + CUDA), openblas + py3.13 only. Skip osx-arm64 (metal stage later),
-  # MKL, and non-py3.13.
+  # Stage-1 bootstrap: full platform coverage (win-64, linux-64, linux-aarch64,
+  # osx-arm64). openblas + py3.13 only — full BLAS + python matrices come in
+  # later stages.
   #
-  # On linux-aarch64 + CUDA we deliberately ship pytorch WITHOUT triton.
-  # PKG-13219: "we will deliver without triton on linux-aarch64. We don't
-  # want this to be blocking." triton is already gated to `linux and x86_64`
-  # in the run-deps below (and so is the inductor test block). 2.11 shipped
-  # aarch64 CUDA the same way. Pytorch builds cleanly without triton —
-  # torch.compile inductor backend is the only feature lost.
-  skip: true  # [osx]
-  skip: true  # [gpu_variant == "metal"]
+  # linux-aarch64 + CUDA: deliberately ships without triton per PKG-13219
+  # ("we will deliver without triton on linux-aarch64. We don't want this
+  # to be blocking."). triton is already gated to `linux and x86_64` in
+  # the run-deps below (and so is the inductor test block). 2.11 shipped
+  # aarch64 CUDA the same way — torch.compile inductor backend is the only
+  # feature lost.
   # CUDA: both 12.9 and 13.0 are enabled. PBP CUDA jobs hit a per-run
   # claim-expiry (~2h20m) and never complete (TaskCluster worker/service
   # version skew, SIR-3210), so CUDA builds happen on EC2 dev instances
