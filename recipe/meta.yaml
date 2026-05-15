@@ -368,7 +368,11 @@ outputs:
         - cudnn                           # [(gpu_variant or "").startswith("cuda")]
         - nccl                            # [(gpu_variant or "").startswith("cuda") and linux]
         {% endif %}
-        - magma                           # [(gpu_variant or "").startswith("cuda")]
+        # pytorch 2.12 BatchLinearAlgebra.cpp:55-57 #errors out when
+        # MAGMA_VERSION_MINOR>=10 (deliberate guard — their AT_MAGMA_VERSION
+        # macro packs minor*10 and overflows). MAGMA 2.10.0 is on pkgs/main;
+        # cap to <2.10 until pytorch upstream rewrites the version macro.
+        - magma <2.10                     # [(gpu_variant or "").startswith("cuda")]
         - nvtx-c                          # [(gpu_variant or "").startswith("cuda")]
         {% if cuda_major >= 12 %}
         # pytorch 2.12 cmake/public/cuda.cmake:165 needs CUDA::cuda_driver at
