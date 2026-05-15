@@ -101,6 +101,20 @@ if "%gpu_variant:~0,4%" == "cuda" (
     set "PATH=%CUDA_BIN_PATH%;%PATH%"
     set CUDNN_INCLUDE_DIR=%LIBRARY_PREFIX%\include
     set "CUDA_VERSION=%cuda_compiler_version%"
+
+    @REM ==================== libcudacxx clusterlaunchcontrol patch ===============
+    @REM cuda-cccl_win-64 12.9.27 ships a libcudacxx header with an asm-constraint
+    @REM bug that fails to compile on Windows MSVC:
+    @REM   clusterlaunchcontrol.h(78): error: asm operand type size(4) does not
+    @REM   match type/size implied by constraint 'l'
+    @REM Root cause: the header casts to `long2*` and feeds .x/.y into asm with
+    @REM constraint 'l' (64-bit). On Linux x86_64 LP64 `long` is 64-bit (works);
+    @REM on Windows MSVC LLP64 `long` is 32-bit (size mismatch). Fixed upstream
+    @REM in CUDA 13.0+. For 12.9 we sed-replace long2 with longlong2 (64-bit on
+    @REM both platforms) in the host- and build-env copies of the header.
+    if "%cuda_compiler_version%"=="12.9" (
+        powershell -NoProfile -Command "@('%BUILD_PREFIX%','%PREFIX%') | ForEach-Object { $p = Join-Path $_ 'Library\include\targets\x64\cuda\__ptx\instructions\generated\clusterlaunchcontrol.h'; if (Test-Path $p) { $orig = Get-Content $p -Raw; $patched = $orig -replace 'reinterpret_cast<long2\*>', 'reinterpret_cast<longlong2*>'; if ($patched -ne $orig) { Set-Content -Path $p -Value $patched -NoNewline; Write-Host \"libcudacxx patch applied: $p\" } } }"
+    )
 ) else (
     set USE_CUDA=0
     set "USE_MKLDNN=1"
