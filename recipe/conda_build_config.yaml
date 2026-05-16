@@ -3,12 +3,27 @@
 # CONDA_BUILD_SYSROOT on osx-arm64 (so CPU and Metal builds get separate SDKs).
 # The literal values cpu/metal/cuda are preserved for build-string selectors
 # (e.g. `cpu_{{ blas_impl }}_h…`, `gpu_cuda{{ cuda_compiler_version | replace }}_…`).
+#
+# IMPORTANT: the two `cuda` entries are intentional and NOT a typo. They pair
+# row-wise with `cuda_compiler_version: [none, none, 12.9, 13.0]` via the
+# zip_keys block at the bottom of this file:
+#   entry 2 (selector: win or linux-x86_64)  pairs with cuda_compiler_version 12.9
+#   entry 3 (selector: win or linux)         pairs with cuda_compiler_version 13.0
+# linux-aarch64 only matches the second of the two cuda lines, so it builds
+# cuda 13.0 only (CUDA 12.x requires gcc <15 but aarch64 needs gcc 15.2.0).
 gpu_variant:
   - cpu                              # all platforms
   - metal                            # [(osx and arm64)]
   - cuda                             # [win or (linux and x86_64)]
   - cuda                             # [win or linux]
 
+# blas_impl is gated to [win] here because aggregate root CBC already defines
+# `mkl # [(x86 or x86_64) and not osx]` + `openblas` for the other platforms.
+# This block ADDS the Windows variants; non-Windows blas_impl is inherited
+# from aggregate (mkl on linux-x86_64, openblas on aarch64/osx). Note: per
+# conda-build's "local CBC REPLACES" rule the local entry would normally wipe
+# the aggregate value, but because the selector `[win]` only fires on Windows,
+# linux/osx see no local override and inherit normally.
 blas_impl:                   # [win]
   - mkl                      # [win]
   - openblas                 # [win]
