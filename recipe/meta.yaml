@@ -116,11 +116,14 @@ build:
   # ("asm operand type size(4) does not match constraint 'l'"). Worked
   # around inline by bld.bat (sed-replace long2 → longlong2 in the affected
   # header); no skip needed.
-  # Per-Python skip: rotates each CI round. py3.13 was validated in graph
-  # 024f17c9 (round 1); this round runs py3.14 to catch deps that haven't
-  # been packaged for the new ABI. Flip back to a multi-py matrix (drop the
-  # skip entirely) before merging to master.
-  skip: true  # [py != 314]
+  # Python matrix split across 3 sibling PRs to stay under PBP graph-submitter
+  # Lambda /tmp capacity (SIR-2711 regression — 75-build full sweep errno 28).
+  # All three PRs share an identical recipe; only this skip line differs:
+  #   PR #97:  skip: true  # [py != 314]            (15 builds, validated)
+  #   PR #X:   skip: true  # [py != 310 and py != 311]   (30 builds)
+  #   THIS PR: skip: true  # [py != 312 and py != 313]   (30 builds)
+  # Drop the skip entirely on the merge-to-master commit once all three green.
+  skip: true  # [py != 312 and py != 313]
   # osx-arm64 metal: AMI rebuild dropped MacOSX14.5.sdk (SIR-3273); skip
   # the metal variant until SIR-3273 lands so we don't burn the slot on
   # a known-broken build. CPU variant keeps building.
