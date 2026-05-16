@@ -1,5 +1,11 @@
 {% set version = "2.12.0" %}
-{% set sha256 = "6a71b5f346cb08a6ae6fd63207c53a9bc7cae95dccfcd190bd9a43919f5f540a" %}
+# sha256 matches the GA release tarball content that was published 2026-05-13.
+# GitHub silently regenerated the release asset between 2026-05-13 and 2026-05-15:
+# a fresh download today returns 6a71b5f346cb08a6ae6fd63207c53a9bc7cae95dccfcd190bd9a43919f5f540a.
+# PBP workers cached the original tarball (sha 7cc1deb) when the GA flip landed,
+# so we keep this sha to match the cache. TODO: pin to git_url + commit for
+# bit-exact reproducibility, or invalidate PBP source cache and bump to 6a71b5f.
+{% set sha256 = "7cc1deb309f402ad67e9f45bbe311a40def4db19d66fddb9b01950f9bfc5ccb1" %}
 # Set the RC number to build release candidates. Set to None otherwise.
 # When rc != None, the GitHub auto-archive tarball is used (submodules included).
 {% set rc = None %}
