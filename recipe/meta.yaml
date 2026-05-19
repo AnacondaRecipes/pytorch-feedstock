@@ -379,8 +379,7 @@ outputs:
         - python
         - numpy >=1.24.0,<3.0.0
         - typing_extensions >=4.10.0
-        # To stop the compiler pulling in an openmp implementation itself (although I'm not sure this mutex works anyway)
-        - _openmp_mutex                                       # [linux]
+        - libgomp  # [linux and blas_impl == "openblas"]
         - {{ pin_compatible('magma') }}                       # [(gpu_variant or "").startswith("cuda")]
         # skip to 1.13.3 to avoid test failures on Windows and mac - align with 2.7.0 release requirement
         # https://github.com/pytorch/pytorch/pull/133235
