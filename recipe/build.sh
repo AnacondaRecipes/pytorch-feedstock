@@ -110,6 +110,60 @@ for ARG in $CMAKE_ARGS; do
 done
 unset CMAKE_INSTALL_PREFIX
 
+# ============================================================
+# SIR-3273 DIAGNOSTIC [block 1/3]: state BEFORE sysroot reconstruction
+# Captures what the compiler activation script handed us. Marek's
+# 2026-05-19 comment showed MacOSX14.5.sdk IS installed; the question
+# now is why downstream tooling picks 12.1 anyway.
+# ============================================================
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    echo "===================================================================="
+    echo "SIR-3273 DIAGNOSTIC [1/3] — BEFORE sysroot reconstruction"
+    echo "===================================================================="
+    echo "[A] Installed SDKs on this worker (Marek showed 14.5 IS here):"
+    ls -la /Library/Developer/CommandLineTools/SDKs/ 2>&1 || true
+    echo
+    echo "[B] MacOSX*.sdk symlink resolution:"
+    for s in MacOSX.sdk MacOSX14.sdk MacOSX14.5.sdk MacOSX13.sdk MacOSX12.sdk MacOSX12.1.sdk; do
+        ls -la "/Library/Developer/CommandLineTools/SDKs/${s}" 2>&1 || true
+    done
+    echo
+    echo "[C] xcrun resolutions (what the toolchain auto-detects):"
+    echo "    xcrun --show-sdk-path:                  $(xcrun --show-sdk-path 2>&1 || echo FAIL)"
+    echo "    xcrun --show-sdk-version:               $(xcrun --show-sdk-version 2>&1 || echo FAIL)"
+    echo "    xcrun --sdk macosx --show-sdk-path:     $(xcrun --sdk macosx --show-sdk-path 2>&1 || echo FAIL)"
+    echo "    xcrun --sdk macosx14.5 --show-sdk-path: $(xcrun --sdk macosx14.5 --show-sdk-path 2>&1 || echo FAIL)"
+    echo "    xcode-select -p:                        $(xcode-select -p 2>&1 || echo FAIL)"
+    echo
+    echo "[D] CBC / activation env vars (pre-reconstruction state):"
+    echo "    CONDA_BUILD_SYSROOT:           ${CONDA_BUILD_SYSROOT:-<unset>}"
+    echo "    MACOSX_SDK_VERSION:            ${MACOSX_SDK_VERSION:-<unset>}"
+    echo "    MACOSX_DEPLOYMENT_TARGET:      ${MACOSX_DEPLOYMENT_TARGET:-<unset>}"
+    echo "    SDKROOT:                       ${SDKROOT:-<unset>}"
+    echo "    OSX_ARCH:                      ${OSX_ARCH:-<unset>}"
+    echo "    target_platform:               ${target_platform:-<unset>}"
+    echo "    build_platform:                ${build_platform:-<unset>}"
+    echo "    gpu_variant:                   ${gpu_variant:-<unset>}"
+    echo
+    echo "[E] Compiler env vars (set by activation):"
+    echo "    CC:                            ${CC:-<unset>}"
+    echo "    CXX:                           ${CXX:-<unset>}"
+    echo "    CFLAGS:                        ${CFLAGS:-<unset>}"
+    echo "    CXXFLAGS:                      ${CXXFLAGS:-<unset>}"
+    echo "    LDFLAGS:                       ${LDFLAGS:-<unset>}"
+    echo "    CMAKE_ARGS:                    ${CMAKE_ARGS:-<unset>}"
+    echo "    CMAKE_OSX_SYSROOT:             ${CMAKE_OSX_SYSROOT:-<unset>}"
+    echo "    CMAKE_OSX_DEPLOYMENT_TARGET:   ${CMAKE_OSX_DEPLOYMENT_TARGET:-<unset>}"
+    echo "    CMAKE_SYSROOT:                 ${CMAKE_SYSROOT:-<unset>}"
+    echo
+    echo "[F] clang resolution + version + default search paths:"
+    which clang || echo "    clang not in PATH"
+    clang --version 2>&1 | head -3 || true
+    echo "    -- clang -v -E -x c /dev/null (default search paths) --"
+    clang -v -E -x c /dev/null 2>&1 | head -40 || true
+    echo "===================================================================="
+fi
+
 # On macOS, the compiler activation overrides CONDA_BUILD_SYSROOT with the
 # base CBC's SDK (e.g. 12.1), and CMAKE_ARGS also carries that stale value.
 # Reconstruct the correct sysroot from MACOSX_SDK_VERSION, which is
@@ -119,6 +173,57 @@ if [[ "$OSTYPE" != "darwin"* ]]; then
 else
     export CMAKE_OSX_SYSROOT="/Library/Developer/CommandLineTools/SDKs/MacOSX${MACOSX_SDK_VERSION}.sdk"
     export CONDA_BUILD_SYSROOT="${CMAKE_OSX_SYSROOT}"
+fi
+
+# ============================================================
+# SIR-3273 DIAGNOSTIC [block 2/3]: state AFTER sysroot reconstruction
+# Confirm the reconstruction set what we think it did, and inspect the
+# Metal headers in BOTH the reconstructed sysroot AND the 14.5 SDK
+# directly. If Metal headers in 14.5 SDK contain MTLLanguageVersion3_0
+# but the actual compile still fails on it, downstream tooling is
+# silently overriding our CMAKE_OSX_SYSROOT.
+# ============================================================
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    echo "===================================================================="
+    echo "SIR-3273 DIAGNOSTIC [2/3] — AFTER sysroot reconstruction"
+    echo "===================================================================="
+    echo "[G] Env vars after reconstruction (lines 117-122):"
+    echo "    CONDA_BUILD_SYSROOT:           ${CONDA_BUILD_SYSROOT:-<unset>}"
+    echo "    CMAKE_OSX_SYSROOT:             ${CMAKE_OSX_SYSROOT:-<unset>}"
+    echo "    MACOSX_SDK_VERSION (driving):  ${MACOSX_SDK_VERSION:-<unset>}"
+    echo
+    echo "[H] Does CONDA_BUILD_SYSROOT contain Metal headers with MTLLanguageVersion3_0?"
+    METAL_HDR_DIR="${CONDA_BUILD_SYSROOT}/System/Library/Frameworks/Metal.framework/Headers"
+    if [ -d "${METAL_HDR_DIR}" ]; then
+        echo "    Metal.framework/Headers EXISTS at ${METAL_HDR_DIR}"
+        echo "    Sample headers:"
+        ls "${METAL_HDR_DIR}/" 2>&1 | head -8
+        echo "    grep MTLLanguageVersion3_0:"
+        grep -l "MTLLanguageVersion3_0" "${METAL_HDR_DIR}/"*.h 2>&1 | head -5 || echo "    NOT FOUND in CONDA_BUILD_SYSROOT"
+    else
+        echo "    Metal.framework/Headers MISSING at ${METAL_HDR_DIR}"
+    fi
+    echo
+    echo "[I] Cross-check the 14.5 SDK directly (Marek says it's installed):"
+    HDR_145="/Library/Developer/CommandLineTools/SDKs/MacOSX14.5.sdk/System/Library/Frameworks/Metal.framework/Headers"
+    if [ -d "${HDR_145}" ]; then
+        echo "    14.5 Metal headers exist."
+        echo "    grep MTLLanguageVersion3_0 in 14.5 SDK Metal:"
+        grep -l "MTLLanguageVersion3_0" "${HDR_145}/"*.h 2>&1 | head -5 || echo "    NOT FOUND in 14.5 SDK"
+    else
+        echo "    14.5 Metal headers MISSING — Marek's evidence may not apply."
+    fi
+    echo
+    echo "[J] Same check on 12.1 SDK (the wrong one we keep falling back to):"
+    HDR_121="/Library/Developer/CommandLineTools/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers"
+    if [ -d "${HDR_121}" ]; then
+        echo "    grep MTLLanguageVersion3_0 in 12.1 SDK Metal:"
+        grep -l "MTLLanguageVersion3_0" "${HDR_121}/"*.h 2>&1 | head -5 || echo "    NOT FOUND in 12.1 SDK (expected — 12.1 predates Metal 3.0)"
+    fi
+    echo
+    echo "[K] What does clang now resolve as its default sysroot, with our overrides?"
+    clang -v -E -x c /dev/null 2>&1 | grep -iE "(sysroot|sdk)" | head -10 || true
+    echo "===================================================================="
 fi
 #export TH_BINARY_BUILD=1
 # Use our build version and number for inserting into binaries
@@ -332,6 +437,50 @@ fi
 
 echo '${CXX}'=${CXX}
 echo '${PREFIX}'=${PREFIX}
+
+# ============================================================
+# SIR-3273 DIAGNOSTIC [block 3/3]: final env right before build
+# Last chance to capture what's actually in env when setup.py /
+# pip starts. Anything overridden between blocks [2/3] and here is
+# from pytorch's own setup.py / CMake configure, not our recipe.
+# ============================================================
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    echo "===================================================================="
+    echo "SIR-3273 DIAGNOSTIC [3/3] — FINAL env just before pip $PIP_ACTION"
+    echo "===================================================================="
+    echo "[L] Sysroot / SDK env at point of build invocation:"
+    echo "    CONDA_BUILD_SYSROOT:           ${CONDA_BUILD_SYSROOT:-<unset>}"
+    echo "    CMAKE_OSX_SYSROOT:             ${CMAKE_OSX_SYSROOT:-<unset>}"
+    echo "    CMAKE_OSX_DEPLOYMENT_TARGET:   ${CMAKE_OSX_DEPLOYMENT_TARGET:-<unset>}"
+    echo "    SDKROOT:                       ${SDKROOT:-<unset>}"
+    echo "    MACOSX_DEPLOYMENT_TARGET:      ${MACOSX_DEPLOYMENT_TARGET:-<unset>}"
+    echo "    MACOSX_SDK_VERSION:            ${MACOSX_SDK_VERSION:-<unset>}"
+    echo
+    echo "[M] Compiler invocation reality check:"
+    echo "    CC:                            ${CC:-<unset>}"
+    echo "    CXX:                           ${CXX:-<unset>}"
+    echo "    CFLAGS:                        ${CFLAGS:-<unset>}"
+    echo "    CXXFLAGS:                      ${CXXFLAGS:-<unset>}"
+    echo "    LDFLAGS:                       ${LDFLAGS:-<unset>}"
+    echo "    CMAKE_ARGS (may be stale):     ${CMAKE_ARGS:-<unset>}"
+    echo
+    echo "[N] What does the active clang resolve right now?"
+    ${CXX:-clang++} -v -E -x c++ /dev/null 2>&1 | grep -iE "(sysroot|sdk|Apple|target|Target)" | head -15 || true
+    echo
+    echo "[O] Compile-test: does \${CXX} with current flags see MTLLanguageVersion3_0?"
+    cat > /tmp/sir3273_metal_probe.mm <<'EOF'
+#include <Metal/Metal.h>
+int main() { return (int)MTLLanguageVersion3_0; }
+EOF
+    echo "    Trying compile probe with CXX + CXXFLAGS + LDFLAGS:"
+    ${CXX:-clang++} ${CXXFLAGS} ${LDFLAGS} -ObjC++ -fobjc-arc \
+        -framework Metal -framework Foundation \
+        /tmp/sir3273_metal_probe.mm -o /tmp/sir3273_metal_probe \
+        -v 2>&1 | grep -iE "(sysroot|sdk|MTLLanguageVersion3_0|error:)" | head -20 || true
+    rm -f /tmp/sir3273_metal_probe.mm /tmp/sir3273_metal_probe
+    echo "===================================================================="
+fi
+
 $PREFIX/bin/python -m pip $PIP_ACTION . --no-deps --no-build-isolation -vvv --no-clean \
     | sed "s,${CXX},\$\{CXX\},g" \
     | sed "s,${PREFIX},\$\{PREFIX\},g"
