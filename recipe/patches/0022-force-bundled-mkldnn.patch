@@ -4,14 +4,14 @@ Date: Fri, 6 Mar 2026 14:38:12 +0000
 Subject: [PATCH] Force bundled OneDNN build, enable experimental kernels, and
  fix linking
 ---
- cmake/Dependencies.cmake | 32 ++++++++++++++++++++++++--------
- 1 file changed, 24 insertions(+), 8 deletions(-)
+ cmake/Dependencies.cmake | 38 ++++++++++++++++++++++++++++++--------
+ 1 file changed, 30 insertions(+), 8 deletions(-)
 
 diff --git a/cmake/Dependencies.cmake b/cmake/Dependencies.cmake
 index ef5c2fd4e97..4696cdd4505 100644
 --- a/cmake/Dependencies.cmake
 +++ b/cmake/Dependencies.cmake
-@@ -1479,14 +1479,30 @@ if(NOT INTERN_BUILD_MOBILE)
+@@ -1479,14 +1479,36 @@ if(NOT INTERN_BUILD_MOBILE)
      endif()
    endif()
    if(USE_MKLDNN)
@@ -27,6 +27,12 @@ index ef5c2fd4e97..4696cdd4505 100644
 +    set(MKLDNN_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 +    set(MKLDNN_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 +    set(DNNL_EXPERIMENTAL_UKERNEL ON CACHE BOOL "" FORCE)
++    if(UNIX AND NOT APPLE AND "$ENV{blas_impl}" STREQUAL "mkl")
++      # GCC's OpenMP runtime is libgomp. MKL builds use intel-openmp, so avoid
++      # introducing a second OpenMP runtime through bundled oneDNN.
++      set(DNNL_CPU_RUNTIME SEQ CACHE STRING "" FORCE)
++      set(ONEDNN_CPU_RUNTIME SEQ CACHE STRING "" FORCE)
++    endif()
 +    add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/ideep/mkl-dnn)
 +
 +    if(MSVC AND "$ENV{blas_impl}" STREQUAL "mkl" AND TARGET dnnl)
