@@ -119,6 +119,19 @@ if [[ "$OSTYPE" != "darwin"* ]]; then
 else
     export CMAKE_OSX_SYSROOT="/Library/Developer/CommandLineTools/SDKs/MacOSX${MACOSX_SDK_VERSION}.sdk"
     export CONDA_BUILD_SYSROOT="${CMAKE_OSX_SYSROOT}"
+    # SIR-3273 fix: the previous two exports were sufficient before the
+    # Taskcluster 95.x AMI rebuild because activation defaulted to the
+    # right SDK. After the rebuild, MacOSX.sdk symlink points at 12.1
+    # and activation pre-sets SDKROOT + CMAKE_ARGS to 12.1 too. clang
+    # honors SDKROOT and CMake honors -DCMAKE_OSX_SYSROOT= embedded in
+    # CMAKE_ARGS over our env overrides, so without these extra lines
+    # the compile still uses MacOSX12.1.sdk (which lacks Metal 3.0).
+    # Verified on PR #103 osx-arm64 metal debug build, graph
+    # 935c2593-eeac-41a8-8683-ec3e80f48478 — green with these 3 lines.
+    export SDKROOT="${CMAKE_OSX_SYSROOT}"
+    CMAKE_ARGS="${CMAKE_ARGS//MacOSX12.1.sdk/MacOSX${MACOSX_SDK_VERSION}.sdk}"
+    CMAKE_ARGS="${CMAKE_ARGS//-DCMAKE_OSX_DEPLOYMENT_TARGET=12.1/-DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET}}"
+    export CMAKE_ARGS
 fi
 #export TH_BINARY_BUILD=1
 # Use our build version and number for inserting into binaries
@@ -248,7 +261,11 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
         # aarch64 CUDA 13: upstream filters out <8.0, 7.5, 8.6 (x86_64-only SKUs)
         # and adds sm_11.0 (Jetson Thor) only on aarch64.
         # Keeps 8.0 (A100), 9.0 (Grace Hopper), 10.0+12.0 (Blackwell), 11.0 (Thor).
-        export TORCH_CUDA_ARCH_LIST="8.0;9.0;10.0;11.0;12.0+PTX"
+        # sm_12.1+PTX is a deliberate divergence from upstream 2.12 for NVIDIA
+        # DGX Spark (GB10 Superchip, aarch64 Blackwell consumer/edge variant
+        # launched ~Apr 2026 after upstream 2.12's build_cuda.sh was written).
+        # Match what AR shipped in 2.11 (PR #95) for this customer.
+        export TORCH_CUDA_ARCH_LIST="8.0;9.0;10.0;11.0;12.0;12.1+PTX"
     elif [[ ${cuda_compiler_version} == 12.* ]]; then
         # CUDA 12: sm_50-sm_61 deprecated in 12.8; sm_70 dropped upstream in 2.11.
         export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;9.0;10.0;12.0+PTX"

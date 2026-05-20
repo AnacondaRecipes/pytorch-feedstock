@@ -1,13 +1,5 @@
 {% set version = "2.12.0" %}
-# sha256 matches the GA release tarball content that was published 2026-05-13.
-# GitHub silently regenerated the release asset between 2026-05-13 and 2026-05-15:
-# a fresh download today returns 6a71b5f346cb08a6ae6fd63207c53a9bc7cae95dccfcd190bd9a43919f5f540a.
-# PBP workers cached the original tarball (sha 7cc1deb) when the GA flip landed,
-# so we keep this sha to match the cache. TODO: pin to git_url + commit for
-# bit-exact reproducibility, or invalidate PBP source cache and bump to 6a71b5f.
-{% set sha256 = "7cc1deb309f402ad67e9f45bbe311a40def4db19d66fddb9b01950f9bfc5ccb1" %}
 # Set the RC number to build release candidates. Set to None otherwise.
-# When rc != None, the GitHub auto-archive tarball is used (submodules included).
 {% set rc = None %}
 {% set build = 0 %}
 
@@ -41,11 +33,16 @@ package:
   version: {{ version }}
 
 source:
-{% if rc != None %}
-  # GitHub auto-archive tarball (includes vendored submodules — verified for v2.12.0-rc3).
-  # Patches apply against this tarball the same way as against the release tarball.
-  - url: https://github.com/pytorch/pytorch/archive/refs/tags/v{{ version }}-rc{{ rc }}.tar.gz
-    sha256: {{ sha256 }}
+  # Content-addressable source via git_url + git_rev: immune to GitHub asset
+  # regeneration. The v2.12.0 release tarball was silently re-generated
+  # between 2026-05-13 and 2026-05-15 (sha drift from 7cc1deb to 6a71b5f then
+  # back to 7cc1deb again by 2026-05-20), breaking fresh PBP worker fetches.
+  # conda-build recursively fetches submodules after clone, so pytorch's
+  # third_party/* are pinned via .gitmodules to the SHAs the v2.12.0 tag
+  # points at.
+  - git_url: https://github.com/pytorch/pytorch.git
+    git_rev: v{{ version }}{% if rc != None %}-rc{{ rc }}{% endif %}
+    git_depth: 1
     patches:
       - patches/0001-windows-FindMKL-add-library-suffix.patch                  # [win]
       - patches/0002-swap-openmp-search-precedence.patch                       # [blas_impl == "mkl"]
@@ -62,27 +59,6 @@ source:
       - patches/0022-force-bundled-mkldnn.patch
       - patches/0023-remove-conftest-extra-param.patch
       - patches/0024-Allow-fbgemm_genai-to-be-assigned-to-a-Ninja-job-pool.patch    # [linux and gpu_variant == "cuda"]
-{% else %}
-  # The "pytorch-v" release tarballs contain submodules; the "pytorch-" ones don't.
-  - url: https://github.com/pytorch/pytorch/releases/download/v{{ version }}/pytorch-v{{ version }}.tar.gz
-    sha256: {{ sha256 }}
-    patches:
-      - patches/0001-windows-FindMKL-add-library-suffix.patch                  # [win]
-      - patches/0002-swap-openmp-search-precedence.patch                       # [blas_impl == "mkl"]
-      - patches/0003-Force-usage-of-python-3-and-error-without-numpy.patch
-      # https://github.com/pytorch/pytorch/issues/150918 - continue tests on failure due to flaky tests
-      - patches/0007-continue-tests-on-failure.patch
-      - patches/0008-add-missing-includes.patch
-      - patches/0009-use-prefix-include-for-inductor.patch
-      - patches/0011-remove-DESTINATION-lib-from-CMake-install-TARGETS-di.patch             # [win]
-      - patches/0014-point-include-paths-to-PREFIX-include.patch
-      - patches/0015-point-lib-paths-to-PREFIX-lib.patch
-      - patches/0018-Add-USE_SYSTEM-options-for-KLEIDI-CUDNN_FRONTEND-CUT.patch
-      - patches/0021-fix-onednn-cuda-include.patch
-      - patches/0022-force-bundled-mkldnn.patch
-      - patches/0023-remove-conftest-extra-param.patch
-      - patches/0024-Allow-fbgemm_genai-to-be-assigned-to-a-Ninja-job-pool.patch    # [linux and gpu_variant == "cuda"]
-{% endif %}
   - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.ci/pytorch/smoke_test/smoke_test.py
     folder: smoke_test
   # check_wheel_tags.py is a sibling helper imported by smoke_test.py since the
@@ -93,10 +69,8 @@ source:
   # set, so it works fine on conda-installed packages.
   - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.ci/pytorch/smoke_test/check_wheel_tags.py
     folder: smoke_test
-  # The .gitignore is needed in order to run upstreams `setup.py clean`.
-  # Pin to smoke_test_commit so this works for both RC and GA; the v{{ version }}
-  # tag doesn't exist yet during pre-GA (rc != None).
-  - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.gitignore
+  # NOTE: .gitignore (required by upstream's `setup.py clean`) now comes
+  # from the git_url checkout above — no separate download needed.
 
 build:
   number: {{ build }}
@@ -121,11 +95,9 @@ build:
   # been packaged for the new ABI. Flip back to a multi-py matrix (drop the
   # skip entirely) before merging to master.
   skip: true  # [py != 314]
-  # osx-arm64 metal: AMI rebuild dropped MacOSX14.5.sdk (SIR-3273); skip
-  # the metal variant until SIR-3273 lands so we don't burn the slot on
-  # a known-broken build. CPU variant keeps building.
-  # TODO: re-enable when SIR-3273 closes.
-  skip: true  # [osx and arm64 and gpu_variant == "metal"]
+  # osx-arm64 metal: re-enabled after SIR-3273 root cause fix in build.sh
+  # (export SDKROOT + CMAKE_ARGS sed for 12.1 → MACOSX_SDK_VERSION).
+  # Verified on PR #103 debug graph 935c2593-eeac-41a8-8683-ec3e80f48478.
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
@@ -268,6 +240,10 @@ test:
     # cmake needs a compiler to run package detection, see
     # https://discourse.cmake.org/t/questions-about-find-package-cli-msvc/6194
     - {{ compiler('cxx') }}
+    # PKG-14712: osx-arm64 ld64/cctools test-env clobber breaks C++ stdlib
+    # header lookup (cstdlib/iostream missing). Pin the c-stdlib provider
+    # explicitly so the test env always has a consistent toolchain.
+    - {{ stdlib('c') }}
     # for CMake config to find cuda & nvrtc
     - {{ compiler('cuda') }}    # [(gpu_variant or "").startswith("cuda")]
     - cuda-nvcc ={{ cuda_compiler_version }}     # [(gpu_variant or "").startswith("cuda")]
@@ -290,6 +266,11 @@ test:
     - cd cmake_test
     - cmake -GNinja -DCMAKE_CXX_STANDARD=17 $CMAKE_ARGS .   # [unix]
     - cmake -GNinja -DCMAKE_CXX_STANDARD=17 %CMAKE_ARGS% .  # [win]
+    # Verify dnnl.dll links Intel OpenMP (libiomp5md), not MSVC OpenMP
+    # (vcomp). Eric Lundby PR #100 patches cmake/Dependencies.cmake to
+    # force this; these asserts catch future regressions.
+    - dumpbin /dependents "%PREFIX%\Library\bin\dnnl.dll" | findstr /i libiomp5md            # [win and blas_impl == "mkl"]
+    - dumpbin /dependents "%PREFIX%\Library\bin\dnnl.dll" | findstr /i vcomp && exit /b 1 || exit /b 0  # [win and blas_impl == "mkl"]
 
 outputs:
   - name: libtorch
@@ -491,10 +472,18 @@ outputs:
       requires:
         - {{ compiler('c') }}
         - {{ compiler('cxx') }}
+        # PKG-14712: pin the c-stdlib provider so osx-arm64 test env has
+        # consistent C++ stdlib headers (cstdlib/iostream) — works around
+        # ld64/cctools clobber observed during pytorch QS env testing.
+        - {{ stdlib('c') }}
         - boto3
         - hypothesis
-        # SciPy optional upstream; nn.functional.pdist numpy-ref still calls scipy (seen on win+cuda).
-        - scipy  # [win]
+        # SciPy is needed by test_ops.py::test_numpy_ref_* on ALL platforms
+        # (not just win+cuda as previously assumed). Failure on linux-64 +
+        # CUDA:
+        #   test_ops.py::TestCommonCUDA::test_numpy_ref_nn_functional_
+        #   pdist_cuda_float64 - Exception: name 'scipy' is not defined
+        - scipy
         - tabulate
         - pydot
         - mock  # [linux]
@@ -506,6 +495,9 @@ outputs:
         - pytest-rerunfailures
         - pytest-flakefinder
         - pytest-xdist
+        # Needed for test_autograd.py::test_multi_grad_all_hooks
+        # (torch.utils.cpp_extension.load_inline requires ninja).
+        - ninja
         # Needed for test_autograd.py
         - pybind11 >=3.0.1,<4
         # the inductor "test_aoti_eager..." tests require objcopy

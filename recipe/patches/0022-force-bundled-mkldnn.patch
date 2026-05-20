@@ -4,14 +4,14 @@ Date: Fri, 6 Mar 2026 14:38:12 +0000
 Subject: [PATCH] Force bundled OneDNN build, enable experimental kernels, and
  fix linking
 ---
- cmake/Dependencies.cmake | 24 ++++++++++++++++--------
- 1 file changed, 16 insertions(+), 8 deletions(-)
+ cmake/Dependencies.cmake | 32 ++++++++++++++++++++++++--------
+ 1 file changed, 24 insertions(+), 8 deletions(-)
 
 Index: pytorch-2.12.0-rc3/cmake/Dependencies.cmake
 ===================================================================
 --- pytorch-2.12.0-rc3.orig/cmake/Dependencies.cmake
 +++ pytorch-2.12.0-rc3/cmake/Dependencies.cmake
-@@ -1522,14 +1522,22 @@ if(NOT INTERN_BUILD_MOBILE)
+@@ -1522,14 +1522,30 @@ if(NOT INTERN_BUILD_MOBILE)
      endif()
    endif()
    if(USE_MKLDNN)
@@ -28,6 +28,14 @@ Index: pytorch-2.12.0-rc3/cmake/Dependencies.cmake
 +    set(MKLDNN_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 +    set(DNNL_EXPERIMENTAL_UKERNEL ON CACHE BOOL "" FORCE)
 +    add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/ideep/mkl-dnn)
++
++    if(MSVC AND "$ENV{blas_impl}" STREQUAL "mkl" AND TARGET dnnl)
++      find_library(ANACONDA_INTEL_OPENMP_LIBRARY NAMES libiomp5md REQUIRED)
++      # Match the rest of the MKL PyTorch stack on Windows: use Intel OpenMP,
++      # not the MSVC OpenMP runtime pulled in by /openmp defaults.
++      target_link_options(dnnl PRIVATE "/nodefaultlib:vcomp")
++      target_link_libraries(dnnl PRIVATE "${ANACONDA_INTEL_OPENMP_LIBRARY}")
++    endif()
 +
 +    # 1. OneDNN Source Headers (dnnl_graph.hpp)
 +    include_directories(AFTER SYSTEM ${PROJECT_SOURCE_DIR}/third_party/ideep/mkl-dnn/include)
