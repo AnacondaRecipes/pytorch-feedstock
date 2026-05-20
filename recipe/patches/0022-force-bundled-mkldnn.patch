@@ -4,14 +4,14 @@ Date: Fri, 6 Mar 2026 14:38:12 +0000
 Subject: [PATCH] Force bundled OneDNN build, enable experimental kernels, and
  fix linking
 ---
- cmake/Dependencies.cmake | 38 ++++++++++++++++++++++++++++++--------
- 1 file changed, 30 insertions(+), 8 deletions(-)
+ cmake/Dependencies.cmake | 69 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++---------
+ 1 file changed, 61 insertions(+), 8 deletions(-)
 
 diff --git a/cmake/Dependencies.cmake b/cmake/Dependencies.cmake
 index ef5c2fd4e97..4696cdd4505 100644
 --- a/cmake/Dependencies.cmake
 +++ b/cmake/Dependencies.cmake
-@@ -1479,14 +1479,36 @@ if(NOT INTERN_BUILD_MOBILE)
+@@ -1479,14 +1479,67 @@ if(NOT INTERN_BUILD_MOBILE)
      endif()
    endif()
    if(USE_MKLDNN)
@@ -32,8 +32,39 @@ index ef5c2fd4e97..4696cdd4505 100644
 +      # introducing a second OpenMP runtime through bundled oneDNN.
 +      set(DNNL_CPU_RUNTIME SEQ CACHE STRING "" FORCE)
 +      set(ONEDNN_CPU_RUNTIME SEQ CACHE STRING "" FORCE)
++      foreach(_flag_var
++              CMAKE_C_FLAGS CMAKE_CXX_FLAGS
++              CMAKE_SHARED_LINKER_FLAGS CMAKE_MODULE_LINKER_FLAGS CMAKE_EXE_LINKER_FLAGS)
++        set(_ANACONDA_SAVED_${_flag_var} "${${_flag_var}}")
++        string(REPLACE "-fopenmp" "" ${_flag_var} "${${_flag_var}}")
++      endforeach()
 +    endif()
 +    add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/ideep/mkl-dnn)
++
++    if(UNIX AND NOT APPLE AND "$ENV{blas_impl}" STREQUAL "mkl")
++      foreach(_flag_var
++              CMAKE_C_FLAGS CMAKE_CXX_FLAGS
++              CMAKE_SHARED_LINKER_FLAGS CMAKE_MODULE_LINKER_FLAGS CMAKE_EXE_LINKER_FLAGS)
++        set(${_flag_var} "${_ANACONDA_SAVED_${_flag_var}}")
++      endforeach()
++      if(TARGET dnnl)
++        get_target_property(_dnnl_compile_options dnnl COMPILE_OPTIONS)
++        if(_dnnl_compile_options)
++          list(REMOVE_ITEM _dnnl_compile_options "-fopenmp")
++          set_target_properties(dnnl PROPERTIES COMPILE_OPTIONS "${_dnnl_compile_options}")
++        endif()
++        get_target_property(_dnnl_link_options dnnl LINK_OPTIONS)
++        if(_dnnl_link_options)
++          list(REMOVE_ITEM _dnnl_link_options "-fopenmp")
++          set_target_properties(dnnl PROPERTIES LINK_OPTIONS "${_dnnl_link_options}")
++        endif()
++        get_target_property(_dnnl_link_libraries dnnl LINK_LIBRARIES)
++        if(_dnnl_link_libraries)
++          list(REMOVE_ITEM _dnnl_link_libraries OpenMP::OpenMP_CXX)
++          set_target_properties(dnnl PROPERTIES LINK_LIBRARIES "${_dnnl_link_libraries}")
++        endif()
++      endif()
++    endif()
 +
 +    if(MSVC AND "$ENV{blas_impl}" STREQUAL "mkl" AND TARGET dnnl)
 +      find_library(ANACONDA_INTEL_OPENMP_LIBRARY NAMES libiomp5md REQUIRED)
