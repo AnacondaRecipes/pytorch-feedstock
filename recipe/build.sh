@@ -143,7 +143,16 @@ export PYTORCH_BUILD_NUMBER=0
 export INSTALL_TEST=0
 export BUILD_TEST=0
 
-export USE_SYSTEM_SLEEF=1
+# Use system sleef everywhere except linux+mkl. AR sleef hard-pins
+# `_openmp_mutex *_gnu` in its depends, which conflicts with intel-openmp's
+# `*_intel` in MKL builds. On linux+mkl, fall back to pytorch's bundled
+# sleef (third_party/sleef) which will link intel-openmp from the build
+# env — keeps MKL builds intel-only, matching Eric Lundby's design intent.
+if [[ "$target_platform" == linux-* && "$blas_impl" == "mkl" ]]; then
+    export USE_SYSTEM_SLEEF=0
+else
+    export USE_SYSTEM_SLEEF=1
+fi
 # use our protobuf
 export BUILD_CUSTOM_PROTOBUF=OFF
 export USE_SYSTEM_PYBIND11=1
