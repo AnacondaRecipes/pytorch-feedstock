@@ -69,7 +69,7 @@ source:
   - url: https://raw.githubusercontent.com/pytorch/pytorch/refs/tags/v{{ version }}/.gitignore
 
 build:
-  skip: true  # [not (win and x86_64 and gpu_variant == "cpu" and blas_impl == "mkl")]
+  skip: true  # [not (gpu_variant == "cpu" and blas_impl == "mkl")]
   number: {{ build }}
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
