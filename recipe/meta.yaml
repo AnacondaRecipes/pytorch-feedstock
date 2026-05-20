@@ -42,7 +42,10 @@ source:
   # points at.
   - git_url: https://github.com/pytorch/pytorch.git
     git_rev: v{{ version }}{% if rc != None %}-rc{{ rc }}{% endif %}
-    git_depth: 1
+    # NOTE: no git_depth pin. `git_depth: 1` makes conda-build do a shallow
+    # `git clone --depth 1` (defaults to HEAD), then `git checkout v2.12.0`
+    # fails because the tag isn't reachable in the shallow history. Full
+    # clone (~430 MB) is fine — happens once per worker via src_cache.
     patches:
       - patches/0001-windows-FindMKL-add-library-suffix.patch                  # [win]
       - patches/0002-swap-openmp-search-precedence.patch                       # [blas_impl == "mkl"]
@@ -98,6 +101,13 @@ build:
   # osx-arm64 metal: re-enabled after SIR-3273 root cause fix in build.sh
   # (export SDKROOT + CMAKE_ARGS sed for 12.1 → MACOSX_SDK_VERSION).
   # Verified on PR #103 debug graph 935c2593-eeac-41a8-8683-ec3e80f48478.
+  # TODO (2026-Q2): re-enable linux+mkl once sleef-feedstock is rebuilt
+  # with intel-openmp / _openmp_mutex *_intel compatibility. Eric Lundby
+  # has the rebuild in his ~30-feedstock _openmp_mutex migration pipeline.
+  # Currently on pkgs/main, sleef 3.5.1 only has *_gnu builds (both _2
+  # and _3), which conflict with intel-openmp's *_intel requirement in
+  # host of linux+mkl variants.
+  skip: true  # [linux and blas_impl == "mkl"]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
@@ -146,7 +156,9 @@ requirements:
     - libcusolver-dev                        # [build_platform != target_platform]
     - libcusparse-dev                        # [build_platform != target_platform]
     {% endif %}
-    - git       # [not win]
+    # git is needed on ALL platforms because the source uses git_url +
+    # git_rev (content-addressable; immune to GitHub asset regeneration).
+    - git
     # libgomp has a strong run_export of _openmp_mutex *_gnu; on linux+mkl
     # that conflicts with intel-openmp's _openmp_mutex *_intel in host.
     # Scope libgomp to non-mkl linux only — intel-openmp provides openmp
@@ -365,7 +377,8 @@ outputs:
         - libcusolver-dev                        # [build_platform != target_platform]
         - libcusparse-dev                        # [build_platform != target_platform]
         {% endif %}
-        - git       # [not win]
+        # git is needed on ALL platforms — see libtorch build section above.
+        - git
         # See libtorch build section above for the openmp-mutex rationale —
         # libgomp's _openmp_mutex *_gnu run_export conflicts with intel-openmp's
         # _openmp_mutex *_intel on linux+mkl.
