@@ -147,7 +147,11 @@ requirements:
     - libcusparse-dev                        # [build_platform != target_platform]
     {% endif %}
     - git       # [not win]
-    - libgomp   # [linux]
+    # libgomp has a strong run_export of _openmp_mutex *_gnu; on linux+mkl
+    # that conflicts with intel-openmp's _openmp_mutex *_intel in host.
+    # Scope libgomp to non-mkl linux only — intel-openmp provides openmp
+    # runtime for the mkl variant.
+    - libgomp   # [linux and blas_impl != "mkl"]
     # This has a strong run_export so we don't need to put it in `host` or `run`
     # We use llvm-openmp for openblas variants on osx.
     - llvm-openmp 17              # [osx and not (blas_impl == "mkl")]
@@ -362,7 +366,10 @@ outputs:
         - libcusparse-dev                        # [build_platform != target_platform]
         {% endif %}
         - git       # [not win]
-        - libgomp   # [linux]
+        # See libtorch build section above for the openmp-mutex rationale —
+        # libgomp's _openmp_mutex *_gnu run_export conflicts with intel-openmp's
+        # _openmp_mutex *_intel on linux+mkl.
+        - libgomp   # [linux and blas_impl != "mkl"]
         # This has a strong run_export so we don't need to put it in `host` or `run`
         # We use llvm-openmp for openblas variants on osx.
         - llvm-openmp 17             # [osx and not (blas_impl == "mkl")]
