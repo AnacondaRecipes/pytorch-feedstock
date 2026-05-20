@@ -212,11 +212,15 @@ requirements:
     - six
     - mkl-devel {{ mkl }}          # [blas_impl == "mkl"]
     - openblas-devel {{ openblas }}   # [blas_impl == "openblas"]
-    # We pull in the same versions of mkl and intel-openmp: intel aligns the versions
-    # We use intel-openmp for all mkl variants.
-    # For openblas on win and linux, we don't specify any openmp implementation; it comes from the compiler.
+    # AR OpenMP policy (perseverance-skills/Pinnings.md):
+    #   - linux+mkl/win+mkl → intel-openmp (covered below)
+    #   - linux+openblas → libgomp (added here in host + run; matches
+    #     suitesparse-feedstock pattern)
+    #   - osx → llvm-openmp
+    # Strong run_exports from each pull the correct _openmp_mutex flavor.
     - intel-openmp {{ mkl }}         # [blas_impl == "mkl"]
-    - llvm-openmp 17              # [osx and not (blas_impl == "mkl")]
+    - libgomp                        # [linux and blas_impl == "openblas"]
+    - llvm-openmp 17                 # [osx and not (blas_impl == "mkl")]
     - libabseil {{ libabseil }}
     - libprotobuf {{ libprotobuf }}
     # sleef: scoped out of linux+mkl. AR sleef pins `_openmp_mutex *_gnu`
@@ -243,10 +247,11 @@ requirements:
   # satisfy overlinking checks
   run:
     - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
+    - libgomp                                # [linux and blas_impl == "openblas"]
     - libuv                                  # [win]
     - {{ pin_compatible('magma') }}          # [(gpu_variant or "").startswith("cuda")]
     - {{ pin_compatible('libcudnn') }}          # [(gpu_variant or "").startswith("cuda")]
-    - __cuda                                    # [(gpu_variant or "").startswith("cuda")] 
+    - __cuda                                    # [(gpu_variant or "").startswith("cuda")]
 
 # these tests are for the libtorch output below, but due to
 # a particularity of conda-build, that output is defined in
@@ -437,10 +442,9 @@ outputs:
         - six
         - mkl-devel {{ mkl }}             # [blas_impl == "mkl"]
         - openblas-devel {{ openblas }}   # [blas_impl == "openblas"]
-        # We pull in the same versions of mkl and intel-openmp: intel aligns the versions
-        # We use intel-openmp for all mkl variants.
-        # For openblas on win and linux, we don't specify any openmp implementation; it comes from the compiler.
+        # AR OpenMP policy — see libtorch host above for the full breakdown.
         - intel-openmp {{ mkl }}      # [blas_impl == "mkl"]
+        - libgomp                     # [linux and blas_impl == "openblas"]
         - llvm-openmp 17              # [osx and not (blas_impl == "mkl")]
         - libabseil
         - libprotobuf {{ libprotobuf }}
@@ -462,6 +466,7 @@ outputs:
         - fmt {{ fmt }}
       run:
         - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
+        - libgomp                                # [linux and blas_impl == "openblas"]
         - llvm-openmp                            # [osx and not (blas_impl == "mkl")]
         # GPU requirements without run_exports
         - {{ pin_compatible('libcudnn') }}          # [(gpu_variant or "").startswith("cuda")]

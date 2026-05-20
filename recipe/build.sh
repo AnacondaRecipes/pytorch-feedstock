@@ -147,9 +147,21 @@ export BUILD_TEST=0
 # `_openmp_mutex *_gnu` in its depends, which conflicts with intel-openmp's
 # `*_intel` in MKL builds. On linux+mkl, fall back to pytorch's bundled
 # sleef (third_party/sleef) which will link intel-openmp from the build
-# env — keeps MKL builds intel-only, matching Eric Lundby's design intent.
+# env — keeps MKL builds intel-only, matching AR's OpenMP policy
+# (perseverance-skills/sections/02_Package_building/02_Recipes/Pinnings.md).
 if [[ "$target_platform" == linux-* && "$blas_impl" == "mkl" ]]; then
     export USE_SYSTEM_SLEEF=0
+    # AR OpenMP policy: linux+mkl must link intel-openmp only, not libgomp.
+    # gcc's default `-fopenmp` injects `-lgomp` at link → libtorch_cpu and
+    # other targets end up NEEDED libgomp.so.1. Override CMake's FindOpenMP
+    # to use libiomp5.so directly. (Patch 0022 covers the dnnl target via
+    # a more surgical target_link_libraries; this covers the rest.)
+    export CMAKE_ARGS="$CMAKE_ARGS \
+        -DOpenMP_C_FLAGS=-fopenmp \
+        -DOpenMP_CXX_FLAGS=-fopenmp \
+        -DOpenMP_C_LIB_NAMES=iomp5 \
+        -DOpenMP_CXX_LIB_NAMES=iomp5 \
+        -DOpenMP_iomp5_LIBRARY=$PREFIX/lib/libiomp5.so"
 else
     export USE_SYSTEM_SLEEF=1
 fi
