@@ -117,7 +117,7 @@ requirements:
     - libcusparse-dev                        # [build_platform != target_platform]
     {% endif %}
     - git       # [not win]
-    - libgomp   # [linux]
+    - libgomp   # [linux and blas_impl != "mkl"]
     # This has a strong run_export so we don't need to put it in `host` or `run`
     # We use llvm-openmp for openblas variants on osx.
     - llvm-openmp 17              # [osx and not (blas_impl == "mkl")]
@@ -175,7 +175,9 @@ requirements:
     - llvm-openmp 17              # [osx and not (blas_impl == "mkl")]
     - libabseil {{ libabseil }}
     - libprotobuf {{ libprotobuf }}
-    - sleef 3.5.1
+    - sleef 3.9.0 *libgomp*       # [linux and blas_impl != "mkl"]
+    - sleef 3.9.0 *llvm_openmp*   # [osx]
+    - sleef 3.9.0 *no_openmp*     # [win or blas_impl == "mkl"]
     - libuv
     - pkg-config  # [unix]
     - typing_extensions
@@ -303,7 +305,7 @@ outputs:
         - libcusparse-dev                        # [build_platform != target_platform]
         {% endif %}
         - git       # [not win]
-        - libgomp   # [linux]
+        - libgomp   # [linux and blas_impl != "mkl"]
         # This has a strong run_export so we don't need to put it in `host` or `run`
         # We use llvm-openmp for openblas variants on osx.
         - llvm-openmp 17             # [osx and not (blas_impl == "mkl")]
@@ -359,7 +361,9 @@ outputs:
         - llvm-openmp 17              # [osx and not (blas_impl == "mkl")]
         - libabseil
         - libprotobuf {{ libprotobuf }}
-        - sleef 3.5.1
+        - sleef 3.9.0 *libgomp*       # [linux and blas_impl != "mkl"]
+        - sleef 3.9.0 *llvm_openmp*   # [osx]
+        - sleef 3.9.0 *no_openmp*     # [win or blas_impl == "mkl"]
         - libuv
         - pkg-config  # [unix]
         - typing_extensions
@@ -379,7 +383,7 @@ outputs:
         - python
         - numpy >=1.24.0,<3.0.0
         - typing_extensions >=4.10.0
-        - libgomp  # [linux and blas_impl == "openblas"]
+        - libgomp  # [linux and blas_impl != "mkl"]
         - {{ pin_compatible('magma') }}                       # [(gpu_variant or "").startswith("cuda")]
         # skip to 1.13.3 to avoid test failures on Windows and mac - align with 2.7.0 release requirement
         # https://github.com/pytorch/pytorch/pull/133235
