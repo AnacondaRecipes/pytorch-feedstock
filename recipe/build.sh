@@ -390,6 +390,33 @@ if [[ "$PKG_NAME" == "libtorch" ]]; then
   popd
   popd
 
+  # Strip dead `NEEDED libgomp.so.1` from libdnnl on linux+mkl.
+  # Patch 0022 sets DNNL_CPU_RUNTIME=SEQ so dnnl has no runtime libgomp
+  # calls, but gcc's -fopenmp (still required for #pragma omp simd in
+  # dnnl headers) wrote the dead reference into the binary at link time.
+  # That dead NEEDED fails conda-build's overlinking check. Strip it so
+  # the binary matches its actual deps (intel-openmp only).
+  # AR OpenMP policy: MKL builds link intel-openmp only, never libgomp.
+  if [[ "$target_platform" == linux-* && "$blas_impl" == "mkl" ]]; then
+    for f in ${PREFIX}/lib/libdnnl.so*; do
+      if [ -f "$f" ] && [ ! -L "$f" ]; then
+        echo "patchelf --remove-needed libgomp.so.1 $f"
+        patchelf --remove-needed libgomp.so.1 "$f" || true
+      fi
+    done
+    # Verify: any remaining libgomp NEEDED is a real call we didn't expect.
+    for f in ${PREFIX}/lib/libdnnl.so*; do
+      if [ -f "$f" ] && [ ! -L "$f" ]; then
+        if readelf -d "$f" 2>/dev/null | grep -q "NEEDED.*libgomp"; then
+          echo "ERROR: $f still has NEEDED libgomp after patchelf strip"
+          echo "       This means dnnl is making real libgomp calls — investigate"
+          readelf -d "$f" | grep NEEDED
+          exit 1
+        fi
+      fi
+    done
+  fi
+
   # Keep the original backed up to sed later
   cp build/CMakeCache.txt build/CMakeCache.txt.orig
 else

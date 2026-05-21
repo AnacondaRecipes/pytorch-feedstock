@@ -160,6 +160,11 @@ requirements:
     # This has a strong run_export so we don't need to put it in `host` or `run`
     # We use llvm-openmp for openblas variants on osx.
     - llvm-openmp 17              # [osx and not (blas_impl == "mkl")]
+    # patchelf is used by build.sh post-build to strip dead `NEEDED libgomp.so.1`
+    # from libdnnl.so on linux+mkl. DNNL_CPU_RUNTIME=SEQ (patch 0022) means dnnl
+    # has no runtime libgomp calls; gcc's -fopenmp wrote the dead reference at
+    # link time. See build.sh for context.
+    - patchelf   # [linux and blas_impl == "mkl"]
     - libuv     # [win]
     - cmake
     - ninja-base
@@ -388,6 +393,9 @@ outputs:
         # libgomp's _openmp_mutex *_gnu run_export conflicts with intel-openmp's
         # _openmp_mutex *_intel on linux+mkl.
         - libgomp   # [linux and blas_impl != "mkl"]
+        # See libtorch build above for the patchelf rationale (strips dead
+        # libgomp NEEDED from libdnnl on linux+mkl post-build).
+        - patchelf  # [linux and blas_impl == "mkl"]
         # This has a strong run_export so we don't need to put it in `host` or `run`
         # We use llvm-openmp for openblas variants on osx.
         - llvm-openmp 17             # [osx and not (blas_impl == "mkl")]

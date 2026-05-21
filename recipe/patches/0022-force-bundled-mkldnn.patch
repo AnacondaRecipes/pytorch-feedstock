@@ -4,14 +4,14 @@ Date: Fri, 6 Mar 2026 14:38:12 +0000
 Subject: [PATCH] Force bundled OneDNN build, enable experimental kernels, and
  fix linking
 ---
- cmake/Dependencies.cmake | 40 ++++++++++++++++++++++++++++++++++++----
- 1 file changed, 32 insertions(+), 8 deletions(-)
+ cmake/Dependencies.cmake | 49 +++++++++++++++++++++++++++++++++++++++++--------
+ 1 file changed, 41 insertions(+), 8 deletions(-)
 
 Index: pytorch-2.12.0-rc3/cmake/Dependencies.cmake
 ===================================================================
 --- pytorch-2.12.0-rc3.orig/cmake/Dependencies.cmake
 +++ pytorch-2.12.0-rc3/cmake/Dependencies.cmake
-@@ -1522,14 +1522,38 @@ if(NOT INTERN_BUILD_MOBILE)
+@@ -1522,14 +1522,47 @@ if(NOT INTERN_BUILD_MOBILE)
      endif()
    endif()
    if(USE_MKLDNN)
@@ -27,20 +27,29 @@ Index: pytorch-2.12.0-rc3/cmake/Dependencies.cmake
 +    set(MKLDNN_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 +    set(MKLDNN_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 +    set(DNNL_EXPERIMENTAL_UKERNEL ON CACHE BOOL "" FORCE)
++    if(UNIX AND NOT APPLE AND "$ENV{blas_impl}" STREQUAL "mkl")
++      # GCC's OpenMP runtime is libgomp. MKL builds use intel-openmp, so avoid
++      # introducing a second OpenMP runtime through bundled oneDNN. Setting
++      # DNNL_CPU_RUNTIME=SEQ disables OpenMP inside dnnl on linux+mkl; dnnl
++      # ops go single-threaded but MKL is still multi-threaded via
++      # intel-openmp. Matches Eric Lundby's pytorch-feedstock #100 fix.
++      set(DNNL_CPU_RUNTIME SEQ CACHE STRING "" FORCE)
++      set(ONEDNN_CPU_RUNTIME SEQ CACHE STRING "" FORCE)
++    endif()
 +    add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/ideep/mkl-dnn)
 +
 +    if("$ENV{blas_impl}" STREQUAL "mkl" AND TARGET dnnl)
 +      # AR OpenMP policy: MKL builds must link Intel OpenMP, not the
 +      # compiler-default OpenMP runtime (vcomp on MSVC, libgomp on gcc).
 +      # See perseverance-skills/sections/02_Package_building/02_Recipes/Pinnings.md
++      # On linux this is paired with DNNL_CPU_RUNTIME=SEQ above so dnnl
++      # itself doesn't bring in libgomp; the iomp5 link below ensures any
++      # MKL-side openmp calls resolve to intel-openmp.
 +      if(MSVC)
 +        find_library(ANACONDA_INTEL_OPENMP_LIBRARY NAMES libiomp5md REQUIRED)
 +        target_link_options(dnnl PRIVATE "/nodefaultlib:vcomp")
 +      else()
 +        find_library(ANACONDA_INTEL_OPENMP_LIBRARY NAMES iomp5 REQUIRED)
-+        # On gcc, -fopenmp auto-adds -lgomp at link. Use --as-needed so the
-+        # linker drops -lgomp once iomp5 satisfies all omp_* symbols.
-+        target_link_options(dnnl PRIVATE "-Wl,--as-needed")
 +      endif()
 +      target_link_libraries(dnnl PRIVATE "${ANACONDA_INTEL_OPENMP_LIBRARY}")
 +    endif()
