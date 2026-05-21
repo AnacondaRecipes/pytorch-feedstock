@@ -7,6 +7,3 @@ task_timeout: 72000
 
 # build_parameters:
 #  - "--no-test"
-
-channels:
-  - https://staging.continuum.io/pbp/fs/sleef-feedstock/pr4/ec3fc0d
