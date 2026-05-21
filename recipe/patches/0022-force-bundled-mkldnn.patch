@@ -69,7 +69,7 @@ index ef5c2fd4e97..4696cdd4505 100644
 +        endif()
 +        get_target_property(_dnnl_link_libraries dnnl LINK_LIBRARIES)
 +        if(_dnnl_link_libraries)
-+          list(REMOVE_ITEM _dnnl_link_libraries OpenMP::OpenMP_CXX)
++          list(REMOVE_ITEM _dnnl_link_libraries OpenMP::OpenMP_C OpenMP::OpenMP_CXX)
 +          set_target_properties(dnnl PROPERTIES LINK_LIBRARIES "${_dnnl_link_libraries}")
 +        endif()
 +      endif()
