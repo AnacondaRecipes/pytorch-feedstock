@@ -8,10 +8,10 @@ Subject: [PATCH] Force bundled OneDNN build, enable experimental kernels, and
  third_party/ideep/mkl-dnn/cmake/OpenMP.cmake     | 19 ++++++++--
  2 files changed, 61 insertions(+), 15 deletions(-)
 
-diff --git a/cmake/Dependencies.cmake b/cmake/Dependencies.cmake
-index ef5c2fd4e97..4696cdd4505 100644
---- a/cmake/Dependencies.cmake
-+++ b/cmake/Dependencies.cmake
+Index: pytorch-2.12.0-rc3/cmake/Dependencies.cmake
+===================================================================
+--- pytorch-2.12.0-rc3.orig/cmake/Dependencies.cmake
++++ pytorch-2.12.0-rc3/cmake/Dependencies.cmake
 @@ -1479,14 +1479,49 @@ if(NOT INTERN_BUILD_MOBILE)
      endif()
    endif()
@@ -70,10 +70,10 @@ index ef5c2fd4e97..4696cdd4505 100644
    else()
      message("disabling MKLDNN because USE_MKLDNN is not set")
    endif()
-diff --git a/third_party/ideep/mkl-dnn/cmake/OpenMP.cmake b/third_party/ideep/mkl-dnn/cmake/OpenMP.cmake
-index ebd4a18f321..1c3e7f4a2d1 100644
---- a/third_party/ideep/mkl-dnn/cmake/OpenMP.cmake
-+++ b/third_party/ideep/mkl-dnn/cmake/OpenMP.cmake
+Index: pytorch-2.12.0-rc3/third_party/ideep/mkl-dnn/cmake/OpenMP.cmake
+===================================================================
+--- pytorch-2.12.0-rc3.orig/third_party/ideep/mkl-dnn/cmake/OpenMP.cmake
++++ pytorch-2.12.0-rc3/third_party/ideep/mkl-dnn/cmake/OpenMP.cmake
 @@ -58,13 +58,24 @@ if(NOT OpenMP_CXX_FOUND AND MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "(Clang|Inte
      set(OpenMP_CXX_FOUND true)
  endif()
@@ -106,6 +106,4 @@ index ebd4a18f321..1c3e7f4a2d1 100644
  endif()
  
  if(DNNL_CPU_THREADING_RUNTIME MATCHES "OMP")
--- 
-2.50.1 (Apple Git-155)
 
