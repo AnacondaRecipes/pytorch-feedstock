@@ -4,14 +4,14 @@ Date: Fri, 6 Mar 2026 14:38:12 +0000
 Subject: [PATCH] Force bundled OneDNN build, enable experimental kernels, and
  fix linking
 ---
- cmake/Dependencies.cmake | 78 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++--------
- 1 file changed, 70 insertions(+), 8 deletions(-)
+ cmake/Dependencies.cmake | 90 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++--------
+ 1 file changed, 82 insertions(+), 8 deletions(-)
 
 diff --git a/cmake/Dependencies.cmake b/cmake/Dependencies.cmake
 index ef5c2fd4e97..4696cdd4505 100644
 --- a/cmake/Dependencies.cmake
 +++ b/cmake/Dependencies.cmake
-@@ -1479,14 +1479,76 @@ if(NOT INTERN_BUILD_MOBILE)
+@@ -1479,14 +1479,88 @@ if(NOT INTERN_BUILD_MOBILE)
      endif()
    endif()
    if(USE_MKLDNN)
@@ -35,6 +35,12 @@ index ef5c2fd4e97..4696cdd4505 100644
 +      # oneDNN still probes OpenMP for `#pragma omp simd` even with the SEQ
 +      # runtime. Use GCC's SIMD-only flag so the dnnl shared library does not
 +      # inherit a libgomp dependency from `-fopenmp`.
++      foreach(_openmp_var
++              OpenMP_C_FLAGS OpenMP_CXX_FLAGS
++              OpenMP_C_LIB_NAMES OpenMP_CXX_LIB_NAMES
++              OpenMP_C_LIBRARIES OpenMP_CXX_LIBRARIES)
++        set(_ANACONDA_SAVED_${_openmp_var} "${${_openmp_var}}")
++      endforeach()
 +      set(OpenMP_C_FLAGS "-fopenmp-simd" CACHE STRING "" FORCE)
 +      set(OpenMP_CXX_FLAGS "-fopenmp-simd" CACHE STRING "" FORCE)
 +      set(OpenMP_C_LIB_NAMES "" CACHE STRING "" FORCE)
@@ -55,6 +61,12 @@ index ef5c2fd4e97..4696cdd4505 100644
 +              CMAKE_C_FLAGS CMAKE_CXX_FLAGS
 +              CMAKE_SHARED_LINKER_FLAGS CMAKE_MODULE_LINKER_FLAGS CMAKE_EXE_LINKER_FLAGS)
 +        set(${_flag_var} "${_ANACONDA_SAVED_${_flag_var}}")
++      endforeach()
++      foreach(_openmp_var
++              OpenMP_C_FLAGS OpenMP_CXX_FLAGS
++              OpenMP_C_LIB_NAMES OpenMP_CXX_LIB_NAMES
++              OpenMP_C_LIBRARIES OpenMP_CXX_LIBRARIES)
++        set(${_openmp_var} "${_ANACONDA_SAVED_${_openmp_var}}" CACHE STRING "" FORCE)
 +      endforeach()
 +      if(TARGET dnnl)
 +        get_target_property(_dnnl_compile_options dnnl COMPILE_OPTIONS)
