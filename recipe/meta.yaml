@@ -641,7 +641,28 @@ outputs:
         - pytorch ={{ version }}={{ "cpu" if gpu_variant == "cpu" else "gpu" }}* # NB pinning exact=True will also pin to the python version
     test:
       imports:
-        - torch
+        - torch                                              # [not win]
+      commands:
+        # WIN-64 DIAGNOSTIC (TEMPORARY) — PR #97 (PKG-13552) revealed
+        # `import torch` fails on win-64 here with:
+        #   ImportError: DLL load failed while importing _C:
+        #                The specified module could not be found.
+        # Test env solves clean. _C.pyd lives in %SP_DIR%\torch\;
+        # its dependent DLLs (torch_python.dll, torch_cpu.dll, c10.dll, …)
+        # live in %PREFIX%\Library\bin\ (per bld.bat layout). Windows
+        # default DLL search may not look there.
+        # This block surfaces env layout + tests whether explicit
+        # add_dll_directory fixes the import. Remove once root cause known.
+        - 'echo ===== %PREFIX%\Library\bin (libtorch DLLs) ====='                                                  # [win]
+        - 'dir "%PREFIX%\Library\bin\torch*.dll" "%PREFIX%\Library\bin\c10*.dll" "%PREFIX%\Library\bin\dnnl.dll" "%PREFIX%\Library\bin\fbgemm.dll" "%PREFIX%\Library\bin\asmjit.dll" "%PREFIX%\Library\bin\shm.dll" 2>nul'  # [win]
+        - 'echo ===== %SP_DIR%\torch (pyd lives here) ====='                                                       # [win]
+        - 'dir "%SP_DIR%\torch\*.pyd" /b'                                                                          # [win]
+        - 'echo ===== %SP_DIR%\torch\lib (import libs) ====='                                                      # [win]
+        - 'dir "%SP_DIR%\torch\lib" /b 2>nul'                                                                      # [win]
+        - 'echo ===== Test A: explicit os.add_dll_directory(Library\bin) then import ====='                        # [win]
+        - 'python -c "import os; os.add_dll_directory(os.path.join(os.environ[''CONDA_PREFIX''], ''Library'', ''bin'')); import torch; print(''A: import succeeded, torch'', torch.__version__)"'  # [win]
+        - 'echo ===== Test B: bare import (the actually-failing case) ====='                                       # [win]
+        - 'python -c "import torch; print(''B: import succeeded, torch'', torch.__version__)"'                     # [win]
 
 about:
   home: https://pytorch.org/
