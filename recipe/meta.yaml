@@ -223,14 +223,20 @@ requirements:
     - llvm-openmp 17                 # [osx and not (blas_impl == "mkl")]
     - libabseil {{ libabseil }}
     - libprotobuf {{ libprotobuf }}
-    # sleef: scoped out of linux+mkl. AR sleef pins `_openmp_mutex *_gnu`
-    # as a hard depends, which conflicts with intel-openmp's `*_intel` in
-    # MKL builds. On linux+mkl, pytorch falls back to its bundled sleef
-    # (third_party/sleef) via USE_SYSTEM_SLEEF=0 in build.sh — that build
-    # picks up intel-openmp from the build env and stays consistent with
-    # Eric Lundby's "MKL links intel only" intent. Other platforms keep
-    # the system sleef. win-64 sleef does not pin openmp mutex.
-    - sleef 3.5.1   # [not (linux and blas_impl == "mkl")]
+    # sleef 3.9.0 with variant matching (per Eric Lundby's PR #100):
+    # the OpenMP-flavor variant must match the parent env's openmp runtime
+    # so torch_cpu.dll/.so doesn't get a mismatched DT_NEEDED.
+    #   - linux openblas → libgomp variant (matches AR libgcc *_gnu mutex)
+    #   - osx           → llvm_openmp variant (matches AR osx llvm-openmp)
+    #   - win or *+mkl  → no_openmp variant (sleef calls openmp internally
+    #                     via the parent process's runtime: intel-openmp
+    #                     on mkl, vcomp on win+openblas)
+    # On linux+mkl, pytorch falls back to bundled sleef via USE_SYSTEM_SLEEF=0
+    # because AR sleef 3.5.1 used to pin _openmp_mutex *_gnu hard; the
+    # 3.9.0 variant matrix avoids that, so we can re-include it everywhere.
+    - sleef 3.9.0 *libgomp*       # [linux and blas_impl != "mkl"]
+    - sleef 3.9.0 *llvm_openmp*   # [osx]
+    - sleef 3.9.0 *no_openmp*     # [win or blas_impl == "mkl"]
     - libuv
     - pkg-config  # [unix]
     # upstream requirements-build.txt: typing-extensions>=4.15.0
@@ -448,9 +454,13 @@ outputs:
         - llvm-openmp 17              # [osx and not (blas_impl == "mkl")]
         - libabseil
         - libprotobuf {{ libprotobuf }}
-        # sleef: see libtorch host above. Scoped out of linux+mkl;
-        # pytorch falls back to bundled sleef via USE_SYSTEM_SLEEF=0.
-        - sleef 3.5.1   # [not (linux and blas_impl == "mkl")]
+        # sleef: see libtorch host above for the 3.9.0 variant-matching
+        # rationale. On linux+mkl, pytorch still uses bundled sleef
+        # (USE_SYSTEM_SLEEF=0) so the host-side pin is for the resulting
+        # run dep ABI consistency.
+        - sleef 3.9.0 *libgomp*       # [linux and blas_impl != "mkl"]
+        - sleef 3.9.0 *llvm_openmp*   # [osx]
+        - sleef 3.9.0 *no_openmp*     # [win or blas_impl == "mkl"]
         - libuv
         - pkg-config  # [unix]
         # upstream requirements-build.txt: typing-extensions>=4.15.0
