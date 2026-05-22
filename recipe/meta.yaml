@@ -635,26 +635,51 @@ outputs:
       imports:
         - torch                                              # [not win]
       commands:
-        # WIN-64 DIAGNOSTIC (TEMPORARY) — PR #97 (PKG-13552) revealed
-        # `import torch` fails on win-64 here with:
-        #   ImportError: DLL load failed while importing _C:
-        #                The specified module could not be found.
-        # Test env solves clean. _C.pyd lives in %SP_DIR%\torch\;
-        # its dependent DLLs (torch_python.dll, torch_cpu.dll, c10.dll, …)
-        # live in %PREFIX%\Library\bin\ (per bld.bat layout). Windows
-        # default DLL search may not look there.
-        # This block surfaces env layout + tests whether explicit
-        # add_dll_directory fixes the import. Remove once root cause known.
-        - 'echo ===== %PREFIX%\Library\bin (libtorch DLLs) ====='                                                  # [win]
-        - 'dir "%PREFIX%\Library\bin\torch*.dll" "%PREFIX%\Library\bin\c10*.dll" "%PREFIX%\Library\bin\dnnl.dll" "%PREFIX%\Library\bin\fbgemm.dll" "%PREFIX%\Library\bin\asmjit.dll" "%PREFIX%\Library\bin\shm.dll" 2>nul'  # [win]
-        - 'echo ===== %SP_DIR%\torch (pyd lives here) ====='                                                       # [win]
-        - 'dir "%SP_DIR%\torch\*.pyd" /b'                                                                          # [win]
-        - 'echo ===== %SP_DIR%\torch\lib (import libs) ====='                                                      # [win]
-        - 'dir "%SP_DIR%\torch\lib" /b 2>nul'                                                                      # [win]
-        - 'echo ===== Test A: explicit os.add_dll_directory(Library\bin) then import ====='                        # [win]
-        - 'python -c "import os; os.add_dll_directory(os.path.join(os.environ[''CONDA_PREFIX''], ''Library'', ''bin'')); import torch; print(''A: import succeeded, torch'', torch.__version__)"'  # [win]
-        - 'echo ===== Test B: bare import (the actually-failing case) ====='                                       # [win]
-        - 'python -c "import torch; print(''B: import succeeded, torch'', torch.__version__)"'                     # [win]
+        # WIN-64 DIAGNOSTIC (TEMPORARY) — PR #97 (PKG-13552) reveal:
+        # `import torch._C` fails on win-64 with generic
+        #   "ImportError: DLL load failed: The specified module could not be found."
+        # even after explicit os.add_dll_directory($CONDA_PREFIX/Library/bin).
+        # Round 1.6 diag showed Library\bin has all the torch DLLs and Test A
+        # (with add_dll_directory) ALSO fails — so a dependent DLL is genuinely
+        # missing, not just a search-path problem. Round 1.12 widens the probe.
+        # Every command tolerates failure via `& ver > nul` so the runner
+        # doesn't abort on the first non-zero exit and we get the full picture.
+        - 'echo ===== ENV ====='                                                                                                                                                                                                  # [win]
+        - 'echo PREFIX=%PREFIX%'                                                                                                                                                                                                  # [win]
+        - 'echo CONDA_PREFIX=%CONDA_PREFIX%'                                                                                                                                                                                      # [win]
+        - 'echo SP_DIR=%SP_DIR%'                                                                                                                                                                                                  # [win]
+        - 'python -c "import sys; print(''python:'', sys.version); print(''exec_prefix:'', sys.exec_prefix); print(''base_exec_prefix:'', sys.base_exec_prefix)" & ver > nul'                                                     # [win]
+        - 'echo ===== %PREFIX%\Library\bin (torch DLLs) ====='                                                                                                                                                                    # [win]
+        - 'dir "%PREFIX%\Library\bin\torch*.dll" "%PREFIX%\Library\bin\c10*.dll" "%PREFIX%\Library\bin\dnnl.dll" "%PREFIX%\Library\bin\fbgemm.dll" "%PREFIX%\Library\bin\asmjit.dll" "%PREFIX%\Library\bin\shm.dll" 2>nul'         # [win]
+        - 'echo ===== %SP_DIR%\torch (pyd lives here) ====='                                                                                                                                                                      # [win]
+        - 'dir "%SP_DIR%\torch\*.pyd" /b'                                                                                                                                                                                         # [win]
+        - 'echo ===== %SP_DIR%\torch\lib (import libs) ====='                                                                                                                                                                     # [win]
+        - 'dir "%SP_DIR%\torch\lib" /b 2>nul'                                                                                                                                                                                     # [win]
+        - 'echo ===== System runtime DLLs (where lookup) ====='                                                                                                                                                                   # [win]
+        - 'where vcruntime140.dll 2>nul & ver > nul'                                                                                                                                                                              # [win]
+        - 'where msvcp140.dll 2>nul & ver > nul'                                                                                                                                                                                  # [win]
+        - 'where vcruntime140_1.dll 2>nul & ver > nul'                                                                                                                                                                            # [win]
+        - 'where vcomp140.dll 2>nul & ver > nul'                                                                                                                                                                                  # [win]
+        - 'where libiomp5md.dll 2>nul & ver > nul'                                                                                                                                                                                # [win]
+        - 'where libopenblas.dll 2>nul & ver > nul'                                                                                                                                                                               # [win]
+        - 'where mkl_intel_thread.2.dll 2>nul & ver > nul'                                                                                                                                                                        # [win]
+        - 'echo ===== ctypes.WinDLL load test (in dep order, with add_dll_directory) ====='                                                                                                                                       # [win]
+        - 'python -c "import os,ctypes; os.add_dll_directory(os.path.join(os.environ[''CONDA_PREFIX''],''Library'',''bin'')); p=os.path.join(os.environ[''CONDA_PREFIX''],''Library'',''bin'',''c10.dll''); ctypes.WinDLL(p); print(''c10.dll OK'')" & ver > nul'  # [win]
+        - 'python -c "import os,ctypes; os.add_dll_directory(os.path.join(os.environ[''CONDA_PREFIX''],''Library'',''bin'')); p=os.path.join(os.environ[''CONDA_PREFIX''],''Library'',''bin'',''shm.dll''); ctypes.WinDLL(p); print(''shm.dll OK'')" & ver > nul'  # [win]
+        - 'python -c "import os,ctypes; os.add_dll_directory(os.path.join(os.environ[''CONDA_PREFIX''],''Library'',''bin'')); p=os.path.join(os.environ[''CONDA_PREFIX''],''Library'',''bin'',''dnnl.dll''); ctypes.WinDLL(p); print(''dnnl.dll OK'')" & ver > nul'  # [win]
+        - 'python -c "import os,ctypes; os.add_dll_directory(os.path.join(os.environ[''CONDA_PREFIX''],''Library'',''bin'')); p=os.path.join(os.environ[''CONDA_PREFIX''],''Library'',''bin'',''torch.dll''); ctypes.WinDLL(p); print(''torch.dll OK'')" & ver > nul'  # [win]
+        - 'python -c "import os,ctypes; os.add_dll_directory(os.path.join(os.environ[''CONDA_PREFIX''],''Library'',''bin'')); p=os.path.join(os.environ[''CONDA_PREFIX''],''Library'',''bin'',''torch_global_deps.dll''); ctypes.WinDLL(p); print(''torch_global_deps.dll OK'')" & ver > nul'  # [win]
+        - 'python -c "import os,ctypes; os.add_dll_directory(os.path.join(os.environ[''CONDA_PREFIX''],''Library'',''bin'')); p=os.path.join(os.environ[''CONDA_PREFIX''],''Library'',''bin'',''torch_cpu.dll''); ctypes.WinDLL(p); print(''torch_cpu.dll OK'')" & ver > nul'  # [win]
+        - 'python -c "import os,ctypes; os.add_dll_directory(os.path.join(os.environ[''CONDA_PREFIX''],''Library'',''bin'')); p=os.path.join(os.environ[''CONDA_PREFIX''],''Library'',''bin'',''torch_python.dll''); ctypes.WinDLL(p); print(''torch_python.dll OK'')" & ver > nul'  # [win]
+        - 'echo ===== _C.pyd direct load test ====='                                                                                                                                                                              # [win]
+        - 'python -c "import os,ctypes,glob; os.add_dll_directory(os.path.join(os.environ[''CONDA_PREFIX''],''Library'',''bin'')); pyds=glob.glob(os.path.join(os.environ[''CONDA_PREFIX''],''Lib'',''site-packages'',''torch'',''_C.*.pyd'')); print(''pyds found:'',pyds); [ctypes.WinDLL(p) for p in pyds]; print(''_C.pyd loaded OK via ctypes'')" & ver > nul'  # [win]
+        - 'echo ===== Test A: add_dll_directory + import torch ====='                                                                                                                                                             # [win]
+        - 'python -c "import os; os.add_dll_directory(os.path.join(os.environ[''CONDA_PREFIX''],''Library'',''bin'')); import torch; print(''A: torch '', torch.__version__)" & ver > nul'                                        # [win]
+        - 'echo ===== Test B: bare import torch (the actually-failing case) ====='                                                                                                                                                # [win]
+        - 'python -c "import torch; print(''B: torch '', torch.__version__)" & ver > nul'                                                                                                                                          # [win]
+        - 'echo ===== Test C: what does PATH contain (for vc runtime resolution) ====='                                                                                                                                           # [win]
+        - 'echo %PATH%'                                                                                                                                                                                                           # [win]
+        - 'echo ===== End diagnostic ====='                                                                                                                                                                                       # [win]
 
 about:
   home: https://pytorch.org/
