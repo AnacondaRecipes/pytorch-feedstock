@@ -13,6 +13,23 @@ export PACKAGE_TYPE=conda
 # remove pyproject.toml to avoid installing deps from pip
 rm -rf pyproject.toml
 
+# On linux+mkl, gate dnnl's OpenMP.cmake to use compile-only flags so gcc
+# doesn't auto-link libgomp into libdnnl.so. (Paired with patch 0022's
+# DNNL_CPU_RUNTIME=OMP + libiomp5 routing.)
+# Done via sed because the file lives inside the mkl-dnn submodule and a
+# patch-file approach fails on Windows worker — but Windows doesn't need
+# this fix anyway, MSVC iomp5 is routed via target properties in
+# Dependencies.cmake (patch 0022).
+if [[ "$target_platform" == linux-* && "$blas_impl" == "mkl" ]]; then
+    sed -i \
+        -e 's|append(CMAKE_C_FLAGS ${OpenMP_C_FLAGS})|add_compile_options($<$<COMPILE_LANGUAGE:C>:${OpenMP_C_FLAGS}>)|' \
+        -e 's|append(CMAKE_CXX_FLAGS ${OpenMP_CXX_FLAGS})|add_compile_options($<$<COMPILE_LANGUAGE:CXX>:${OpenMP_CXX_FLAGS}>)|' \
+        third_party/ideep/mkl-dnn/cmake/OpenMP.cmake
+    grep -q "add_compile_options.*COMPILE_LANGUAGE:C.*OpenMP_C_FLAGS" \
+        third_party/ideep/mkl-dnn/cmake/OpenMP.cmake \
+        || { echo "ERROR: dnnl OpenMP.cmake sed didn't apply"; exit 1; }
+fi
+
 # uncomment to debug cmake build
 # export CMAKE_VERBOSE_MAKEFILE=1
 
