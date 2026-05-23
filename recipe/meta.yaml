@@ -159,7 +159,7 @@ requirements:
     - libgomp   # [linux and blas_impl != "mkl"]
     # This has a strong run_export so we don't need to put it in `host` or `run`
     # We use llvm-openmp for openblas variants on osx.
-    - llvm-openmp 17              # [osx and not (blas_impl == "mkl")]
+    - llvm-openmp                 # [osx and not (blas_impl == "mkl")]
     - libuv     # [win]
     - cmake
     - ninja-base
@@ -220,7 +220,7 @@ requirements:
     # Strong run_exports from each pull the correct _openmp_mutex flavor.
     - intel-openmp {{ mkl }}         # [blas_impl == "mkl"]
     - libgomp                        # [linux and blas_impl == "openblas"]
-    - llvm-openmp 17                 # [osx and not (blas_impl == "mkl")]
+    - llvm-openmp                    # [osx and not (blas_impl == "mkl")]
     - libabseil {{ libabseil }}
     - libprotobuf {{ libprotobuf }}
     # sleef 3.9.0 with variant matching (per Eric Lundby's PR #100):
@@ -396,7 +396,7 @@ outputs:
         - libgomp   # [linux and blas_impl != "mkl"]
         # This has a strong run_export so we don't need to put it in `host` or `run`
         # We use llvm-openmp for openblas variants on osx.
-        - llvm-openmp 17             # [osx and not (blas_impl == "mkl")]
+        - llvm-openmp                # [osx and not (blas_impl == "mkl")]
         - cmake
         - ninja-base
         # Keep libprotobuf here so that a compatibile version
@@ -451,7 +451,7 @@ outputs:
         # AR OpenMP policy — see libtorch host above for the full breakdown.
         - intel-openmp {{ mkl }}      # [blas_impl == "mkl"]
         - libgomp                     # [linux and blas_impl == "openblas"]
-        - llvm-openmp 17              # [osx and not (blas_impl == "mkl")]
+        - llvm-openmp                 # [osx and not (blas_impl == "mkl")]
         - libabseil
         - libprotobuf {{ libprotobuf }}
         # sleef: see libtorch host above for the 3.9.0 variant-matching
