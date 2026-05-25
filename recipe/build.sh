@@ -13,6 +13,23 @@ export PACKAGE_TYPE=conda
 # remove pyproject.toml to avoid installing deps from pip
 rm -rf pyproject.toml
 
+# On linux+mkl, gate dnnl's OpenMP.cmake to use compile-only flags so gcc
+# doesn't auto-link libgomp into libdnnl.so. (Paired with patch 0022's
+# DNNL_CPU_RUNTIME=OMP + libiomp5 routing.)
+# Done via sed because the file lives inside the mkl-dnn submodule and a
+# patch-file approach fails on Windows worker — but Windows doesn't need
+# this fix anyway, MSVC iomp5 is routed via target properties in
+# Dependencies.cmake (patch 0022).
+if [[ "$target_platform" == linux-* && "$blas_impl" == "mkl" ]]; then
+    sed -i \
+        -e 's|append(CMAKE_C_FLAGS ${OpenMP_C_FLAGS})|add_compile_options($<$<COMPILE_LANGUAGE:C>:${OpenMP_C_FLAGS}>)|' \
+        -e 's|append(CMAKE_CXX_FLAGS ${OpenMP_CXX_FLAGS})|add_compile_options($<$<COMPILE_LANGUAGE:CXX>:${OpenMP_CXX_FLAGS}>)|' \
+        third_party/ideep/mkl-dnn/cmake/OpenMP.cmake
+    grep -q "add_compile_options.*COMPILE_LANGUAGE:C.*OpenMP_C_FLAGS" \
+        third_party/ideep/mkl-dnn/cmake/OpenMP.cmake \
+        || { echo "ERROR: dnnl OpenMP.cmake sed didn't apply"; exit 1; }
+fi
+
 # uncomment to debug cmake build
 # export CMAKE_VERBOSE_MAKEFILE=1
 
@@ -119,6 +136,19 @@ if [[ "$OSTYPE" != "darwin"* ]]; then
 else
     export CMAKE_OSX_SYSROOT="/Library/Developer/CommandLineTools/SDKs/MacOSX${MACOSX_SDK_VERSION}.sdk"
     export CONDA_BUILD_SYSROOT="${CMAKE_OSX_SYSROOT}"
+    # SIR-3273 fix: the previous two exports were sufficient before the
+    # Taskcluster 95.x AMI rebuild because activation defaulted to the
+    # right SDK. After the rebuild, MacOSX.sdk symlink points at 12.1
+    # and activation pre-sets SDKROOT + CMAKE_ARGS to 12.1 too. clang
+    # honors SDKROOT and CMake honors -DCMAKE_OSX_SYSROOT= embedded in
+    # CMAKE_ARGS over our env overrides, so without these extra lines
+    # the compile still uses MacOSX12.1.sdk (which lacks Metal 3.0).
+    # Verified on PR #103 osx-arm64 metal debug build, graph
+    # 935c2593-eeac-41a8-8683-ec3e80f48478 — green with these 3 lines.
+    export SDKROOT="${CMAKE_OSX_SYSROOT}"
+    CMAKE_ARGS="${CMAKE_ARGS//MacOSX12.1.sdk/MacOSX${MACOSX_SDK_VERSION}.sdk}"
+    CMAKE_ARGS="${CMAKE_ARGS//-DCMAKE_OSX_DEPLOYMENT_TARGET=12.1/-DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET}}"
+    export CMAKE_ARGS
 fi
 #export TH_BINARY_BUILD=1
 # Use our build version and number for inserting into binaries
@@ -130,7 +160,28 @@ export PYTORCH_BUILD_NUMBER=0
 export INSTALL_TEST=0
 export BUILD_TEST=0
 
-export USE_SYSTEM_SLEEF=1
+# Use system sleef everywhere except linux+mkl. AR sleef hard-pins
+# `_openmp_mutex *_gnu` in its depends, which conflicts with intel-openmp's
+# `*_intel` in MKL builds. On linux+mkl, fall back to pytorch's bundled
+# sleef (third_party/sleef) which will link intel-openmp from the build
+# env — keeps MKL builds intel-only, matching AR's OpenMP policy
+# (perseverance-skills/sections/02_Package_building/02_Recipes/Pinnings.md).
+if [[ "$target_platform" == linux-* && "$blas_impl" == "mkl" ]]; then
+    export USE_SYSTEM_SLEEF=0
+    # AR OpenMP policy: linux+mkl must link intel-openmp only, not libgomp.
+    # gcc's default `-fopenmp` injects `-lgomp` at link → libtorch_cpu and
+    # other targets end up NEEDED libgomp.so.1. Override CMake's FindOpenMP
+    # to use libiomp5.so directly. (Patch 0022 covers the dnnl target via
+    # a more surgical target_link_libraries; this covers the rest.)
+    export CMAKE_ARGS="$CMAKE_ARGS \
+        -DOpenMP_C_FLAGS=-fopenmp \
+        -DOpenMP_CXX_FLAGS=-fopenmp \
+        -DOpenMP_C_LIB_NAMES=iomp5 \
+        -DOpenMP_CXX_LIB_NAMES=iomp5 \
+        -DOpenMP_iomp5_LIBRARY=$PREFIX/lib/libiomp5.so"
+else
+    export USE_SYSTEM_SLEEF=1
+fi
 # use our protobuf
 export BUILD_CUSTOM_PROTOBUF=OFF
 export USE_SYSTEM_PYBIND11=1
@@ -248,7 +299,11 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
         # aarch64 CUDA 13: upstream filters out <8.0, 7.5, 8.6 (x86_64-only SKUs)
         # and adds sm_11.0 (Jetson Thor) only on aarch64.
         # Keeps 8.0 (A100), 9.0 (Grace Hopper), 10.0+12.0 (Blackwell), 11.0 (Thor).
-        export TORCH_CUDA_ARCH_LIST="8.0;9.0;10.0;11.0;12.0+PTX"
+        # sm_12.1+PTX is a deliberate divergence from upstream 2.12 for NVIDIA
+        # DGX Spark (GB10 Superchip, aarch64 Blackwell consumer/edge variant
+        # launched ~Apr 2026 after upstream 2.12's build_cuda.sh was written).
+        # Match what AR shipped in 2.11 (PR #95) for this customer.
+        export TORCH_CUDA_ARCH_LIST="8.0;9.0;10.0;11.0;12.0;12.1+PTX"
     elif [[ ${cuda_compiler_version} == 12.* ]]; then
         # CUDA 12: sm_50-sm_61 deprecated in 12.8; sm_70 dropped upstream in 2.11.
         export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;9.0;10.0;12.0+PTX"

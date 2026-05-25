@@ -1,17 +1,13 @@
-From c271d3edd2e8790ab16864360346345890efc4c4 Mon Sep 17 00:00:00 2001
-From: James Robertson <jrobertson@anaconda.com>
-Date: Fri, 6 Mar 2026 14:38:12 +0000
-Subject: [PATCH] Force bundled OneDNN build, enable experimental kernels, and
- fix linking
----
- cmake/Dependencies.cmake | 24 ++++++++++++++++--------
- 1 file changed, 16 insertions(+), 8 deletions(-)
+# [PATCH] Force bundled OneDNN build, enable experimental kernels, and fix linking
+# From: James Robertson <jrobertson@anaconda.com>
+# Date: Fri, 6 Mar 2026 14:38:12 +0000
+# Imported from AnacondaRecipes/pytorch-feedstock PR #100 (Eric Lundby).
 
 Index: pytorch-2.12.0-rc3/cmake/Dependencies.cmake
 ===================================================================
 --- pytorch-2.12.0-rc3.orig/cmake/Dependencies.cmake
 +++ pytorch-2.12.0-rc3/cmake/Dependencies.cmake
-@@ -1522,14 +1522,22 @@ if(NOT INTERN_BUILD_MOBILE)
+@@ -1479,14 +1479,49 @@ if(NOT INTERN_BUILD_MOBILE)
      endif()
    endif()
    if(USE_MKLDNN)
@@ -27,7 +23,34 @@ Index: pytorch-2.12.0-rc3/cmake/Dependencies.cmake
 +    set(MKLDNN_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 +    set(MKLDNN_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 +    set(DNNL_EXPERIMENTAL_UKERNEL ON CACHE BOOL "" FORCE)
++    if(UNIX AND NOT APPLE AND "$ENV{blas_impl}" STREQUAL "mkl")
++      find_library(ANACONDA_INTEL_OPENMP_LIBRARY NAMES iomp5 libiomp5 REQUIRED)
++      # Keep oneDNN fully OpenMP-enabled for MKL builds, but route GCC builds
++      # to Intel OpenMP. oneDNN's OpenMP.cmake is patched below so -fopenmp is
++      # compile-only; otherwise GCC injects -lgomp during libdnnl.so linking.
++      set(DNNL_CPU_RUNTIME OMP CACHE STRING "" FORCE)
++      set(ONEDNN_CPU_RUNTIME OMP CACHE STRING "" FORCE)
++      set(OpenMP_C_FLAGS "-fopenmp" CACHE STRING "" FORCE)
++      set(OpenMP_CXX_FLAGS "-fopenmp" CACHE STRING "" FORCE)
++      set(OpenMP_C_LIB_NAMES iomp5 CACHE STRING "" FORCE)
++      set(OpenMP_CXX_LIB_NAMES iomp5 CACHE STRING "" FORCE)
++      set(OpenMP_iomp5_LIBRARY "${ANACONDA_INTEL_OPENMP_LIBRARY}" CACHE FILEPATH "" FORCE)
++      set(OpenMP_C_LIBRARIES "${ANACONDA_INTEL_OPENMP_LIBRARY}" CACHE STRING "" FORCE)
++      set(OpenMP_CXX_LIBRARIES "${ANACONDA_INTEL_OPENMP_LIBRARY}" CACHE STRING "" FORCE)
++    endif()
 +    add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/ideep/mkl-dnn)
++
++    if(UNIX AND NOT APPLE AND "$ENV{blas_impl}" STREQUAL "mkl" AND TARGET dnnl)
++      target_link_libraries(dnnl PRIVATE "${ANACONDA_INTEL_OPENMP_LIBRARY}")
++    endif()
++
++    if(MSVC AND "$ENV{blas_impl}" STREQUAL "mkl" AND TARGET dnnl)
++      find_library(ANACONDA_INTEL_OPENMP_LIBRARY NAMES libiomp5md REQUIRED)
++      # Match the rest of the MKL PyTorch stack on Windows: use Intel OpenMP,
++      # not the MSVC OpenMP runtime pulled in by /openmp defaults.
++      target_link_options(dnnl PRIVATE "/nodefaultlib:vcomp")
++      target_link_libraries(dnnl PRIVATE "${ANACONDA_INTEL_OPENMP_LIBRARY}")
++    endif()
 +
 +    # 1. OneDNN Source Headers (dnnl_graph.hpp)
 +    include_directories(AFTER SYSTEM ${PROJECT_SOURCE_DIR}/third_party/ideep/mkl-dnn/include)

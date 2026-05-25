@@ -1,13 +1,5 @@
 {% set version = "2.12.0" %}
-# sha256 matches the GA release tarball content that was published 2026-05-13.
-# GitHub silently regenerated the release asset between 2026-05-13 and 2026-05-15:
-# a fresh download today returns 6a71b5f346cb08a6ae6fd63207c53a9bc7cae95dccfcd190bd9a43919f5f540a.
-# PBP workers cached the original tarball (sha 7cc1deb) when the GA flip landed,
-# so we keep this sha to match the cache. TODO: pin to git_url + commit for
-# bit-exact reproducibility, or invalidate PBP source cache and bump to 6a71b5f.
-{% set sha256 = "7cc1deb309f402ad67e9f45bbe311a40def4db19d66fddb9b01950f9bfc5ccb1" %}
 # Set the RC number to build release candidates. Set to None otherwise.
-# When rc != None, the GitHub auto-archive tarball is used (submodules included).
 {% set rc = None %}
 {% set build = 0 %}
 
@@ -41,11 +33,19 @@ package:
   version: {{ version }}
 
 source:
-{% if rc != None %}
-  # GitHub auto-archive tarball (includes vendored submodules — verified for v2.12.0-rc3).
-  # Patches apply against this tarball the same way as against the release tarball.
-  - url: https://github.com/pytorch/pytorch/archive/refs/tags/v{{ version }}-rc{{ rc }}.tar.gz
-    sha256: {{ sha256 }}
+  # Content-addressable source via git_url + git_rev: immune to GitHub asset
+  # regeneration. The v2.12.0 release tarball was silently re-generated
+  # between 2026-05-13 and 2026-05-15 (sha drift from 7cc1deb to 6a71b5f then
+  # back to 7cc1deb again by 2026-05-20), breaking fresh PBP worker fetches.
+  # conda-build recursively fetches submodules after clone, so pytorch's
+  # third_party/* are pinned via .gitmodules to the SHAs the v2.12.0 tag
+  # points at.
+  - git_url: https://github.com/pytorch/pytorch.git
+    git_rev: v{{ version }}{% if rc != None %}-rc{{ rc }}{% endif %}
+    # NOTE: no git_depth pin. `git_depth: 1` makes conda-build do a shallow
+    # `git clone --depth 1` (defaults to HEAD), then `git checkout v2.12.0`
+    # fails because the tag isn't reachable in the shallow history. Full
+    # clone (~430 MB) is fine — happens once per worker via src_cache.
     patches:
       - patches/0001-windows-FindMKL-add-library-suffix.patch                  # [win]
       - patches/0002-swap-openmp-search-precedence.patch                       # [blas_impl == "mkl"]
@@ -62,27 +62,6 @@ source:
       - patches/0022-force-bundled-mkldnn.patch
       - patches/0023-remove-conftest-extra-param.patch
       - patches/0024-Allow-fbgemm_genai-to-be-assigned-to-a-Ninja-job-pool.patch    # [linux and gpu_variant == "cuda"]
-{% else %}
-  # The "pytorch-v" release tarballs contain submodules; the "pytorch-" ones don't.
-  - url: https://github.com/pytorch/pytorch/releases/download/v{{ version }}/pytorch-v{{ version }}.tar.gz
-    sha256: {{ sha256 }}
-    patches:
-      - patches/0001-windows-FindMKL-add-library-suffix.patch                  # [win]
-      - patches/0002-swap-openmp-search-precedence.patch                       # [blas_impl == "mkl"]
-      - patches/0003-Force-usage-of-python-3-and-error-without-numpy.patch
-      # https://github.com/pytorch/pytorch/issues/150918 - continue tests on failure due to flaky tests
-      - patches/0007-continue-tests-on-failure.patch
-      - patches/0008-add-missing-includes.patch
-      - patches/0009-use-prefix-include-for-inductor.patch
-      - patches/0011-remove-DESTINATION-lib-from-CMake-install-TARGETS-di.patch             # [win]
-      - patches/0014-point-include-paths-to-PREFIX-include.patch
-      - patches/0015-point-lib-paths-to-PREFIX-lib.patch
-      - patches/0018-Add-USE_SYSTEM-options-for-KLEIDI-CUDNN_FRONTEND-CUT.patch
-      - patches/0021-fix-onednn-cuda-include.patch
-      - patches/0022-force-bundled-mkldnn.patch
-      - patches/0023-remove-conftest-extra-param.patch
-      - patches/0024-Allow-fbgemm_genai-to-be-assigned-to-a-Ninja-job-pool.patch    # [linux and gpu_variant == "cuda"]
-{% endif %}
   - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.ci/pytorch/smoke_test/smoke_test.py
     folder: smoke_test
   # check_wheel_tags.py is a sibling helper imported by smoke_test.py since the
@@ -93,10 +72,8 @@ source:
   # set, so it works fine on conda-installed packages.
   - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.ci/pytorch/smoke_test/check_wheel_tags.py
     folder: smoke_test
-  # The .gitignore is needed in order to run upstreams `setup.py clean`.
-  # Pin to smoke_test_commit so this works for both RC and GA; the v{{ version }}
-  # tag doesn't exist yet during pre-GA (rc != None).
-  - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.gitignore
+  # NOTE: .gitignore (required by upstream's `setup.py clean`) now comes
+  # from the git_url checkout above — no separate download needed.
 
 build:
   number: {{ build }}
@@ -121,14 +98,12 @@ build:
   # All three PRs share an identical recipe; only this skip line differs:
   #   PR #97:  skip: true  # [py != 314]            (15 builds, validated)
   #   THIS PR: skip: true  # [py != 310 and py != 311]   (30 builds)
-  #   PR #Y:   skip: true  # [py != 312 and py != 313]   (30 builds)
+  #   PR #102: skip: true  # [py != 312 and py != 313]   (30 builds)
   # Drop the skip entirely on the merge-to-master commit once all three green.
   skip: true  # [py != 310 and py != 311]
-  # osx-arm64 metal: AMI rebuild dropped MacOSX14.5.sdk (SIR-3273); skip
-  # the metal variant until SIR-3273 lands so we don't burn the slot on
-  # a known-broken build. CPU variant keeps building.
-  # TODO: re-enable when SIR-3273 closes.
-  skip: true  # [osx and arm64 and gpu_variant == "metal"]
+  # osx-arm64 metal: re-enabled after SIR-3273 root cause fix in build.sh
+  # (export SDKROOT + CMAKE_ARGS sed for 12.1 → MACOSX_SDK_VERSION).
+  # Verified on PR #103 debug graph 935c2593-eeac-41a8-8683-ec3e80f48478.
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
@@ -177,11 +152,17 @@ requirements:
     - libcusolver-dev                        # [build_platform != target_platform]
     - libcusparse-dev                        # [build_platform != target_platform]
     {% endif %}
-    - git       # [not win]
-    - libgomp   # [linux]
+    # git is needed on ALL platforms because the source uses git_url +
+    # git_rev (content-addressable; immune to GitHub asset regeneration).
+    - git
+    # libgomp has a strong run_export of _openmp_mutex *_gnu; on linux+mkl
+    # that conflicts with intel-openmp's _openmp_mutex *_intel in host.
+    # Scope libgomp to non-mkl linux only — intel-openmp provides openmp
+    # runtime for the mkl variant.
+    - libgomp   # [linux and blas_impl != "mkl"]
     # This has a strong run_export so we don't need to put it in `host` or `run`
     # We use llvm-openmp for openblas variants on osx.
-    - llvm-openmp 17              # [osx and not (blas_impl == "mkl")]
+    - llvm-openmp                 # [osx and not (blas_impl == "mkl")]
     - libuv     # [win]
     - cmake
     - ninja-base
@@ -234,14 +215,31 @@ requirements:
     - six
     - mkl-devel {{ mkl }}          # [blas_impl == "mkl"]
     - openblas-devel {{ openblas }}   # [blas_impl == "openblas"]
-    # We pull in the same versions of mkl and intel-openmp: intel aligns the versions
-    # We use intel-openmp for all mkl variants.
-    # For openblas on win and linux, we don't specify any openmp implementation; it comes from the compiler.
+    # AR OpenMP policy (perseverance-skills/Pinnings.md):
+    #   - linux+mkl/win+mkl → intel-openmp (covered below)
+    #   - linux+openblas → libgomp (added here in host + run; matches
+    #     suitesparse-feedstock pattern)
+    #   - osx → llvm-openmp
+    # Strong run_exports from each pull the correct _openmp_mutex flavor.
     - intel-openmp {{ mkl }}         # [blas_impl == "mkl"]
-    - llvm-openmp 17              # [osx and not (blas_impl == "mkl")]
+    - libgomp                        # [linux and blas_impl == "openblas"]
+    - llvm-openmp                    # [osx and not (blas_impl == "mkl")]
     - libabseil {{ libabseil }}
     - libprotobuf {{ libprotobuf }}
-    - sleef 3.5.1
+    # sleef 3.9.0 with variant matching (per Eric Lundby's PR #100):
+    # the OpenMP-flavor variant must match the parent env's openmp runtime
+    # so torch_cpu.dll/.so doesn't get a mismatched DT_NEEDED.
+    #   - linux openblas → libgomp variant (matches AR libgcc *_gnu mutex)
+    #   - osx           → llvm_openmp variant (matches AR osx llvm-openmp)
+    #   - win or *+mkl  → no_openmp variant (sleef calls openmp internally
+    #                     via the parent process's runtime: intel-openmp
+    #                     on mkl, vcomp on win+openblas)
+    # On linux+mkl, pytorch falls back to bundled sleef via USE_SYSTEM_SLEEF=0
+    # because AR sleef 3.5.1 used to pin _openmp_mutex *_gnu hard; the
+    # 3.9.0 variant matrix avoids that, so we can re-include it everywhere.
+    - sleef 3.9.0 *libgomp*       # [linux and blas_impl != "mkl"]
+    - sleef 3.9.0 *llvm_openmp*   # [osx]
+    - sleef 3.9.0 *no_openmp*     # [win or blas_impl == "mkl"]
     - libuv
     - pkg-config  # [unix]
     # upstream requirements-build.txt: typing-extensions>=4.15.0
@@ -258,10 +256,11 @@ requirements:
   # satisfy overlinking checks
   run:
     - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
+    - libgomp                                # [linux and blas_impl == "openblas"]
     - libuv                                  # [win]
     - {{ pin_compatible('magma') }}          # [(gpu_variant or "").startswith("cuda")]
     - {{ pin_compatible('libcudnn') }}          # [(gpu_variant or "").startswith("cuda")]
-    - __cuda                                    # [(gpu_variant or "").startswith("cuda")] 
+    - __cuda                                    # [(gpu_variant or "").startswith("cuda")]
 
 # these tests are for the libtorch output below, but due to
 # a particularity of conda-build, that output is defined in
@@ -271,6 +270,10 @@ test:
     # cmake needs a compiler to run package detection, see
     # https://discourse.cmake.org/t/questions-about-find-package-cli-msvc/6194
     - {{ compiler('cxx') }}
+    # PKG-14712: osx-arm64 ld64/cctools test-env clobber breaks C++ stdlib
+    # header lookup (cstdlib/iostream missing). Pin the c-stdlib provider
+    # explicitly so the test env always has a consistent toolchain.
+    - {{ stdlib('c') }}
     # for CMake config to find cuda & nvrtc
     - {{ compiler('cuda') }}    # [(gpu_variant or "").startswith("cuda")]
     - cuda-nvcc ={{ cuda_compiler_version }}     # [(gpu_variant or "").startswith("cuda")]
@@ -293,6 +296,11 @@ test:
     - cd cmake_test
     - cmake -GNinja -DCMAKE_CXX_STANDARD=17 $CMAKE_ARGS .   # [unix]
     - cmake -GNinja -DCMAKE_CXX_STANDARD=17 %CMAKE_ARGS% .  # [win]
+    # Verify dnnl.dll links Intel OpenMP (libiomp5md), not MSVC OpenMP
+    # (vcomp). Eric Lundby PR #100 patches cmake/Dependencies.cmake to
+    # force this; these asserts catch future regressions.
+    - dumpbin /dependents "%PREFIX%\Library\bin\dnnl.dll" | findstr /i libiomp5md            # [win and blas_impl == "mkl"]
+    - dumpbin /dependents "%PREFIX%\Library\bin\dnnl.dll" | findstr /i vcomp && exit /b 1 || exit /b 0  # [win and blas_impl == "mkl"]
 
 outputs:
   - name: libtorch
@@ -383,11 +391,15 @@ outputs:
         - libcusolver-dev                        # [build_platform != target_platform]
         - libcusparse-dev                        # [build_platform != target_platform]
         {% endif %}
-        - git       # [not win]
-        - libgomp   # [linux]
+        # git is needed on ALL platforms — see libtorch build section above.
+        - git
+        # See libtorch build section above for the openmp-mutex rationale —
+        # libgomp's _openmp_mutex *_gnu run_export conflicts with intel-openmp's
+        # _openmp_mutex *_intel on linux+mkl.
+        - libgomp   # [linux and blas_impl != "mkl"]
         # This has a strong run_export so we don't need to put it in `host` or `run`
         # We use llvm-openmp for openblas variants on osx.
-        - llvm-openmp 17             # [osx and not (blas_impl == "mkl")]
+        - llvm-openmp                # [osx and not (blas_impl == "mkl")]
         - cmake
         - ninja-base
         # Keep libprotobuf here so that a compatibile version
@@ -439,14 +451,19 @@ outputs:
         - six
         - mkl-devel {{ mkl }}             # [blas_impl == "mkl"]
         - openblas-devel {{ openblas }}   # [blas_impl == "openblas"]
-        # We pull in the same versions of mkl and intel-openmp: intel aligns the versions
-        # We use intel-openmp for all mkl variants.
-        # For openblas on win and linux, we don't specify any openmp implementation; it comes from the compiler.
+        # AR OpenMP policy — see libtorch host above for the full breakdown.
         - intel-openmp {{ mkl }}      # [blas_impl == "mkl"]
-        - llvm-openmp 17              # [osx and not (blas_impl == "mkl")]
+        - libgomp                     # [linux and blas_impl == "openblas"]
+        - llvm-openmp                 # [osx and not (blas_impl == "mkl")]
         - libabseil
         - libprotobuf {{ libprotobuf }}
-        - sleef 3.5.1
+        # sleef: see libtorch host above for the 3.9.0 variant-matching
+        # rationale. On linux+mkl, pytorch still uses bundled sleef
+        # (USE_SYSTEM_SLEEF=0) so the host-side pin is for the resulting
+        # run dep ABI consistency.
+        - sleef 3.9.0 *libgomp*       # [linux and blas_impl != "mkl"]
+        - sleef 3.9.0 *llvm_openmp*   # [osx]
+        - sleef 3.9.0 *no_openmp*     # [win or blas_impl == "mkl"]
         - libuv
         - pkg-config  # [unix]
         # upstream requirements-build.txt: typing-extensions>=4.15.0
@@ -462,6 +479,7 @@ outputs:
         - fmt {{ fmt }}
       run:
         - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
+        - libgomp                                # [linux and blas_impl == "openblas"]
         - llvm-openmp                            # [osx and not (blas_impl == "mkl")]
         # GPU requirements without run_exports
         - {{ pin_compatible('libcudnn') }}          # [(gpu_variant or "").startswith("cuda")]
@@ -494,10 +512,18 @@ outputs:
       requires:
         - {{ compiler('c') }}
         - {{ compiler('cxx') }}
+        # PKG-14712: pin the c-stdlib provider so osx-arm64 test env has
+        # consistent C++ stdlib headers (cstdlib/iostream) — works around
+        # ld64/cctools clobber observed during pytorch QS env testing.
+        - {{ stdlib('c') }}
         - boto3
         - hypothesis
-        # SciPy optional upstream; nn.functional.pdist numpy-ref still calls scipy (seen on win+cuda).
-        - scipy  # [win]
+        # SciPy is needed by test_ops.py::test_numpy_ref_* on ALL platforms
+        # (not just win+cuda as previously assumed). Failure on linux-64 +
+        # CUDA:
+        #   test_ops.py::TestCommonCUDA::test_numpy_ref_nn_functional_
+        #   pdist_cuda_float64 - Exception: name 'scipy' is not defined
+        - scipy
         - tabulate
         - pydot
         - mock  # [linux]
@@ -509,6 +535,9 @@ outputs:
         - pytest-rerunfailures
         - pytest-flakefinder
         - pytest-xdist
+        # Needed for test_autograd.py::test_multi_grad_all_hooks
+        # (torch.utils.cpp_extension.load_inline requires ninja).
+        - ninja
         # Needed for test_autograd.py
         - pybind11 >=3.0.1,<4
         # the inductor "test_aoti_eager..." tests require objcopy
