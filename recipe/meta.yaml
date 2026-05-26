@@ -93,10 +93,13 @@ build:
   # ("asm operand type size(4) does not match constraint 'l'"). Worked
   # around inline by bld.bat (sed-replace long2 → longlong2 in the affected
   # header); no skip needed.
-  # Per-Python skip: rotates each CI round. py3.13 was validated in graph
-  # 024f17c9 (round 1); this round runs py3.14 to catch deps that haven't
-  # been packaged for the new ABI. Flip back to a multi-py matrix (drop the
-  # skip entirely) before merging to master.
+  # Python matrix split across 3 sibling PRs to stay under PBP graph-submitter
+  # Lambda /tmp capacity (SIR-2711 regression — 75-build full sweep errno 28).
+  # All three PRs share an identical recipe; only this skip line differs:
+  #   THIS PR: skip: true  # [py != 314]            (15 builds)
+  #   PR #101: skip: true  # [py != 310 and py != 311]   (30 builds, validated)
+  #   PR #102: skip: true  # [py != 312 and py != 313]   (30 builds)
+  # Drop the skip entirely on the merge-to-master commit once all three green.
   skip: true  # [py != 314]
   # osx-arm64 metal: re-enabled after SIR-3273 root cause fix in build.sh
   # (export SDKROOT + CMAKE_ARGS sed for 12.1 → MACOSX_SDK_VERSION).
@@ -520,7 +523,9 @@ outputs:
         # CUDA:
         #   test_ops.py::TestCommonCUDA::test_numpy_ref_nn_functional_
         #   pdist_cuda_float64 - Exception: name 'scipy' is not defined
-        - scipy
+        # scipy 1.17 dropped py3.10 (requires_python >=3.11), so we skip
+        # scipy on py3.10 — paired with `not test_numpy_ref` filter below.
+        - scipy           # [py != 310]
         - tabulate
         - pydot
         - mock  # [linux]
@@ -594,17 +599,24 @@ outputs:
         # ------------------------------------------------------------------------------------------------
         # Flaky complex linear-algebra cases (see run_test_core_k); https://github.com/pytorch/pytorch/issues/150918
         {% set run_test_core_k = "not (complex and (linalg_vecdot or dot or vdot))" %}
+        # py3.10: scipy 1.17 dropped py3.10 → scipy missing from test env → test_numpy_ref_*
+        # tests fail with `name 'scipy' is not defined`. Exclude them on py3.10 only.
+        {% set run_test_core_k_py310 = run_test_core_k ~ " and not test_numpy_ref" %}
         # linux-aarch64 CUDA packages are built with TORCH_CUDA_ARCH_LIST starting at sm_80 (see recipe/build.sh;
         # upstream aarch wheels omit <8.0 and 8.6). CI GPUs below sm_80 (e.g. some Jetson) hit
         # cudaErrorNoKernelImageForDevice loading kernels. TestBwdGradientsCUDA / test_inplace_gradgrad* fail from that
         # mismatch, not from functional PyTorch bugs on supported datacenter GPUs; exclude them only on this matrix.
         {% set run_test_core_k_aarch64_cuda = run_test_core_k ~ " and not inplace_gradgrad" %}
-        - python ./test/run_test.py --core --continue-through-error -k "{{ run_test_core_k }}" || true # [not win and not (linux and aarch64 and (gpu_variant or "").startswith("cuda"))]
-        - python ./test/run_test.py --core --continue-through-error -k "{{ run_test_core_k_aarch64_cuda }}" || true # [linux and aarch64 and (gpu_variant or "").startswith("cuda")]
+        {% set run_test_core_k_aarch64_cuda_py310 = run_test_core_k_aarch64_cuda ~ " and not test_numpy_ref" %}
+        - python ./test/run_test.py --core --continue-through-error -k "{{ run_test_core_k }}" || true # [not win and not (linux and aarch64 and (gpu_variant or "").startswith("cuda")) and py != 310]
+        - python ./test/run_test.py --core --continue-through-error -k "{{ run_test_core_k_py310 }}" || true # [not win and not (linux and aarch64 and (gpu_variant or "").startswith("cuda")) and py == 310]
+        - python ./test/run_test.py --core --continue-through-error -k "{{ run_test_core_k_aarch64_cuda }}" || true # [linux and aarch64 and (gpu_variant or "").startswith("cuda") and py != 310]
+        - python ./test/run_test.py --core --continue-through-error -k "{{ run_test_core_k_aarch64_cuda_py310 }}" || true # [linux and aarch64 and (gpu_variant or "").startswith("cuda") and py == 310]
         # lgamma or mvlgamma or multigammaln or gammaln all have these issues on a combination of Intel Xeon processors and Windows Server differences.
         # enabling these tests on windows will cause numerical differences in the test suite.
         # This is a non-deterministic issue where between 80-110 tests fail. This has been observed between Pytorch 2.5 and above.
-        - python ./test/run_test.py --core --continue-through-error -k "not ((complex and (linalg_vecdot or dot or vdot)) or lgamma or mvlgamma or multigammaln or gammaln)" || exit 0 # [win]
+        - python ./test/run_test.py --core --continue-through-error -k "not ((complex and (linalg_vecdot or dot or vdot)) or lgamma or mvlgamma or multigammaln or gammaln)" || exit 0 # [win and py != 310]
+        - python ./test/run_test.py --core --continue-through-error -k "not ((complex and (linalg_vecdot or dot or vdot)) or lgamma or mvlgamma or multigammaln or gammaln or test_numpy_ref)" || exit 0 # [win and py == 310]
         # The inductor tests test the torch.compile backend. Using the options below avoids running distributed tests,
         # which would be run if we used the --inductor option. (Distributed tests would only be correctly run on a multi-gpu test platform,
         # which we don't have.)
@@ -643,53 +655,7 @@ outputs:
         - pytorch ={{ version }}={{ "cpu" if gpu_variant == "cpu" else "gpu" }}* # NB pinning exact=True will also pin to the python version
     test:
       imports:
-        - torch                                              # [not win]
-      commands:
-        # WIN-64 DIAGNOSTIC (TEMPORARY) — PR #97 (PKG-13552) reveal:
-        # `import torch._C` fails on win-64 with generic
-        #   "ImportError: DLL load failed: The specified module could not be found."
-        # even after explicit os.add_dll_directory($CONDA_PREFIX/Library/bin).
-        # Round 1.6 diag showed Library\bin has all the torch DLLs and Test A
-        # (with add_dll_directory) ALSO fails — so a dependent DLL is genuinely
-        # missing, not just a search-path problem. Round 1.12 widens the probe.
-        # Every command tolerates failure via `& ver > nul` so the runner
-        # doesn't abort on the first non-zero exit and we get the full picture.
-        - 'echo ===== ENV ====='                                                                                                                                                                                                  # [win]
-        - 'echo PREFIX=%PREFIX%'                                                                                                                                                                                                  # [win]
-        - 'echo CONDA_PREFIX=%CONDA_PREFIX%'                                                                                                                                                                                      # [win]
-        - 'echo SP_DIR=%SP_DIR%'                                                                                                                                                                                                  # [win]
-        - 'python -c "import sys; print(''python:'', sys.version); print(''exec_prefix:'', sys.exec_prefix); print(''base_exec_prefix:'', sys.base_exec_prefix)" & ver > nul'                                                     # [win]
-        - 'echo ===== %PREFIX%\Library\bin (torch DLLs) ====='                                                                                                                                                                    # [win]
-        - 'dir "%PREFIX%\Library\bin\torch*.dll" "%PREFIX%\Library\bin\c10*.dll" "%PREFIX%\Library\bin\dnnl.dll" "%PREFIX%\Library\bin\fbgemm.dll" "%PREFIX%\Library\bin\asmjit.dll" "%PREFIX%\Library\bin\shm.dll" 2>nul'         # [win]
-        - 'echo ===== %SP_DIR%\torch (pyd lives here) ====='                                                                                                                                                                      # [win]
-        - 'dir "%SP_DIR%\torch\*.pyd" /b'                                                                                                                                                                                         # [win]
-        - 'echo ===== %SP_DIR%\torch\lib (import libs) ====='                                                                                                                                                                     # [win]
-        - 'dir "%SP_DIR%\torch\lib" /b 2>nul'                                                                                                                                                                                     # [win]
-        - 'echo ===== System runtime DLLs (where lookup) ====='                                                                                                                                                                   # [win]
-        - 'where vcruntime140.dll 2>nul & ver > nul'                                                                                                                                                                              # [win]
-        - 'where msvcp140.dll 2>nul & ver > nul'                                                                                                                                                                                  # [win]
-        - 'where vcruntime140_1.dll 2>nul & ver > nul'                                                                                                                                                                            # [win]
-        - 'where vcomp140.dll 2>nul & ver > nul'                                                                                                                                                                                  # [win]
-        - 'where libiomp5md.dll 2>nul & ver > nul'                                                                                                                                                                                # [win]
-        - 'where libopenblas.dll 2>nul & ver > nul'                                                                                                                                                                               # [win]
-        - 'where mkl_intel_thread.2.dll 2>nul & ver > nul'                                                                                                                                                                        # [win]
-        - 'echo ===== ctypes.WinDLL load test (in dep order, with add_dll_directory) ====='                                                                                                                                       # [win]
-        - 'python -c "import os,ctypes; os.add_dll_directory(os.path.join(os.environ[''CONDA_PREFIX''],''Library'',''bin'')); p=os.path.join(os.environ[''CONDA_PREFIX''],''Library'',''bin'',''c10.dll''); ctypes.WinDLL(p); print(''c10.dll OK'')" & ver > nul'  # [win]
-        - 'python -c "import os,ctypes; os.add_dll_directory(os.path.join(os.environ[''CONDA_PREFIX''],''Library'',''bin'')); p=os.path.join(os.environ[''CONDA_PREFIX''],''Library'',''bin'',''shm.dll''); ctypes.WinDLL(p); print(''shm.dll OK'')" & ver > nul'  # [win]
-        - 'python -c "import os,ctypes; os.add_dll_directory(os.path.join(os.environ[''CONDA_PREFIX''],''Library'',''bin'')); p=os.path.join(os.environ[''CONDA_PREFIX''],''Library'',''bin'',''dnnl.dll''); ctypes.WinDLL(p); print(''dnnl.dll OK'')" & ver > nul'  # [win]
-        - 'python -c "import os,ctypes; os.add_dll_directory(os.path.join(os.environ[''CONDA_PREFIX''],''Library'',''bin'')); p=os.path.join(os.environ[''CONDA_PREFIX''],''Library'',''bin'',''torch.dll''); ctypes.WinDLL(p); print(''torch.dll OK'')" & ver > nul'  # [win]
-        - 'python -c "import os,ctypes; os.add_dll_directory(os.path.join(os.environ[''CONDA_PREFIX''],''Library'',''bin'')); p=os.path.join(os.environ[''CONDA_PREFIX''],''Library'',''bin'',''torch_global_deps.dll''); ctypes.WinDLL(p); print(''torch_global_deps.dll OK'')" & ver > nul'  # [win]
-        - 'python -c "import os,ctypes; os.add_dll_directory(os.path.join(os.environ[''CONDA_PREFIX''],''Library'',''bin'')); p=os.path.join(os.environ[''CONDA_PREFIX''],''Library'',''bin'',''torch_cpu.dll''); ctypes.WinDLL(p); print(''torch_cpu.dll OK'')" & ver > nul'  # [win]
-        - 'python -c "import os,ctypes; os.add_dll_directory(os.path.join(os.environ[''CONDA_PREFIX''],''Library'',''bin'')); p=os.path.join(os.environ[''CONDA_PREFIX''],''Library'',''bin'',''torch_python.dll''); ctypes.WinDLL(p); print(''torch_python.dll OK'')" & ver > nul'  # [win]
-        - 'echo ===== _C.pyd direct load test ====='                                                                                                                                                                              # [win]
-        - 'python -c "import os,ctypes,glob; os.add_dll_directory(os.path.join(os.environ[''CONDA_PREFIX''],''Library'',''bin'')); pyds=glob.glob(os.path.join(os.environ[''CONDA_PREFIX''],''Lib'',''site-packages'',''torch'',''_C.*.pyd'')); print(''pyds found:'',pyds); [ctypes.WinDLL(p) for p in pyds]; print(''_C.pyd loaded OK via ctypes'')" & ver > nul'  # [win]
-        - 'echo ===== Test A: add_dll_directory + import torch ====='                                                                                                                                                             # [win]
-        - 'python -c "import os; os.add_dll_directory(os.path.join(os.environ[''CONDA_PREFIX''],''Library'',''bin'')); import torch; print(''A: torch '', torch.__version__)" & ver > nul'                                        # [win]
-        - 'echo ===== Test B: bare import torch (the actually-failing case) ====='                                                                                                                                                # [win]
-        - 'python -c "import torch; print(''B: torch '', torch.__version__)" & ver > nul'                                                                                                                                          # [win]
-        - 'echo ===== Test C: what does PATH contain (for vc runtime resolution) ====='                                                                                                                                           # [win]
-        - 'echo %PATH%'                                                                                                                                                                                                           # [win]
-        - 'echo ===== End diagnostic ====='                                                                                                                                                                                       # [win]
+        - torch
 
 about:
   home: https://pytorch.org/
