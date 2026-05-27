@@ -189,6 +189,7 @@ requirements:
     - fmt {{ fmt }}
   # satisfy overlinking checks
   run:
+    - libgomp                                # [linux and blas_impl != "mkl"]
     - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
     - libuv                                  # [win]
     - {{ pin_compatible('magma') }}          # [(gpu_variant or "").startswith("cuda")]
