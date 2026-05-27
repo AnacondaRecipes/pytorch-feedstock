@@ -5,14 +5,5 @@ extra_labels_for_os:
 
 task_timeout: 72000
 
-# Dev/staging channel — currently hosts:
-#   * pybind11 3.0.4 + pybind11-abi 11  (PKG-13552 pybind11-v3 migration)
-#   * optree 0.18.0 *_1 rebuilt against pybind11 3.0.4  (from optree-feedstock #6)
-# triton 3.7.0 is already on pkgs/main; no longer needs staging.
-# Remove this `channels:` block once pybind11 v3 lands on pkgs/main and the
-# 41-feedstock PKG-13552 rebuild completes.
-channels:
-  - xkong-staging
-
 # build_parameters:
 #  - "--no-test"
