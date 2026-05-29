@@ -206,17 +206,12 @@ requirements:
     - llvm-openmp                    # [osx and not (blas_impl == "mkl")]
     - libabseil {{ libabseil }}
     - libprotobuf {{ libprotobuf }}
-    # sleef 3.9.0 with variant matching (per Eric Lundby's PR #100):
-    # the OpenMP-flavor variant must match the parent env's openmp runtime
-    # so torch_cpu.dll/.so doesn't get a mismatched DT_NEEDED.
-    #   - linux openblas → libgomp variant (matches AR libgcc *_gnu mutex)
-    #   - osx           → llvm_openmp variant (matches AR osx llvm-openmp)
-    #   - win or *+mkl  → no_openmp variant (sleef calls openmp internally
-    #                     via the parent process's runtime: intel-openmp
-    #                     on mkl, vcomp on win+openblas)
-    # On linux+mkl, pytorch falls back to bundled sleef via USE_SYSTEM_SLEEF=0
-    # because AR sleef 3.5.1 used to pin _openmp_mutex *_gnu hard; the
-    # 3.9.0 variant matrix avoids that, so we can re-include it everywhere.
+    # sleef 3.9.0 OpenMP-flavor variant must match parent env's runtime to
+    # avoid mismatched DT_NEEDED on torch_cpu:
+    #   linux+openblas → libgomp     (AR libgcc *_gnu mutex)
+    #   osx            → llvm_openmp (AR osx llvm-openmp)
+    #   win or *+mkl   → no_openmp   (sleef uses parent runtime: intel-openmp
+    #                                 on mkl, vcomp on win+openblas)
     - sleef 3.9.0 *libgomp*       # [linux and blas_impl != "mkl"]
     - sleef 3.9.0 *llvm_openmp*   # [osx]
     - sleef 3.9.0 *no_openmp*     # [win or blas_impl == "mkl"]
