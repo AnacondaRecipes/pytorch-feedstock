@@ -516,13 +516,9 @@ outputs:
         - {{ stdlib('c') }}
         - boto3
         - hypothesis
-        # SciPy is needed by test_ops.py::test_numpy_ref_* on ALL platforms
-        # (not just win+cuda as previously assumed). Failure on linux-64 +
-        # CUDA:
-        #   test_ops.py::TestCommonCUDA::test_numpy_ref_nn_functional_
-        #   pdist_cuda_float64 - Exception: name 'scipy' is not defined
-        # scipy 1.17 dropped py3.10 (requires_python >=3.11), so we skip
-        # scipy on py3.10 — paired with `not test_numpy_ref` filter below.
+        # scipy needed by test_ops.py::test_numpy_ref_* on all platforms.
+        # scipy 1.17 dropped py3.10, so skip on py3.10 - paired with the
+        # `not test_numpy_ref` filter below.
         - scipy           # [py != 310]
         - tabulate
         - pydot
