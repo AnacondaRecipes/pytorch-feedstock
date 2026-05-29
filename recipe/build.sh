@@ -136,15 +136,9 @@ if [[ "$OSTYPE" != "darwin"* ]]; then
 else
     export CMAKE_OSX_SYSROOT="/Library/Developer/CommandLineTools/SDKs/MacOSX${MACOSX_SDK_VERSION}.sdk"
     export CONDA_BUILD_SYSROOT="${CMAKE_OSX_SYSROOT}"
-    # SIR-3273 fix: the previous two exports were sufficient before the
-    # Taskcluster 95.x AMI rebuild because activation defaulted to the
-    # right SDK. After the rebuild, MacOSX.sdk symlink points at 12.1
-    # and activation pre-sets SDKROOT + CMAKE_ARGS to 12.1 too. clang
-    # honors SDKROOT and CMake honors -DCMAKE_OSX_SYSROOT= embedded in
-    # CMAKE_ARGS over our env overrides, so without these extra lines
-    # the compile still uses MacOSX12.1.sdk (which lacks Metal 3.0).
-    # Verified on PR #103 osx-arm64 metal debug build, graph
-    # 935c2593-eeac-41a8-8683-ec3e80f48478 — green with these 3 lines.
+    # SIR-3273: post-AMI MacOSX.sdk symlinks to 12.1 and activation pre-sets
+    # SDKROOT + CMAKE_ARGS to match, overriding our env vars and pinning the
+    # compile to MacOSX12.1.sdk (no Metal 3.0). Override both explicitly.
     export SDKROOT="${CMAKE_OSX_SYSROOT}"
     CMAKE_ARGS="${CMAKE_ARGS//MacOSX12.1.sdk/MacOSX${MACOSX_SDK_VERSION}.sdk}"
     CMAKE_ARGS="${CMAKE_ARGS//-DCMAKE_OSX_DEPLOYMENT_TARGET=12.1/-DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET}}"
