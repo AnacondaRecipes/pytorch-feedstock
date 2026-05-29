@@ -164,10 +164,9 @@ requirements:
     - nccl                   # [(gpu_variant or "").startswith("cuda") and linux]
     {% endif %}
     {% if cuda_major >= 12 %}
-    # cuda-driver-dev ships libcuda.so stub under targets/<arch>-linux/lib/stubs/;
-    # cmake's FindCUDAToolkit searches under the host prefix, so the driver
-    # stub must be in host (not just build) for pytorch 2.12 cuda.cmake to
-    # resolve CUDA::cuda_driver.
+    # cuda-driver-dev's libcuda.so stub must be in host (not just build):
+    # FindCUDAToolkit searches the host prefix, and pytorch 2.12's
+    # cuda.cmake link-resolves CUDA::cuda_driver at configure time.
     - cuda-driver-dev                        # [linux]
     - cuda-cudart-dev
     - cuda-cupti-dev
