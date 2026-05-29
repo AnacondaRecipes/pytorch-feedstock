@@ -154,27 +154,26 @@ export PYTORCH_BUILD_NUMBER=0
 export INSTALL_TEST=0
 export BUILD_TEST=0
 
-# Use system sleef everywhere except linux+mkl. AR sleef hard-pins
-# `_openmp_mutex *_gnu` in its depends, which conflicts with intel-openmp's
-# `*_intel` in MKL builds. On linux+mkl, fall back to pytorch's bundled
-# sleef (third_party/sleef) which will link intel-openmp from the build
-# env — keeps MKL builds intel-only, matching AR's OpenMP policy
-# (perseverance-skills/sections/02_Package_building/02_Recipes/Pinnings.md).
+# Use the system sleef on all platforms — the OpenMP-flavor variant is pinned
+# per-platform in meta.yaml host (libgomp / llvm_openmp / no_openmp) to match
+# AR's OpenMP policy (perseverance-skills .../Pinnings.md).
+export USE_SYSTEM_SLEEF=1
+# linux+mkl: route the REST of pytorch's OpenMP (libtorch_cpu etc.) to
+# intel-openmp. gcc's default `-fopenmp` injects `-lgomp` at link, which would
+# make libtorch_cpu NEEDED libgomp.so.1 and violate AR's one-OpenMP-per-env
+# policy. Override CMake's FindOpenMP to use libiomp5.so directly. (Patch 0022
+# handles the dnnl target surgically; this covers everything else.)
+# Note: the old bundled-sleef fallback (USE_SYSTEM_SLEEF=0) is no longer needed
+# — sleef 3.9.0's no_openmp variant (sleef-feedstock #4) carries no
+# _openmp_mutex pin, so the system sleef no_openmp build pinned in meta.yaml
+# host has no mutex conflict with intel-openmp.
 if [[ "$target_platform" == linux-* && "$blas_impl" == "mkl" ]]; then
-    export USE_SYSTEM_SLEEF=0
-    # AR OpenMP policy: linux+mkl must link intel-openmp only, not libgomp.
-    # gcc's default `-fopenmp` injects `-lgomp` at link → libtorch_cpu and
-    # other targets end up NEEDED libgomp.so.1. Override CMake's FindOpenMP
-    # to use libiomp5.so directly. (Patch 0022 covers the dnnl target via
-    # a more surgical target_link_libraries; this covers the rest.)
     export CMAKE_ARGS="$CMAKE_ARGS \
         -DOpenMP_C_FLAGS=-fopenmp \
         -DOpenMP_CXX_FLAGS=-fopenmp \
         -DOpenMP_C_LIB_NAMES=iomp5 \
         -DOpenMP_CXX_LIB_NAMES=iomp5 \
         -DOpenMP_iomp5_LIBRARY=$PREFIX/lib/libiomp5.so"
-else
-    export USE_SYSTEM_SLEEF=1
 fi
 # use our protobuf
 export BUILD_CUSTOM_PROTOBUF=OFF

@@ -33,15 +33,14 @@ package:
   version: {{ version }}
 
 source:
-  # Content-addressable source via git_url + git_rev: immune to GitHub asset
-  # regeneration. The v2.12.0 release tarball was silently re-generated
-  # between 2026-05-13 and 2026-05-15 (sha drift from 7cc1deb to 6a71b5f then
-  # back to 7cc1deb again by 2026-05-20), breaking fresh PBP worker fetches.
-  # conda-build recursively fetches submodules after clone, so pytorch's
-  # third_party/* are pinned via .gitmodules to the SHAs the v2.12.0 tag
-  # points at.
+  # Content-addressable source pinned to the exact commit v2.12.0 points at.
+  # Tags are mutable on GitHub — a retag would silently change our source —
+  # so we pin the SHA, not the tag. This also sidesteps the release-tarball
+  # regeneration that broke sha256-pinned fetches (asset re-generated several
+  # times between 2026-05-13 and 2026-05-20). conda-build recursively fetches
+  # submodules after clone, so third_party/* come from .gitmodules at this SHA.
   - git_url: https://github.com/pytorch/pytorch.git
-    git_rev: v{{ version }}{% if rc != None %}-rc{{ rc }}{% endif %}
+    git_rev: 0d62256a2b23365f8e1604297eb23a6545102aa8   # v2.12.0 GA
     # NOTE: no git_depth pin. `git_depth: 1` makes conda-build do a shallow
     # `git clone --depth 1` (defaults to HEAD), then `git checkout v2.12.0`
     # fails because the tag isn't reachable in the shallow history. Full
@@ -77,13 +76,13 @@ source:
 
 build:
   number: {{ build }}
-    # 15 builds at py3.14: linux-64 (cpu/cuda12.9/cuda13.0 × openblas/mkl),
-    # linux-aarch64 (cpu + cuda13.0, no triton per PKG-13219), osx-arm64 (cpu),
-    # win-64 (same 6 as linux-64). mkl is x86_64-only via aggregate CBC.
-    # Matrix split across 3 sibling PRs (SIR-2711 /tmp limit); recipe identical,
-    # only skip differs — #97 py3.14, #101 py3.10/3.11, #102 py3.12/3.13.
-    # Drop skip on merge-to-master once all three green.
-    skip: true  # [py != 314]
+  # 15 builds at py3.14: linux-64 (cpu/cuda12.9/cuda13.0 × openblas/mkl),
+  # linux-aarch64 (cpu + cuda13.0, no triton per PKG-13219), osx-arm64 (cpu),
+  # win-64 (same 6 as linux-64). mkl is x86_64-only via aggregate CBC.
+  # Matrix split across 3 sibling PRs (SIR-2711 /tmp limit); recipe identical,
+  # only skip differs — #97 py3.14, #101 py3.10/3.11, #102 py3.12/3.13.
+  # Drop skip on merge-to-master once all three green.
+  skip: true  # [py != 314]
   # osx-arm64 metal: re-enabled after SIR-3273 root cause fix in build.sh
   # (export SDKROOT + CMAKE_ARGS sed for 12.1 → MACOSX_SDK_VERSION).
   # Verified on PR #103 debug graph 935c2593-eeac-41a8-8683-ec3e80f48478.
@@ -224,7 +223,7 @@ requirements:
     # ABI-compatible up to 3.0.x; cap at 4.0 for future safety. pybind11-abi
     # explicitly included to pin the ABI version (PKG-13552; mamba-feedstock pattern).
     - pybind11 >=3.0.1,<4
-    - pybind11-abi
+    - pybind11-abi ==11     # strict — survives partial rebuilds
     - eigen {{ eigen }}
     - zlib {{ zlib }}
     - fmt {{ fmt }}
@@ -422,10 +421,7 @@ outputs:
         - llvm-openmp                 # [osx and not (blas_impl == "mkl")]
         - libabseil
         - libprotobuf {{ libprotobuf }}
-        # sleef: see libtorch host above for the 3.9.0 variant-matching
-        # rationale. On linux+mkl, pytorch still uses bundled sleef
-        # (USE_SYSTEM_SLEEF=0) so the host-side pin is for the resulting
-        # run dep ABI consistency.
+        # sleef: see libtorch host above for the 3.9.0 variant-matching rationale.
         - sleef 3.9.0 *libgomp*       # [linux and blas_impl != "mkl"]
         - sleef 3.9.0 *llvm_openmp*   # [osx]
         - sleef 3.9.0 *no_openmp*     # [win or blas_impl == "mkl"]
@@ -438,7 +434,7 @@ outputs:
         # upstream pytorch 2.12 vendors pybind11 3.0.1; ABI-compatible up to 3.0.x.
         # pybind11-abi explicit (PKG-13552, mamba pattern).
         - pybind11 >=3.0.1,<4
-        - pybind11-abi
+        - pybind11-abi ==11     # strict — survives partial rebuilds
         - eigen {{ eigen }}
         - zlib {{ zlib }}
         - fmt {{ fmt }}
