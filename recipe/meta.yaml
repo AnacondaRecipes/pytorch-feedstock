@@ -77,30 +77,13 @@ source:
 
 build:
   number: {{ build }}
-  # Platform coverage at py3.14: linux-64 (cpu/cuda12.9/cuda13.0 × openblas/mkl
-  # = 6), linux-aarch64 (cpu + cuda13.0 × openblas = 2), osx-arm64 (cpu only;
-  # metal blocked, see below), win-64 (same 6 as linux-64). Total 15 builds.
-  # mkl is x86_64-only (aggregate CBC gates it via `(x86 or x86_64) and not
-  # osx`), so aarch64/osx stay on openblas automatically.
-  #
-  # linux-aarch64 + CUDA: deliberately ships without triton per PKG-13219
-  # ("we will deliver without triton on linux-aarch64. We don't want this
-  # to be blocking."). triton is gated to `linux and x86_64` in the run-deps
-  # below (and so is the inductor test block). 2.11 shipped aarch64 CUDA the
-  # same way — torch.compile inductor backend is the only feature lost.
-  # win-64 + CUDA 12.9: cuda-cccl_win-64 12.9.27 ships a libcudacxx
-  # clusterlaunchcontrol.h header with an asm-constraint bug on MSVC
-  # ("asm operand type size(4) does not match constraint 'l'"). Worked
-  # around inline by bld.bat (sed-replace long2 → longlong2 in the affected
-  # header); no skip needed.
-  # Python matrix split across 3 sibling PRs to stay under PBP graph-submitter
-  # Lambda /tmp capacity (SIR-2711 regression — 75-build full sweep errno 28).
-  # All three PRs share an identical recipe; only this skip line differs:
-  #   THIS PR: skip: true  # [py != 314]            (15 builds)
-  #   PR #101: skip: true  # [py != 310 and py != 311]   (30 builds, validated)
-  #   PR #102: skip: true  # [py != 312 and py != 313]   (30 builds)
-  # Drop the skip entirely on the merge-to-master commit once all three green.
-  skip: true  # [py != 314]
+    # 15 builds at py3.14: linux-64 (cpu/cuda12.9/cuda13.0 × openblas/mkl),
+    # linux-aarch64 (cpu + cuda13.0, no triton per PKG-13219), osx-arm64 (cpu),
+    # win-64 (same 6 as linux-64). mkl is x86_64-only via aggregate CBC.
+    # Matrix split across 3 sibling PRs (SIR-2711 /tmp limit); recipe identical,
+    # only skip differs — #97 py3.14, #101 py3.10/3.11, #102 py3.12/3.13.
+    # Drop skip on merge-to-master once all three green.
+    skip: true  # [py != 314]
   # osx-arm64 metal: re-enabled after SIR-3273 root cause fix in build.sh
   # (export SDKROOT + CMAKE_ARGS sed for 12.1 → MACOSX_SDK_VERSION).
   # Verified on PR #103 debug graph 935c2593-eeac-41a8-8683-ec3e80f48478.
