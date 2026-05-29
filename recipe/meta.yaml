@@ -155,10 +155,8 @@ requirements:
     # git is needed on ALL platforms because the source uses git_url +
     # git_rev (content-addressable; immune to GitHub asset regeneration).
     - git
-    # libgomp has a strong run_export of _openmp_mutex *_gnu; on linux+mkl
-    # that conflicts with intel-openmp's _openmp_mutex *_intel in host.
-    # Scope libgomp to non-mkl linux only — intel-openmp provides openmp
-    # runtime for the mkl variant.
+    # libgomp's strong run_export pins _openmp_mutex *_gnu, which conflicts
+    # with intel-openmp's *_intel on linux+mkl — scope to non-mkl linux only.
     - libgomp   # [linux and blas_impl != "mkl"]
     # This has a strong run_export so we don't need to put it in `host` or `run`
     # We use llvm-openmp for openblas variants on osx.
