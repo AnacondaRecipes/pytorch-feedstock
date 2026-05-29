@@ -279,16 +279,9 @@ test:
 
 outputs:
   - name: libtorch
-    # Workaround for a win-64 conda-build wrapping change post-Taskcluster 95.x
-    # AMI rebuild (SIR-3210 / SIR-3264): when libtorch has no per-output script,
-    # conda-build inlines the top-level bld.bat into a generated IF-block
-    # wrapper instead of calling it as its own batch process. Inside that
-    # wrapper, CBC variant variables like %blas_impl% are empty, so bld.bat's
-    # BLAS check fails and the libtorch .conda artifact ships with 0 files.
-    # Giving libtorch its own per-output script (mirroring pytorch's
-    # build_pytorch.bat -> bld.bat pattern) forces a separate batch invocation
-    # where %blas_impl% is correctly populated. unix is unaffected; the
-    # top-level build.sh continues to run for the libtorch output there.
+    # SIR-3210/3264: post-AMI win-64, conda-build inlines bld.bat into an
+    # IF-wrapper where %blas_impl% is empty, producing a 0-file libtorch
+    # artifact. Per-output script forces a separate batch invocation. (unix unaffected.)
     script: build_libtorch.bat  # [win]
     build:
       missing_dso_whitelist:
