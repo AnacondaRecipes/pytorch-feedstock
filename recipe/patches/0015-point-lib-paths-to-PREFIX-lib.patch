@@ -10,10 +10,10 @@ that's where are sos/dlls are.
  torch/utils/cpp_extension.py | 13 ++++++++++++-
  1 file changed, 12 insertions(+), 1 deletion(-)
 
-Index: pytorch-2.12.0-rc3/torch/utils/cpp_extension.py
+Index: pytorch-2.12.0/torch/utils/cpp_extension.py
 ===================================================================
---- pytorch-2.12.0-rc3.orig/torch/utils/cpp_extension.py
-+++ pytorch-2.12.0-rc3/torch/utils/cpp_extension.py
+--- pytorch-2.12.0.orig/torch/utils/cpp_extension.py
++++ pytorch-2.12.0/torch/utils/cpp_extension.py
 @@ -40,7 +40,18 @@ SHARED_FLAG = '/DLL' if IS_WINDOWS else
  
  _HERE = os.path.abspath(__file__)

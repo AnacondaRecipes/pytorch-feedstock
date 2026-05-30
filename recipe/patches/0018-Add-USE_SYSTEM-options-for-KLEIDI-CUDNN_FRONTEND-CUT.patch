@@ -15,10 +15,10 @@ PR: https://github.com/pytorch/pytorch/pull/166824
  cmake/Summary.cmake          |  4 +++
  4 files changed, 74 insertions(+), 18 deletions(-)
 
-Index: pytorch-2.12.0-rc3/CMakeLists.txt
+Index: pytorch-2.12.0/CMakeLists.txt
 ===================================================================
---- pytorch-2.12.0-rc3.orig/CMakeLists.txt
-+++ pytorch-2.12.0-rc3/CMakeLists.txt
+--- pytorch-2.12.0.orig/CMakeLists.txt
++++ pytorch-2.12.0/CMakeLists.txt
 @@ -507,6 +507,10 @@ option(USE_SYSTEM_BENCHMARK "Use system-
  option(USE_SYSTEM_ONNX "Use system-provided onnx." OFF)
  option(USE_SYSTEM_XNNPACK "Use system-provided xnnpack." OFF)
@@ -41,10 +41,10 @@ Index: pytorch-2.12.0-rc3/CMakeLists.txt
  endif()
  
  # /Z7 override option When generating debug symbols, CMake default to use the
-Index: pytorch-2.12.0-rc3/aten/src/ATen/CMakeLists.txt
+Index: pytorch-2.12.0/aten/src/ATen/CMakeLists.txt
 ===================================================================
---- pytorch-2.12.0-rc3.orig/aten/src/ATen/CMakeLists.txt
-+++ pytorch-2.12.0-rc3/aten/src/ATen/CMakeLists.txt
+--- pytorch-2.12.0.orig/aten/src/ATen/CMakeLists.txt
++++ pytorch-2.12.0/aten/src/ATen/CMakeLists.txt
 @@ -797,8 +797,21 @@ if(USE_CUDA AND NOT USE_ROCM)
    add_definitions(-DCUTLASS_ENABLE_TENSOR_CORE_MMA=1)
    add_definitions(-DCUTLASS_ENABLE_SM90_EXTENDED_MMA_SHAPES=1)
@@ -69,10 +69,10 @@ Index: pytorch-2.12.0-rc3/aten/src/ATen/CMakeLists.txt
  
    if($ENV{ATEN_STATIC_CUDA})
      if(CUDA_VERSION VERSION_LESS_EQUAL 12.9)
-Index: pytorch-2.12.0-rc3/cmake/Dependencies.cmake
+Index: pytorch-2.12.0/cmake/Dependencies.cmake
 ===================================================================
---- pytorch-2.12.0-rc3.orig/cmake/Dependencies.cmake
-+++ pytorch-2.12.0-rc3/cmake/Dependencies.cmake
+--- pytorch-2.12.0.orig/cmake/Dependencies.cmake
++++ pytorch-2.12.0/cmake/Dependencies.cmake
 @@ -956,7 +956,14 @@ if(USE_CUDNN)
    if(CUDNN_VERSION VERSION_LESS 8.5)
      message(FATAL_ERROR "PyTorch needs CuDNN-8.5 or above, but found ${CUDNN_VERSION}. Builds are still possible with `USE_CUDNN=0`")
@@ -166,10 +166,10 @@ Index: pytorch-2.12.0-rc3/cmake/Dependencies.cmake
  
  # ---[ Kineto
  # edge profiler depends on KinetoProfiler but it only does cpu
-Index: pytorch-2.12.0-rc3/cmake/Summary.cmake
+Index: pytorch-2.12.0/cmake/Summary.cmake
 ===================================================================
---- pytorch-2.12.0-rc3.orig/cmake/Summary.cmake
-+++ pytorch-2.12.0-rc3/cmake/Summary.cmake
+--- pytorch-2.12.0.orig/cmake/Summary.cmake
++++ pytorch-2.12.0/cmake/Summary.cmake
 @@ -82,7 +82,9 @@ function(caffe2_print_configuration_summ
      message(STATUS "    USE_MEM_EFF_ATTENTION : ${USE_MEM_EFF_ATTENTION}")
      if(${USE_CUDNN})

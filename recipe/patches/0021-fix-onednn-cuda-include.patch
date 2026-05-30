@@ -6,10 +6,10 @@ Subject: [PATCH 12/13] Force OneDNN headers for BOTH CPU and CUDA targets
  caffe2/CMakeLists.txt | 13 +++++++++++++
  1 file changed, 13 insertions(+)
 
-Index: pytorch-2.12.0-rc3/caffe2/CMakeLists.txt
+Index: pytorch-2.12.0/caffe2/CMakeLists.txt
 ===================================================================
---- pytorch-2.12.0-rc3.orig/caffe2/CMakeLists.txt
-+++ pytorch-2.12.0-rc3/caffe2/CMakeLists.txt
+--- pytorch-2.12.0.orig/caffe2/CMakeLists.txt
++++ pytorch-2.12.0/caffe2/CMakeLists.txt
 @@ -2104,3 +2104,16 @@ if(MSVC)
    endforeach()
  endif()
