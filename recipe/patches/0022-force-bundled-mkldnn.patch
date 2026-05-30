@@ -3,10 +3,10 @@
 # Date: Fri, 6 Mar 2026 14:38:12 +0000
 # Imported from AnacondaRecipes/pytorch-feedstock PR #100 (Eric Lundby).
 
-Index: pytorch-2.12.0-rc3/cmake/Dependencies.cmake
+Index: pytorch-2.12.0/cmake/Dependencies.cmake
 ===================================================================
---- pytorch-2.12.0-rc3.orig/cmake/Dependencies.cmake
-+++ pytorch-2.12.0-rc3/cmake/Dependencies.cmake
+--- pytorch-2.12.0.orig/cmake/Dependencies.cmake
++++ pytorch-2.12.0/cmake/Dependencies.cmake
 @@ -1479,14 +1479,49 @@ if(NOT INTERN_BUILD_MOBILE)
      endif()
    endif()

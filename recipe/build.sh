@@ -136,15 +136,9 @@ if [[ "$OSTYPE" != "darwin"* ]]; then
 else
     export CMAKE_OSX_SYSROOT="/Library/Developer/CommandLineTools/SDKs/MacOSX${MACOSX_SDK_VERSION}.sdk"
     export CONDA_BUILD_SYSROOT="${CMAKE_OSX_SYSROOT}"
-    # SIR-3273 fix: the previous two exports were sufficient before the
-    # Taskcluster 95.x AMI rebuild because activation defaulted to the
-    # right SDK. After the rebuild, MacOSX.sdk symlink points at 12.1
-    # and activation pre-sets SDKROOT + CMAKE_ARGS to 12.1 too. clang
-    # honors SDKROOT and CMake honors -DCMAKE_OSX_SYSROOT= embedded in
-    # CMAKE_ARGS over our env overrides, so without these extra lines
-    # the compile still uses MacOSX12.1.sdk (which lacks Metal 3.0).
-    # Verified on PR #103 osx-arm64 metal debug build, graph
-    # 935c2593-eeac-41a8-8683-ec3e80f48478 — green with these 3 lines.
+    # SIR-3273: post-AMI MacOSX.sdk symlinks to 12.1 and activation pre-sets
+    # SDKROOT + CMAKE_ARGS to match, overriding our env vars and pinning the
+    # compile to MacOSX12.1.sdk (no Metal 3.0). Override both explicitly.
     export SDKROOT="${CMAKE_OSX_SYSROOT}"
     CMAKE_ARGS="${CMAKE_ARGS//MacOSX12.1.sdk/MacOSX${MACOSX_SDK_VERSION}.sdk}"
     CMAKE_ARGS="${CMAKE_ARGS//-DCMAKE_OSX_DEPLOYMENT_TARGET=12.1/-DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET}}"
@@ -160,27 +154,26 @@ export PYTORCH_BUILD_NUMBER=0
 export INSTALL_TEST=0
 export BUILD_TEST=0
 
-# Use system sleef everywhere except linux+mkl. AR sleef hard-pins
-# `_openmp_mutex *_gnu` in its depends, which conflicts with intel-openmp's
-# `*_intel` in MKL builds. On linux+mkl, fall back to pytorch's bundled
-# sleef (third_party/sleef) which will link intel-openmp from the build
-# env — keeps MKL builds intel-only, matching AR's OpenMP policy
-# (perseverance-skills/sections/02_Package_building/02_Recipes/Pinnings.md).
+# Use the system sleef on all platforms — the OpenMP-flavor variant is pinned
+# per-platform in meta.yaml host (libgomp / llvm_openmp / no_openmp) to match
+# AR's OpenMP policy (perseverance-skills .../Pinnings.md).
+export USE_SYSTEM_SLEEF=1
+# linux+mkl: route the REST of pytorch's OpenMP (libtorch_cpu etc.) to
+# intel-openmp. gcc's default `-fopenmp` injects `-lgomp` at link, which would
+# make libtorch_cpu NEEDED libgomp.so.1 and violate AR's one-OpenMP-per-env
+# policy. Override CMake's FindOpenMP to use libiomp5.so directly. (Patch 0022
+# handles the dnnl target surgically; this covers everything else.)
+# Note: the old bundled-sleef fallback (USE_SYSTEM_SLEEF=0) is no longer needed
+# — sleef 3.9.0's no_openmp variant (sleef-feedstock #4) carries no
+# _openmp_mutex pin, so the system sleef no_openmp build pinned in meta.yaml
+# host has no mutex conflict with intel-openmp.
 if [[ "$target_platform" == linux-* && "$blas_impl" == "mkl" ]]; then
-    export USE_SYSTEM_SLEEF=0
-    # AR OpenMP policy: linux+mkl must link intel-openmp only, not libgomp.
-    # gcc's default `-fopenmp` injects `-lgomp` at link → libtorch_cpu and
-    # other targets end up NEEDED libgomp.so.1. Override CMake's FindOpenMP
-    # to use libiomp5.so directly. (Patch 0022 covers the dnnl target via
-    # a more surgical target_link_libraries; this covers the rest.)
     export CMAKE_ARGS="$CMAKE_ARGS \
         -DOpenMP_C_FLAGS=-fopenmp \
         -DOpenMP_CXX_FLAGS=-fopenmp \
         -DOpenMP_C_LIB_NAMES=iomp5 \
         -DOpenMP_CXX_LIB_NAMES=iomp5 \
         -DOpenMP_iomp5_LIBRARY=$PREFIX/lib/libiomp5.so"
-else
-    export USE_SYSTEM_SLEEF=1
 fi
 # use our protobuf
 export BUILD_CUSTOM_PROTOBUF=OFF
@@ -326,17 +319,10 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
     # Cap glibc per-thread malloc arenas so long-running cicc/gcc processes
     # don't hold hundreds of MB of fragmented heap. No codegen impact.
     export MALLOC_ARENA_MAX=2
-    # Cap fbgemm_genai (CUTLASS) parallelism via a dedicated Ninja job pool
-    # (patch 0024). cutlass_heavy=4 lets 4 heavy CUTLASS TUs compile at once;
-    # observed RSS per cicc on g4dn.4xlarge T4 is ~4 GB, so 4× = ~16 GB peak,
-    # well under the 64 GB host budget. Was 1 originally (serialized) — that
-    # left 56 GB of RAM idle while MSLK FP4 GEMM kernels dominated wall time.
-    # Measured speedup on the MSLK FP4 tail (cutlass_heavy=1 → 4): ~3.4×.
-    # We tried =8 (PBP graph 2220751f): 13.0 dropped from 293→282 min (-3.8%),
-    # 12.9 went from 342→358 min (+4.7%) — net within noise floor. The MSLK
-    # tail saturates somewhere between 4 and 8 parallel TUs, so going higher
-    # adds memory pressure without real wall-time gains. Sticking with 4.
-    # Set as env vars so PyTorch setup.py auto-forwards them as -D
+    # Cap fbgemm_genai (CUTLASS) parallelism via Ninja job pool (patch 0024).
+    # cutlass_heavy=4 → ~16 GB peak (4 GB/cicc × 4), 3.4× speedup on MSLK FP4
+    # tail vs =1; =8 measured within noise. Env vars (not CMAKE_ARGS) because
+    # PyTorch setup.py auto-forwards them as -D.
     # (CMAKE_ARGS itself is not read by setup.py).
     export CMAKE_JOB_POOLS="cutlass_heavy=4;compile=${MAX_JOBS};link=2"
     export USE_FBGEMM_GENAI_JOB_POOL=cutlass_heavy
