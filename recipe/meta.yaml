@@ -136,8 +136,10 @@ requirements:
     {% endif %}
     # git is needed on ALL platforms because the source uses git_url +
     # git_rev (content-addressable; immune to GitHub asset regeneration).
-    - git              # [not win]
-    - msys2-git        # [win]
+    # Note on win: keep `- git` (not `msys2-git`) — msys2-git's POSIX-path
+    # git.exe fails conda-build's post-build `git status` step with
+    # "system cannot find the drive specified" (exit 128).
+    - git
     # libgomp's strong run_export pins _openmp_mutex *_gnu, which conflicts
     # with intel-openmp's *_intel on linux+mkl — scope to non-mkl linux only.
     - libgomp   # [linux and blas_impl != "mkl"]
@@ -359,9 +361,9 @@ outputs:
         - libcusolver-dev                        # [build_platform != target_platform]
         - libcusparse-dev                        # [build_platform != target_platform]
         {% endif %}
-        # git is needed on ALL platforms — see libtorch build section above.
-        - git              # [not win]
-        - msys2-git        # [win]
+        # git is needed on ALL platforms — see libtorch build section above
+        # (do NOT use msys2-git on win; conda-build invocation fails with it).
+        - git
         # See libtorch build section above for the openmp-mutex rationale —
         # libgomp's _openmp_mutex *_gnu run_export conflicts with intel-openmp's
         # _openmp_mutex *_intel on linux+mkl.
