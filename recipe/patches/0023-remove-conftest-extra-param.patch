@@ -11,10 +11,10 @@ This fixes compatibility with pytest 9+.
  test/conftest.py | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-Index: pytorch-2.12.0-rc3/test/conftest.py
+Index: pytorch-2.12.0/test/conftest.py
 ===================================================================
---- pytorch-2.12.0-rc3.orig/test/conftest.py
-+++ pytorch-2.12.0-rc3/test/conftest.py
+--- pytorch-2.12.0.orig/test/conftest.py
++++ pytorch-2.12.0/test/conftest.py
 @@ -233,7 +233,7 @@ def pytest_terminal_summary(terminalrepo
  
  

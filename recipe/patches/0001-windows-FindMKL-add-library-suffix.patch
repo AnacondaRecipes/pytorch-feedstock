@@ -9,10 +9,10 @@ This is required because our mdl-devel package contains libraries named like
  cmake/Modules/FindMKL.cmake | 15 +++++++++------
  1 file changed, 9 insertions(+), 6 deletions(-)
 
-Index: pytorch-2.12.0-rc3/cmake/Modules/FindMKL.cmake
+Index: pytorch-2.12.0/cmake/Modules/FindMKL.cmake
 ===================================================================
---- pytorch-2.12.0-rc3.orig/cmake/Modules/FindMKL.cmake
-+++ pytorch-2.12.0-rc3/cmake/Modules/FindMKL.cmake
+--- pytorch-2.12.0.orig/cmake/Modules/FindMKL.cmake
++++ pytorch-2.12.0/cmake/Modules/FindMKL.cmake
 @@ -124,6 +124,9 @@ ELSE(WIN32)
      ELSE()
        SET(mklthreads "mkl_intel_thread")

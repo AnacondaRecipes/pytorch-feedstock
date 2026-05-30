@@ -136,7 +136,8 @@ requirements:
     {% endif %}
     # git is needed on ALL platforms because the source uses git_url +
     # git_rev (content-addressable; immune to GitHub asset regeneration).
-    - git
+    - git              # [not win]
+    - msys2-git        # [win]
     # libgomp's strong run_export pins _openmp_mutex *_gnu, which conflicts
     # with intel-openmp's *_intel on linux+mkl — scope to non-mkl linux only.
     - libgomp   # [linux and blas_impl != "mkl"]
@@ -359,7 +360,8 @@ outputs:
         - libcusparse-dev                        # [build_platform != target_platform]
         {% endif %}
         # git is needed on ALL platforms — see libtorch build section above.
-        - git
+        - git              # [not win]
+        - msys2-git        # [win]
         # See libtorch build section above for the openmp-mutex rationale —
         # libgomp's _openmp_mutex *_gnu run_export conflicts with intel-openmp's
         # _openmp_mutex *_intel on linux+mkl.
