@@ -167,7 +167,11 @@ elif [[ "$target_platform" == "linux-64" && ${gpu_variant} == "cuda"* ]]; then
     # cicc OOMs on fbgemm_genai CUTLASS templates on runners. Rather
     # than globally throttle, we serialize only fbgemm_genai via a Ninja job
     # pool (patch 0024 + CMAKE_JOB_POOLS below) and leave MAX_JOBS high.
-    export MAX_JOBS=$((CPU_COUNT > 1 ? CPU_COUNT - 1 : 1))
+    if [[ ${cuda_compiler_version} == 13.* ]]; then
+        export MAX_JOBS=6
+    else
+        export MAX_JOBS=$((CPU_COUNT > 1 ? CPU_COUNT - 1 : 1))
+    fi
 else
     # Leave a spare core for other tasks. This may need to be reduced further
     # if we get out of memory errors. (Each job uses a certain amount of memory.)

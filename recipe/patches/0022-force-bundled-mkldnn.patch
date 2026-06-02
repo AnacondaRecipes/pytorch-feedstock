@@ -4,14 +4,53 @@ Date: Fri, 6 Mar 2026 14:38:12 +0000
 Subject: [PATCH] Force bundled OneDNN build, enable experimental kernels, and
  fix linking
 ---
- cmake/Dependencies.cmake | 24 ++++++++++++++++--------
- 1 file changed, 16 insertions(+), 8 deletions(-)
+ cmake/Dependencies.cmake                         | 68 +++++++++++++++++++-----
+ third_party/ideep/mkl-dnn/cmake/OpenMP.cmake     | 19 ++++++++--
+ 2 files changed, 80 insertions(+), 15 deletions(-)
 
 diff --git a/cmake/Dependencies.cmake b/cmake/Dependencies.cmake
 index ef5c2fd4e97..4696cdd4505 100644
 --- a/cmake/Dependencies.cmake
 +++ b/cmake/Dependencies.cmake
-@@ -1479,14 +1479,22 @@ if(NOT INTERN_BUILD_MOBILE)
+@@ -898,17 +898,36 @@ endif()
+ 
+ # ---[ OpenMP
+ if(USE_OPENMP AND NOT TARGET caffe2::openmp)
++  if(UNIX AND NOT APPLE AND "$ENV{blas_impl}" STREQUAL "mkl")
++    find_library(ANACONDA_INTEL_OPENMP_LIBRARY NAMES iomp5 libiomp5 REQUIRED)
++    # GCC needs -fopenmp while compiling, but passing -fopenmp during the
++    # shared-library link makes it inject libgomp. Route the top-level PyTorch
++    # OpenMP target to Intel OpenMP for conda MKL builds instead.
++    set(OpenMP_C_FLAGS "-fopenmp" CACHE STRING "" FORCE)
++    set(OpenMP_CXX_FLAGS "-fopenmp" CACHE STRING "" FORCE)
++    set(OpenMP_C_LIB_NAMES iomp5 CACHE STRING "" FORCE)
++    set(OpenMP_CXX_LIB_NAMES iomp5 CACHE STRING "" FORCE)
++    set(OpenMP_iomp5_LIBRARY "${ANACONDA_INTEL_OPENMP_LIBRARY}" CACHE FILEPATH "" FORCE)
++    set(OpenMP_C_LIBRARIES "${ANACONDA_INTEL_OPENMP_LIBRARY}" CACHE STRING "" FORCE)
++    set(OpenMP_CXX_LIBRARIES "${ANACONDA_INTEL_OPENMP_LIBRARY}" CACHE STRING "" FORCE)
++  endif()
+   include(${CMAKE_CURRENT_LIST_DIR}/Modules/FindOpenMP.cmake)
+   if(OPENMP_FOUND)
+     message(STATUS "Adding OpenMP CXX_FLAGS: " ${OpenMP_CXX_FLAGS})
+     if(APPLE AND USE_MPS)
+       string(APPEND CMAKE_OBJCXX_FLAGS " ${OpenMP_CXX_FLAGS}")
+     endif()
+     if(OpenMP_CXX_LIBRARIES)
+       message(STATUS "Will link against OpenMP libraries: ${OpenMP_CXX_LIBRARIES}")
+     endif()
+     add_library(caffe2::openmp INTERFACE IMPORTED)
+-    target_link_libraries(caffe2::openmp INTERFACE OpenMP::OpenMP_CXX)
++    if(UNIX AND NOT APPLE AND "$ENV{blas_impl}" STREQUAL "mkl")
++      target_compile_options(caffe2::openmp INTERFACE $<$<COMPILE_LANGUAGE:C>:${OpenMP_C_FLAGS}>)
++      target_compile_options(caffe2::openmp INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${OpenMP_CXX_FLAGS}>)
++      target_link_libraries(caffe2::openmp INTERFACE "${ANACONDA_INTEL_OPENMP_LIBRARY}")
++    else()
++      target_link_libraries(caffe2::openmp INTERFACE OpenMP::OpenMP_CXX)
++    endif()
+     list(APPEND Caffe2_DEPENDENCY_LIBS caffe2::openmp)
+     if(MSVC AND OpenMP_CXX_LIBRARIES MATCHES ".*libiomp5md\\.lib.*")
+       target_compile_definitions(caffe2::openmp INTERFACE _OPENMP_NOFORCE_MANIFEST)
+@@ -1479,14 +1479,49 @@ if(NOT INTERN_BUILD_MOBILE)
      endif()
    endif()
    if(USE_MKLDNN)
@@ -27,7 +66,34 @@ index ef5c2fd4e97..4696cdd4505 100644
 +    set(MKLDNN_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 +    set(MKLDNN_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 +    set(DNNL_EXPERIMENTAL_UKERNEL ON CACHE BOOL "" FORCE)
++    if(UNIX AND NOT APPLE AND "$ENV{blas_impl}" STREQUAL "mkl")
++      find_library(ANACONDA_INTEL_OPENMP_LIBRARY NAMES iomp5 libiomp5 REQUIRED)
++      # Keep oneDNN fully OpenMP-enabled for MKL builds, but route GCC builds
++      # to Intel OpenMP. oneDNN's OpenMP.cmake is patched below so -fopenmp is
++      # compile-only; otherwise GCC injects -lgomp during libdnnl.so linking.
++      set(DNNL_CPU_RUNTIME OMP CACHE STRING "" FORCE)
++      set(ONEDNN_CPU_RUNTIME OMP CACHE STRING "" FORCE)
++      set(OpenMP_C_FLAGS "-fopenmp" CACHE STRING "" FORCE)
++      set(OpenMP_CXX_FLAGS "-fopenmp" CACHE STRING "" FORCE)
++      set(OpenMP_C_LIB_NAMES iomp5 CACHE STRING "" FORCE)
++      set(OpenMP_CXX_LIB_NAMES iomp5 CACHE STRING "" FORCE)
++      set(OpenMP_iomp5_LIBRARY "${ANACONDA_INTEL_OPENMP_LIBRARY}" CACHE FILEPATH "" FORCE)
++      set(OpenMP_C_LIBRARIES "${ANACONDA_INTEL_OPENMP_LIBRARY}" CACHE STRING "" FORCE)
++      set(OpenMP_CXX_LIBRARIES "${ANACONDA_INTEL_OPENMP_LIBRARY}" CACHE STRING "" FORCE)
++    endif()
 +    add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/ideep/mkl-dnn)
++
++    if(UNIX AND NOT APPLE AND "$ENV{blas_impl}" STREQUAL "mkl" AND TARGET dnnl)
++      target_link_libraries(dnnl PRIVATE "${ANACONDA_INTEL_OPENMP_LIBRARY}")
++    endif()
++
++    if(MSVC AND "$ENV{blas_impl}" STREQUAL "mkl" AND TARGET dnnl)
++      find_library(ANACONDA_INTEL_OPENMP_LIBRARY NAMES libiomp5md REQUIRED)
++      # Match the rest of the MKL PyTorch stack on Windows: use Intel OpenMP,
++      # not the MSVC OpenMP runtime pulled in by /openmp defaults.
++      target_link_options(dnnl PRIVATE "/nodefaultlib:vcomp")
++      target_link_libraries(dnnl PRIVATE "${ANACONDA_INTEL_OPENMP_LIBRARY}")
++    endif()
 +
 +    # 1. OneDNN Source Headers (dnnl_graph.hpp)
 +    include_directories(AFTER SYSTEM ${PROJECT_SOURCE_DIR}/third_party/ideep/mkl-dnn/include)
@@ -42,6 +108,42 @@ index ef5c2fd4e97..4696cdd4505 100644
    else()
      message("disabling MKLDNN because USE_MKLDNN is not set")
    endif()
+diff --git a/third_party/ideep/mkl-dnn/cmake/OpenMP.cmake b/third_party/ideep/mkl-dnn/cmake/OpenMP.cmake
+index ebd4a18f321..1c3e7f4a2d1 100644
+--- a/third_party/ideep/mkl-dnn/cmake/OpenMP.cmake
++++ b/third_party/ideep/mkl-dnn/cmake/OpenMP.cmake
+@@ -58,13 +58,24 @@ if(NOT OpenMP_CXX_FOUND AND MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "(Clang|Inte
+     set(OpenMP_CXX_FOUND true)
+ endif()
+ 
+-# add flags unconditionally to always utilize openmp-simd for any threading runtime
+-if(OpenMP_C_FOUND)
+-    append(CMAKE_C_FLAGS ${OpenMP_C_FLAGS})
+-endif()
+-
+-if(OpenMP_CXX_FOUND)
+-    append(CMAKE_CXX_FLAGS ${OpenMP_CXX_FLAGS})
++if(UNIX AND NOT APPLE AND "$ENV{blas_impl}" STREQUAL "mkl")
++    # Add OpenMP flags as compile-only options for conda MKL builds. Appending
++    # -fopenmp to CMAKE_*_FLAGS makes CMake pass it to the shared-library link
++    # command too, and GCC injects -lgomp. We link libiomp5 explicitly instead.
++    if(OpenMP_C_FOUND)
++        add_compile_options($<$<COMPILE_LANGUAGE:C>:${OpenMP_C_FLAGS}>)
++    endif()
++    if(OpenMP_CXX_FOUND)
++        add_compile_options($<$<COMPILE_LANGUAGE:CXX>:${OpenMP_CXX_FLAGS}>)
++    endif()
++else()
++    # add flags unconditionally to always utilize openmp-simd for any threading runtime
++    if(OpenMP_C_FOUND)
++        append(CMAKE_C_FLAGS ${OpenMP_C_FLAGS})
++    endif()
++    if(OpenMP_CXX_FOUND)
++        append(CMAKE_CXX_FLAGS ${OpenMP_CXX_FLAGS})
++    endif()
+ endif()
+ 
+ if(DNNL_CPU_THREADING_RUNTIME MATCHES "OMP")
 -- 
 2.50.1 (Apple Git-155)
 

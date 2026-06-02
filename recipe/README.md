@@ -17,6 +17,7 @@ python build-locally.py
 
 The following script may help build all cuda version sequentially:
 ```bash
+
 #!/usr/env/bin bash
 
 set -ex
