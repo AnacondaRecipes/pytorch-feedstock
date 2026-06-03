@@ -13,6 +13,23 @@ export PACKAGE_TYPE=conda
 # remove pyproject.toml to avoid installing deps from pip
 rm -rf pyproject.toml
 
+# On linux+mkl, gate dnnl's OpenMP.cmake to use compile-only flags so gcc
+# doesn't auto-link libgomp into libdnnl.so. (Paired with patch 0022's
+# DNNL_CPU_RUNTIME=OMP + libiomp5 routing.)
+# Done via sed because the file lives inside the mkl-dnn submodule and a
+# patch-file approach fails on Windows worker — but Windows doesn't need
+# this fix anyway, MSVC iomp5 is routed via target properties in
+# Dependencies.cmake (patch 0022).
+if [[ "$target_platform" == linux-* && "$blas_impl" == "mkl" ]]; then
+    sed -i \
+        -e 's|append(CMAKE_C_FLAGS ${OpenMP_C_FLAGS})|add_compile_options($<$<COMPILE_LANGUAGE:C>:${OpenMP_C_FLAGS}>)|' \
+        -e 's|append(CMAKE_CXX_FLAGS ${OpenMP_CXX_FLAGS})|add_compile_options($<$<COMPILE_LANGUAGE:CXX>:${OpenMP_CXX_FLAGS}>)|' \
+        third_party/ideep/mkl-dnn/cmake/OpenMP.cmake
+    grep -q "add_compile_options.*COMPILE_LANGUAGE:C.*OpenMP_C_FLAGS" \
+        third_party/ideep/mkl-dnn/cmake/OpenMP.cmake \
+        || { echo "ERROR: dnnl OpenMP.cmake sed didn't apply"; exit 1; }
+fi
+
 # uncomment to debug cmake build
 # export CMAKE_VERBOSE_MAKEFILE=1
 
@@ -119,6 +136,13 @@ if [[ "$OSTYPE" != "darwin"* ]]; then
 else
     export CMAKE_OSX_SYSROOT="/Library/Developer/CommandLineTools/SDKs/MacOSX${MACOSX_SDK_VERSION}.sdk"
     export CONDA_BUILD_SYSROOT="${CMAKE_OSX_SYSROOT}"
+    # SIR-3273: post-AMI MacOSX.sdk symlinks to 12.1 and activation pre-sets
+    # SDKROOT + CMAKE_ARGS to match, overriding our env vars and pinning the
+    # compile to MacOSX12.1.sdk (no Metal 3.0). Override both explicitly.
+    export SDKROOT="${CMAKE_OSX_SYSROOT}"
+    CMAKE_ARGS="${CMAKE_ARGS//MacOSX12.1.sdk/MacOSX${MACOSX_SDK_VERSION}.sdk}"
+    CMAKE_ARGS="${CMAKE_ARGS//-DCMAKE_OSX_DEPLOYMENT_TARGET=12.1/-DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET}}"
+    export CMAKE_ARGS
 fi
 #export TH_BINARY_BUILD=1
 # Use our build version and number for inserting into binaries
@@ -130,7 +154,27 @@ export PYTORCH_BUILD_NUMBER=0
 export INSTALL_TEST=0
 export BUILD_TEST=0
 
+# Use the system sleef on all platforms — the OpenMP-flavor variant is pinned
+# per-platform in meta.yaml host (libgomp / llvm_openmp / no_openmp) to match
+# AR's OpenMP policy (perseverance-skills .../Pinnings.md).
 export USE_SYSTEM_SLEEF=1
+# linux+mkl: route the REST of pytorch's OpenMP (libtorch_cpu etc.) to
+# intel-openmp. gcc's default `-fopenmp` injects `-lgomp` at link, which would
+# make libtorch_cpu NEEDED libgomp.so.1 and violate AR's one-OpenMP-per-env
+# policy. Override CMake's FindOpenMP to use libiomp5.so directly. (Patch 0022
+# handles the dnnl target surgically; this covers everything else.)
+# Note: the old bundled-sleef fallback (USE_SYSTEM_SLEEF=0) is no longer needed
+# — sleef 3.9.0's no_openmp variant (sleef-feedstock #4) carries no
+# _openmp_mutex pin, so the system sleef no_openmp build pinned in meta.yaml
+# host has no mutex conflict with intel-openmp.
+if [[ "$target_platform" == linux-* && "$blas_impl" == "mkl" ]]; then
+    export CMAKE_ARGS="$CMAKE_ARGS \
+        -DOpenMP_C_FLAGS=-fopenmp \
+        -DOpenMP_CXX_FLAGS=-fopenmp \
+        -DOpenMP_C_LIB_NAMES=iomp5 \
+        -DOpenMP_CXX_LIB_NAMES=iomp5 \
+        -DOpenMP_iomp5_LIBRARY=$PREFIX/lib/libiomp5.so"
+fi
 # use our protobuf
 export BUILD_CUSTOM_PROTOBUF=OFF
 export USE_SYSTEM_PYBIND11=1
@@ -167,6 +211,7 @@ elif [[ "$target_platform" == "linux-64" && ${gpu_variant} == "cuda"* ]]; then
     # cicc OOMs on fbgemm_genai CUTLASS templates on runners. Rather
     # than globally throttle, we serialize only fbgemm_genai via a Ninja job
     # pool (patch 0024 + CMAKE_JOB_POOLS below) and leave MAX_JOBS high.
+    # MAX_JOBS=CPU_COUNT-1 verified safe on g4dn.4xlarge (16 vCPU / 64GB) in 2.10.0.
     export MAX_JOBS=$((CPU_COUNT > 1 ? CPU_COUNT - 1 : 1))
 else
     # Leave a spare core for other tasks. This may need to be reduced further
@@ -236,18 +281,27 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
     if [[ "${target_platform}" != "${build_platform}" ]]; then
         export CUDA_TOOLKIT_ROOT=${CUDA_HOME}
     fi
+    # CUDA arch lists aligned with upstream PyTorch v2.12.0 .ci/manywheel/build_cuda.sh,
+    # with one deliberate divergence: keep trailing +PTX for forward-compat with future
+    # archs (sm_13+). Upstream 2.11 shipped +PTX; upstream 2.12 dropped it (line 112's
+    # comment still says "+ PTX for forward compatibility" but the code no longer adds it).
+    # We preserve +PTX so users on hardware newer than sm_12 still get JIT-runnable kernels.
+    # 2.12 supports CUDA 12.6/12.8/12.9/13.0/13.2; we ship 12.9 and 13.0
+    # (pkgs/main has cuda-nvcc 13.0 but not 13.2 yet — see CBC).
     if [[ "$target_platform" == "linux-aarch64" && ${cuda_compiler_version} == 13.* ]]; then
-        # aarch64: upstream filters out <8.0 and 8.6 (x86_64-only SKUs).
-        # Keeps 8.0 (A100), 9.0 (Grace Hopper), 10.0+12.0 (Blackwell).
-        # aarch64 CUDA 13: same filter plus sm_11.0 added upstream specifically for aarch64.
-        # https://github.com/pytorch/pytorch/blob/v2.10.0/.ci/manywheel/build_cuda.sh
+        # aarch64 CUDA 13: upstream filters out <8.0, 7.5, 8.6 (x86_64-only SKUs)
+        # and adds sm_11.0 (Jetson Thor) only on aarch64.
+        # Keeps 8.0 (A100), 9.0 (Grace Hopper), 10.0+12.0 (Blackwell), 11.0 (Thor).
+        # sm_12.1+PTX is a deliberate divergence from upstream 2.12 for NVIDIA
+        # DGX Spark (GB10 Superchip, aarch64 Blackwell consumer/edge variant
+        # launched ~Apr 2026 after upstream 2.12's build_cuda.sh was written).
+        # Match what AR shipped in 2.11 (PR #95) for this customer.
         export TORCH_CUDA_ARCH_LIST="8.0;9.0;10.0;11.0;12.0;12.1+PTX"
     elif [[ ${cuda_compiler_version} == 12.* ]]; then
-        # Arch list aligned with upstream PyTorch CI.
-        # sm_50-sm_61 deprecated in CUDA 12.8; sm_70 dropped upstream in 2.11.
+        # CUDA 12: sm_50-sm_61 deprecated in 12.8; sm_70 dropped upstream in 2.11.
         export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;9.0;10.0;12.0+PTX"
     elif [[ ${cuda_compiler_version} == 13.* ]]; then
-        # sm_70 dropped in CUDA 13; list matches upstream PyTorch CI for CUDA 13.
+        # CUDA 13: sm_70 dropped; same arch list as 12.x for x86_64.
         export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;9.0;10.0;12.0+PTX"
     else
         echo "No CUDA architecture list exists for CUDA v${cuda_compiler_version}"
@@ -265,10 +319,12 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
     # Cap glibc per-thread malloc arenas so long-running cicc/gcc processes
     # don't hold hundreds of MB of fragmented heap. No codegen impact.
     export MALLOC_ARENA_MAX=2
-    # Serialize fbgemm_genai compiles via a dedicated Ninja job pool (patch
-    # 0024). Set as env vars so PyTorch setup.py auto-forwards them as -D
+    # Cap fbgemm_genai (CUTLASS) parallelism via Ninja job pool (patch 0024).
+    # cutlass_heavy=4 → ~16 GB peak (4 GB/cicc × 4), 3.4× speedup on MSLK FP4
+    # tail vs =1; =8 measured within noise. Env vars (not CMAKE_ARGS) because
+    # PyTorch setup.py auto-forwards them as -D.
     # (CMAKE_ARGS itself is not read by setup.py).
-    export CMAKE_JOB_POOLS="cutlass_heavy=1;compile=${MAX_JOBS};link=2"
+    export CMAKE_JOB_POOLS="cutlass_heavy=4;compile=${MAX_JOBS};link=2"
     export USE_FBGEMM_GENAI_JOB_POOL=cutlass_heavy
     export NCCL_ROOT_DIR=$PREFIX
     export NCCL_INCLUDE_DIR=$PREFIX/include
@@ -284,7 +340,29 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
     export USE_CUDSS=0
     export USE_SYSTEM_NVTX=1
     export MAGMA_HOME="${PREFIX}"
-    export CUDA_INC_PATH="${PREFIX}/targets/$(uname -m)-linux/include/"
+    # NVIDIA's conda CUDA packages use sbsa-linux (Server Base System Architecture)
+    # for aarch64, not aarch64-linux. uname -m returns "aarch64" which doesn't match.
+    case "$(uname -m)" in
+        aarch64) _cuda_arch="sbsa-linux" ;;
+        *)       _cuda_arch="$(uname -m)-linux" ;;
+    esac
+    export CUDA_INC_PATH="${PREFIX}/targets/${_cuda_arch}/include/"
+    # pytorch 2.12 + CMake 4.x: cmake/public/cuda.cmake creates an INTERFACE
+    # target caffe2::cuda → CUDA::cuda_driver, validated eagerly at generate.
+    # The driver stub from cuda-driver-dev lives under targets/<arch>/lib/stubs/
+    # which FindCUDAToolkit doesn't search by default. Point cmake at it.
+    export CMAKE_LIBRARY_PATH="${BUILD_PREFIX}/targets/${_cuda_arch}/lib/stubs:${PREFIX}/targets/${_cuda_arch}/lib/stubs:${CMAKE_LIBRARY_PATH}"
+    export CUDA_cuda_driver_LIBRARY="${BUILD_PREFIX}/targets/${_cuda_arch}/lib/stubs/libcuda.so"
+    # pytorch 2.12 still calls find_package(CUB) when CUDA<13 (Dependencies.cmake:1167).
+    # FindCUB.cmake's HINTS=${CUDAToolkit_INCLUDE_DIRS} doesn't resolve to conda's
+    # targets/<arch>-linux/include path, so it fails to find cub/cub.cuh even though
+    # cuda-cccl_linux-64 shipped it there. Inject the path as an extra HINTS entry.
+    # No-op for CUDA 13+, which doesn't call find_package(CUB).
+    if [[ ${cuda_compiler_version} == 12.* ]] && [[ -f cmake/Modules/FindCUB.cmake ]]; then
+        sed -i.bak \
+            's|HINTS "${CUDAToolkit_INCLUDE_DIRS}"|HINTS "${CUDAToolkit_INCLUDE_DIRS}" "'"${PREFIX}/targets/${_cuda_arch}/include"'"|' \
+            cmake/Modules/FindCUB.cmake
+    fi
 else
     # MKLDNN is an Apache-2.0 licensed library for DNNs and is used
     # for CPU builds. Not to be confused with MKL.

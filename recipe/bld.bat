@@ -59,15 +59,17 @@ if "%gpu_variant:~0,4%" == "cuda" (
     set USE_NCCL=0
     set USE_STATIC_NCCL=0
 
-    @REM CUDA Architecture List (aligned with upstream PyTorch CI)
+    @REM CUDA Architecture List (aligned with upstream PyTorch v2.12.0 .ci/manywheel/build_cuda.sh)
     @REM  7.5 = Turing     (RTX 20xx, T4)
     @REM  8.0 = Ampere HPC (A100)
     @REM  8.6 = Ampere     (RTX 30xx)
     @REM  9.0 = Hopper     (H100, H200)
     @REM 10.0 = Blackwell  (GB200, B200)
     @REM 12.0 = Blackwell  (RTX 50xx, RTX PRO)
-    @REM +PTX = forward compat via JIT for future archs
     @REM sm_70 (Volta/V100) dropped upstream in 2.11 for CUDA 12 and CUDA 13.
+    @REM We deliberately keep trailing +PTX for forward-compat with future archs
+    @REM (sm_13+). Upstream 2.11 shipped +PTX; upstream 2.12 dropped it. We preserve
+    @REM it so users on hardware newer than sm_12 still get JIT-runnable kernels.
     set "cuda_major=%cuda_compiler_version:~0,2%"
     if "!cuda_major!" == "12" (
         set "TORCH_CUDA_ARCH_LIST=7.5;8.0;8.6;9.0;10.0;12.0+PTX"
@@ -78,7 +80,13 @@ if "%gpu_variant:~0,4%" == "cuda" (
         echo Use https://en.wikipedia.org/wiki/CUDA#GPUs_supported to make one.
         exit /b 1
     )
-    set "TORCH_NVCC_FLAGS=-Xfatbin -compress-all"
+    @REM TORCH_NVCC_FLAGS: --threads 2 parallelizes nvcc within each translation unit.
+    @REM Do NOT set BUILD_BUNDLE_PTXAS on Windows: pytorch's CMakeLists.txt:1467
+    @REM does `file(COPY "${CUDAToolkit_BIN_DIR}/ptxas" ...)` with the literal
+    @REM Linux name `ptxas` — on Windows the binary is `ptxas.exe`, so the
+    @REM copy fails with "cannot find ... ptxas: File exists". Master (2.11)
+    @REM never set it on win; we don't need PTXAS bundled on win either.
+    set "TORCH_NVCC_FLAGS=-Xfatbin -compress-all --threads 2"
 
     @REM Suppress extremely noisy ptxas advisories that bloat logs
     set "CMAKE_CUDA_FLAGS=-w -Xptxas -w"
@@ -93,6 +101,20 @@ if "%gpu_variant:~0,4%" == "cuda" (
     set "PATH=%CUDA_BIN_PATH%;%PATH%"
     set CUDNN_INCLUDE_DIR=%LIBRARY_PREFIX%\include
     set "CUDA_VERSION=%cuda_compiler_version%"
+
+    @REM ==================== libcudacxx clusterlaunchcontrol patch ===============
+    @REM cuda-cccl_win-64 12.9.27 ships a libcudacxx header with an asm-constraint
+    @REM bug that fails to compile on Windows MSVC:
+    @REM   clusterlaunchcontrol.h(78): error: asm operand type size(4) does not
+    @REM   match type/size implied by constraint 'l'
+    @REM Root cause: the header casts to `long2*` and feeds .x/.y into asm with
+    @REM constraint 'l' (64-bit). On Linux x86_64 LP64 `long` is 64-bit (works);
+    @REM on Windows MSVC LLP64 `long` is 32-bit (size mismatch). Fixed upstream
+    @REM in CUDA 13.0+. For 12.9 we sed-replace long2 with longlong2 (64-bit on
+    @REM both platforms) in the host- and build-env copies of the header.
+    if "%cuda_compiler_version%"=="12.9" (
+        powershell -NoProfile -Command "@('%BUILD_PREFIX%','%PREFIX%') | ForEach-Object { $p = Join-Path $_ 'Library\include\targets\x64\cuda\__ptx\instructions\generated\clusterlaunchcontrol.h'; if (Test-Path $p) { $orig = Get-Content $p -Raw; $patched = $orig -replace 'reinterpret_cast<long2\*>', 'reinterpret_cast<longlong2*>'; if ($patched -ne $orig) { Set-Content -Path $p -Value $patched -NoNewline; Write-Host \"libcudacxx patch applied: $p\" } } }"
+    )
 ) else (
     set USE_CUDA=0
     set "USE_MKLDNN=1"
