@@ -87,7 +87,10 @@ build:
   # Matrix split across 3 sibling PRs (SIR-2711 /tmp limit); recipe identical,
   # only skip differs — #97 py3.14, #101 py3.10/3.11, #102 py3.12/3.13.
   # Drop skip on merge-to-master once all three green.
-  skip: true  # [py != 314]
+  # Republish PRs: #97's libtorch + pytorch-{cpu|gpu} wrappers are already on
+  # pkgs/main; this PR only republishes the pytorch (py-specific) output for
+  # py3.10/3.11. libtorch + wrappers are skipped at output level below.
+  skip: true  # [py != 310 and py != 311]
   # osx-arm64 metal: re-enabled after SIR-3273 root cause fix in build.sh
   # (export SDKROOT + CMAKE_ARGS sed for 12.1 → MACOSX_SDK_VERSION).
   # Verified on PR #103 debug graph 935c2593-eeac-41a8-8683-ec3e80f48478.
@@ -291,6 +294,11 @@ outputs:
     # artifact. Per-output script forces a separate batch invocation. (unix unaffected.)
     script: build_libtorch.bat  # [win]
     build:
+      # Republish PR: libtorch was already released by PR #97 (build-string has
+      # no py-token, so the filenames would be byte-identical and PBP rejects
+      # the duplicate). Skip packaging here; top-level build.sh still runs and
+      # populates $PREFIX so the pytorch output below can link against it.
+      skip: true
       missing_dso_whitelist:
         # The are dynamically loaded from %SP_DIR%\torch\lib\
         - "**/asmjit.dll"             # [win]
@@ -336,7 +344,9 @@ outputs:
       detect_binary_files_with_prefix: false
       run_exports:
         - {{ pin_subpackage('pytorch', max_pin='x.x') }}
-        - {{ pin_subpackage('libtorch', max_pin='x.x') }}
+        # Republish PR: libtorch is not built here (skipped above); pin to the
+        # version on pkgs/main from PR #97, mirroring max_pin='x.x' semantics.
+        - libtorch >={{ version }},<2.13.0a0
     script: build_pytorch.sh   # [unix]
     script: build_pytorch.bat  # [win]
     requirements:
@@ -439,7 +449,12 @@ outputs:
         # upstream requirements-build.txt: typing-extensions>=4.15.0
         - typing_extensions >=4.15.0
         - packaging
-        - {{ pin_subpackage('libtorch', exact=True) }}
+        # Republish PR: libtorch is not built here (skipped above); pin by
+        # variant + build_num to the matching libtorch released by PR #97.
+        # The wildcard hash collapses to exactly one published file per slot.
+        - libtorch =={{ version }}=cpu_{{ blas_impl }}_*_{{ PKG_BUILDNUM }}                                       # [gpu_variant == "cpu"]
+        - libtorch =={{ version }}=gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_*_{{ PKG_BUILDNUM }}    # [(gpu_variant or "").startswith("cuda")]
+        - libtorch =={{ version }}=gpu_mps_*_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
         # upstream pytorch 2.12 vendors pybind11 3.0.1; ABI-compatible up to 3.0.x.
         # pybind11-abi explicit (PKG-13552, mamba pattern).
         - pybind11 >=3.0.1,<4
@@ -471,7 +486,10 @@ outputs:
         - fsspec
         # Required to support torch.compile. This is tested in smoke_test.py, which is required to pass
         - triton =={{ triton }}       # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
-        - {{ pin_subpackage('libtorch', exact=True) }}
+        # Republish PR: libtorch is on pkgs/main from PR #97; pin by variant + build_num.
+        - libtorch =={{ version }}=cpu_{{ blas_impl }}_*_{{ PKG_BUILDNUM }}                                       # [gpu_variant == "cpu"]
+        - libtorch =={{ version }}=gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_*_{{ PKG_BUILDNUM }}    # [(gpu_variant or "").startswith("cuda")]
+        - libtorch =={{ version }}=gpu_mps_*_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
         # upstream requirements-build.txt: setuptools>=70.1.0,<82
         - setuptools >=70.1.0,<82
       run_constrained:
@@ -616,6 +634,11 @@ outputs:
         - test -f $PREFIX/lib/libtorch_python${SHLIB_EXT}     # [unix]
 
   - name: pytorch-{{ "cpu" if gpu_variant == "cpu" else "gpu" }}
+    build:
+      # Republish PR: the wrapper metapackage was already released by PR #97
+      # (build-string uses h1234567 placeholder, identical across all py).
+      # Skip to avoid duplicate-filename release blocker.
+      skip: true
     requirements:
       run:
         - pytorch ={{ version }}={{ "cpu" if gpu_variant == "cpu" else "gpu" }}* # NB pinning exact=True will also pin to the python version
