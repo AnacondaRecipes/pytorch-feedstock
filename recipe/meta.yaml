@@ -490,6 +490,15 @@ outputs:
         - libtorch =={{ version }}=cpu_{{ blas_impl }}_*_{{ PKG_BUILDNUM }}                                       # [gpu_variant == "cpu"]
         - libtorch =={{ version }}=gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_*_{{ PKG_BUILDNUM }}    # [(gpu_variant or "").startswith("cuda")]
         - libtorch =={{ version }}=gpu_mps_*_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
+        # Republish PR: libtorch_python links against libabseil + libprotobuf
+        # (see top-level host on lines 441-442). When libtorch is built as a
+        # sibling output (canonical PR #97), libabseil/libprotobuf's run_exports
+        # propagate through libtorch -> pytorch via pin_subpackage and
+        # conda-build's overlinking check is satisfied transitively. With
+        # libtorch installed from pkgs/main as a binary dep, the chain doesn't
+        # follow, so list them explicitly in pytorch's run.
+        - libabseil
+        - libprotobuf {{ libprotobuf }}
         # upstream requirements-build.txt: setuptools>=70.1.0,<82
         - setuptools >=70.1.0,<82
       run_constrained:
