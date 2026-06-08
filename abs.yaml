@@ -5,5 +5,18 @@ extra_labels_for_os:
 
 task_timeout: 72000
 
-# build_parameters:
-#  - "--no-test"
+# Republish PR: drop --skip-existing from PBP's default build options
+# (default: --skip-existing --error-overlinking --suppress-variables).
+# With the libtorch + pytorch-{cpu|gpu} wrapper outputs skipped at output
+# level, conda-build's --skip-existing precheck calls is_package_built on
+# the pytorch output BEFORE any finalize_metadata runs. is_package_built
+# queries the local public/ output folder as a channel, which has no
+# noarch/repodata.json yet, and conda 26.3 raises UnavailableInvalidChannel.
+# In the canonical PR #97 the first output (libtorch) was not skipped, so
+# its finalize_metadata seeded the local index before any is_package_built
+# call. With libtorch skipped here, drop --skip-existing — on a fresh
+# republish there's nothing to skip anyway. NB: this REPLACES (not appends
+# to) the default flag set.
+build_parameters:
+  - "--error-overlinking"
+  - "--suppress-variables"
