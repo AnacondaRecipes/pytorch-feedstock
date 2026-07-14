@@ -1,4 +1,4 @@
-{% set version = "2.12.0" %}
+{% set version = "2.13.0" %}
 # Set the RC number to build release candidates. Set to None otherwise.
 {% set rc = None %}
 {% set build = 0 %}
@@ -9,12 +9,12 @@
 # To resolve for a future release:
 #   gh api repos/pytorch/pytorch/git/refs/tags/v<version> --jq '.object.sha'
 # (de-reference annotated tags via .object.type == "tag" → /git/tags/<sha>.)
-{% set git_rev_sha = "0d62256a2b23365f8e1604297eb23a6545102aa8" %}
+{% set git_rev_sha = "cf30153c4c131c8164ee7798e5022d810682e2cb" %}
 {% set smoke_test_commit = git_rev_sha %}
 
 # see https://github.com/pytorch/pytorch/blame/v{{ version }}/.ci/docker/ci_commit_pins/triton.txt
-# 2.12 pins triton to release/3.7.x (commit b4e20bbe) — needs triton 3.7.0 in pkgs/main.
-{% set triton = "3.7.0" %}
+# 2.13 pins triton to commit 5d6048aa (triton 3.7.1) — same version as 2.12.1.
+{% set triton = "3.7.1" %}
 
 # Use a higher build number for the CUDA variant, to ensure that it's
 # preferred by conda's solver, and it's preferentially
@@ -56,15 +56,20 @@ source:
       - patches/0003-Force-usage-of-python-3-and-error-without-numpy.patch
       # https://github.com/pytorch/pytorch/issues/150918 - continue tests on failure due to flaky tests
       - patches/0007-continue-tests-on-failure.patch
-      - patches/0008-add-missing-includes.patch
+      # 0008 (add-missing-includes) dropped for 2.13: upstream added <vector>
+      # to Handlers.hpp; re-add here only if osx-arm64 metal fails on
+      # <unordered_map>.
       - patches/0009-use-prefix-include-for-inductor.patch
       - patches/0011-remove-DESTINATION-lib-from-CMake-install-TARGETS-di.patch             # [win]
       - patches/0014-point-include-paths-to-PREFIX-include.patch
       - patches/0015-point-lib-paths-to-PREFIX-lib.patch
-      - patches/0018-Add-USE_SYSTEM-options-for-KLEIDI-CUDNN_FRONTEND-CUT.patch
+      # 0018 (USE_SYSTEM_KLEIDIAI/CUDNN_FRONTEND/CUTLASS/FMT) dropped for
+      # CPU-only first pass — will rebase and re-apply for the CUDA follow-up
+      # PRs (PKG-12885 / PKG-12884). Upstream PR #166824 remains closed.
       - patches/0021-fix-onednn-cuda-include.patch
       - patches/0022-force-bundled-mkldnn.patch
-      - patches/0023-remove-conftest-extra-param.patch
+      # 0023 (remove-conftest-extra-param) dropped for 2.13: upstream removed
+      # the deprecated pytest `path` param — patch already applied upstream.
       - patches/0024-Allow-fbgemm_genai-to-be-assigned-to-a-Ninja-job-pool.patch    # [linux and gpu_variant == "cuda"]
   - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.ci/pytorch/smoke_test/smoke_test.py
     folder: smoke_test
@@ -81,13 +86,11 @@ source:
 
 build:
   number: {{ build }}
-  # 15 builds at py3.14: linux-64 (cpu/cuda12.9/cuda13.0 × openblas/mkl),
-  # linux-aarch64 (cpu + cuda13.0, no triton per PKG-13219), osx-arm64 (cpu),
-  # win-64 (same 6 as linux-64). mkl is x86_64-only via aggregate CBC.
-  # Matrix split across 3 sibling PRs (SIR-2711 /tmp limit); recipe identical,
-  # only skip differs — #97 py3.14, #101 py3.10/3.11, #102 py3.12/3.13.
-  # Drop skip on merge-to-master once all three green.
-  skip: true  # [py != 314]
+  # 2.13.0 first pass (PKG-12886): CPU-only, scope-limited via local CBC to
+  # a single python (3.12) + cpu/metal variants only, to shake out patch
+  # rebase + smoke_test issues on a ~5-6-build matrix instead of the full
+  # ~30. Widen python matrix and add CUDA variants in follow-up PRs
+  # (PKG-12885 cuda129/cuda130 for linux-64/win-64/linux-aarch64).
   # osx-arm64 metal: re-enabled after SIR-3273 root cause fix in build.sh
   # (export SDKROOT + CMAKE_ARGS sed for 12.1 → MACOSX_SDK_VERSION).
   # Verified on PR #103 debug graph 935c2593-eeac-41a8-8683-ec3e80f48478.
@@ -122,7 +125,7 @@ requirements:
     - cuda-version {{ cuda_compiler_version }}  # [(gpu_variant or "").startswith("cuda")]
     - nvtx-c                                 # [(gpu_variant or "").startswith("cuda") and build_platform != target_platform]
     {% if cuda_major >= 12 %}
-    # pytorch 2.12 cmake/public/cuda.cmake:165 link-resolves CUDA::cuda_driver
+    # pytorch 2.13 cmake/public/cuda.cmake:159 link-resolves CUDA::cuda_driver
     # at configure time; need the driver stub in build for native too, not
     # just cross-compile.
     - cuda-driver-dev                        # [linux and (gpu_variant or "").startswith("cuda")]
@@ -172,7 +175,7 @@ requirements:
     {% endif %}
     {% if cuda_major >= 12 %}
     # cuda-driver-dev's libcuda.so stub must be in host (not just build):
-    # FindCUDAToolkit searches the host prefix, and pytorch 2.12's
+    # FindCUDAToolkit searches the host prefix, and pytorch 2.13's
     # cuda.cmake link-resolves CUDA::cuda_driver at configure time.
     - cuda-driver-dev                        # [linux]
     - cuda-cudart-dev
@@ -194,8 +197,8 @@ requirements:
     - python       # [not megabuild]
     - numpy >=1.26.0,<3.0.0
     - pip
-    # upstream requirements-build.txt: setuptools>=70.1.0,<82
-    - setuptools >=70.1.0,<82
+    # upstream requirements-build.txt: setuptools>=77.0.0,<82
+    - setuptools >=77.0.0,<82
     - wheel
     - pyyaml
     - requests
@@ -227,10 +230,10 @@ requirements:
     # upstream requirements-build.txt: typing-extensions>=4.15.0
     - typing_extensions >=4.15.0
     - packaging
-    # upstream pytorch 2.12 vendors pybind11 3.0.1 (third_party submodule).
+    # upstream pytorch 2.13 vendors pybind11 3.0.4 (third_party submodule).
     # ABI-compatible up to 3.0.x; cap at 4.0 for future safety. pybind11-abi
     # explicitly included to pin the ABI version (PKG-13552; mamba-feedstock pattern).
-    - pybind11 >=3.0.1,<4
+    - pybind11 >=3.0.4,<4
     - pybind11-abi ==11     # strict — survives partial rebuilds
     - eigen {{ eigen }}
     - zlib {{ zlib }}
@@ -350,7 +353,7 @@ outputs:
         - {{ compiler('cuda') }}                 # [(gpu_variant or "").startswith("cuda")]
         - nvtx-c                                 # [(gpu_variant or "").startswith("cuda") and build_platform != target_platform]
         {% if cuda_major >= 12 %}
-        # pytorch 2.12 cmake/public/cuda.cmake:165 link-resolves CUDA::cuda_driver
+        # pytorch 2.13 cmake/public/cuda.cmake:159 link-resolves CUDA::cuda_driver
         # at configure time; need the driver stub in build for native too.
         - cuda-driver-dev                        # [linux and (gpu_variant or "").startswith("cuda")]
         - cuda-cudart-dev                        # [build_platform != target_platform]
@@ -395,7 +398,7 @@ outputs:
         - magma <2.10                     # [(gpu_variant or "").startswith("cuda")]
         - nvtx-c                          # [(gpu_variant or "").startswith("cuda")]
         {% if cuda_major >= 12 %}
-        # pytorch 2.12 cmake/public/cuda.cmake:165 needs CUDA::cuda_driver at
+        # pytorch 2.13 cmake/public/cuda.cmake:159 needs CUDA::cuda_driver at
         # configure time; ship the driver stub on all linux CUDA hosts.
         - cuda-driver-dev                 # [linux and (gpu_variant or "").startswith("cuda")]
         - cuda-cudart-dev
@@ -416,8 +419,8 @@ outputs:
         - python
         - numpy >=1.26.0,<3.0.0
         - pip
-        # upstream requirements-build.txt: setuptools>=70.1.0,<82
-        - setuptools >=70.1.0,<82
+        # upstream requirements-build.txt: setuptools>=77.0.0,<82
+        - setuptools >=77.0.0,<82
         - wheel
         - pyyaml
         - requests
@@ -440,9 +443,9 @@ outputs:
         - typing_extensions >=4.15.0
         - packaging
         - {{ pin_subpackage('libtorch', exact=True) }}
-        # upstream pytorch 2.12 vendors pybind11 3.0.1; ABI-compatible up to 3.0.x.
+        # upstream pytorch 2.13 vendors pybind11 3.0.4; ABI-compatible up to 3.0.x.
         # pybind11-abi explicit (PKG-13552, mamba pattern).
-        - pybind11 >=3.0.1,<4
+        - pybind11 >=3.0.4,<4
         - pybind11-abi ==11     # strict — survives partial rebuilds
         - eigen {{ eigen }}
         - zlib {{ zlib }}
@@ -472,8 +475,8 @@ outputs:
         # Required to support torch.compile. This is tested in smoke_test.py, which is required to pass
         - triton =={{ triton }}       # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
         - {{ pin_subpackage('libtorch', exact=True) }}
-        # upstream requirements-build.txt: setuptools>=70.1.0,<82
-        - setuptools >=70.1.0,<82
+        # upstream requirements-build.txt: setuptools>=77.0.0,<82
+        - setuptools >=77.0.0,<82
       run_constrained:
         # current intel-openmp builds are incompatible with llvm-openmp on osx-64
         - llvm-openmp <0a0                # [(blas_impl == "mkl") and (osx and x86_64)]  
@@ -507,7 +510,7 @@ outputs:
         # (torch.utils.cpp_extension.load_inline requires ninja).
         - ninja
         # Needed for test_autograd.py
-        - pybind11 >=3.0.1,<4
+        - pybind11 >=3.0.4,<4
         # the inductor "test_aoti_eager..." tests require objcopy
         - binutils  # [linux]
         # Triton JIT links cuda_utils.c against libcuda; use driver stubs from the env (no system /lib64 driver in many builders)
