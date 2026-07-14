@@ -619,6 +619,14 @@ outputs:
         - test -f $PREFIX/lib/libtorch_python${SHLIB_EXT}     # [unix]
 
   - name: pytorch-{{ "cpu" if gpu_variant == "cpu" else "gpu" }}
+    # Skip the mkl-variant build of the wrapper: the wrapper output is
+    # blas-agnostic (its only run-dep is `pytorch =...=cpu*` — matches either
+    # blas), and mkl+openblas variants render identical PKG_HASH here (no
+    # blas_impl in the wrapper's build.string), which PBP's graph-submitter
+    # rejects as duplicate test tasks (linter check added since 2.12).
+    # Ship one wrapper per gpu_variant, built on the openblas variant.
+    build:
+      skip: true  # [blas_impl == "mkl"]
     requirements:
       run:
         - pytorch ={{ version }}={{ "cpu" if gpu_variant == "cpu" else "gpu" }}* # NB pinning exact=True will also pin to the python version
