@@ -71,6 +71,9 @@ source:
       # 0023 (remove-conftest-extra-param) dropped for 2.13: upstream removed
       # the deprecated pytest `path` param — patch already applied upstream.
       - patches/0024-Allow-fbgemm_genai-to-be-assigned-to-a-Ninja-job-pool.patch    # [linux and gpu_variant == "cuda"]
+      # Extends upstream's gcc-14-only SVE ICE workaround on Unfold2d.cpp to
+      # also cover gcc 15 (AR's linux-aarch64 default).
+      - patches/0025-extend-gcc-sve-ice-workaround-to-gcc15.patch                   # [linux and aarch64]
   - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.ci/pytorch/smoke_test/smoke_test.py
     folder: smoke_test
   # check_wheel_tags.py is a sibling helper imported by smoke_test.py since the
@@ -618,18 +621,34 @@ outputs:
         - python -c "import torch; torch.tensor(1).to('cpu').numpy(); print('numpy support enabled!!!')"
         - test -f $PREFIX/lib/libtorch_python${SHLIB_EXT}     # [unix]
 
-  - name: pytorch-{{ "cpu" if gpu_variant == "cpu" else "gpu" }}
-    # Skip the mkl-variant build of the wrapper: the wrapper output is
-    # blas-agnostic (its only run-dep is `pytorch =...=cpu*` — matches either
-    # blas), and mkl+openblas variants render identical PKG_HASH here (no
-    # blas_impl in the wrapper's build.string), which PBP's graph-submitter
-    # rejects as duplicate test tasks (linter check added since 2.12).
-    # Ship one wrapper per gpu_variant, built on the openblas variant.
+  # Two static-name wrapper outputs (formerly a single dynamic-name output).
+  # Splitting fixes two issues at once:
+  #   1. PBP graph-submitter rejected the single-output form as duplicate test
+  #      tasks on x86 platforms — the wrapper's build.string had no blas_impl,
+  #      so mkl and openblas variants rendered identical PKG_HASH.
+  #   2. The `skip: [blas_impl == "mkl"]` half-fix caused conda-build to
+  #      hash the wrapper on blas_impl only (dropping gpu_variant from tracked
+  #      vars), which then emitted BOTH pytorch-cpu and pytorch-gpu wrappers
+  #      from the same variant — and the pytorch-gpu wrapper's test env then
+  #      couldn't resolve `pytorch =...=gpu*` (osx-arm64 metal wrapper failure).
+  # Static names + selector-gated skip on gpu_variant keeps conda-build's
+  # variant tracking honest: one wrapper per (gpu_variant, blas=openblas) pair.
+  - name: pytorch-cpu
     build:
-      skip: true  # [blas_impl == "mkl"]
+      skip: true  # [gpu_variant != "cpu" or blas_impl == "mkl"]
     requirements:
       run:
-        - pytorch ={{ version }}={{ "cpu" if gpu_variant == "cpu" else "gpu" }}* # NB pinning exact=True will also pin to the python version
+        - pytorch ={{ version }}=cpu*
+    test:
+      imports:
+        - torch
+
+  - name: pytorch-gpu
+    build:
+      skip: true  # [gpu_variant == "cpu" or blas_impl == "mkl"]
+    requirements:
+      run:
+        - pytorch ={{ version }}=gpu*
     test:
       imports:
         - torch
