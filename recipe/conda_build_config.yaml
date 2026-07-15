@@ -1,11 +1,28 @@
-# PKG-12886 first pass — CPU-only scope, single python.
-# TEMPORARY narrowing for fast CI feedback (5-6 builds vs the full ~30):
-#   - gpu_variant restricted to cpu + osx-metal (no cuda entries)
-#   - cuda_compiler_version removed entirely (only zip left is cpu/metal SDK pair)
-#   - python restricted to 3.12
-# Widen to full python matrix in the same PR after the initial matrix is green,
-# then CUDA variants land in follow-up PRs (PKG-12885 linux-64 / linux-aarch64,
-# PKG-12884 win-64) with their own local CBC that re-adds cuda_compiler_version.
+# pytorch 2.13.0 unified CBC — shared byte-identical across all 3 split PRs:
+#   PKG-12886 cpu     (this PR)  — skip: gpu_variant == "cuda"
+#   PKG-12885 cuda129 (sibling)  — skip: gpu_variant != "cuda" or cuda_compiler_version != "12.9"
+#   PKG-12885/12884/12888 cuda130 (sibling) — skip: gpu_variant != "cuda" or cuda_compiler_version != "13.0"
+#
+# All 3 PRs have identical `recipe/` — meta.yaml differs only in the top-level
+# `build.skip` line, same convention 2.12 used (#97/#101/#102 differed only in
+# the py-bucket skip). Widening python from [3.12] to [3.10..3.14] happens as
+# a final coordinated step across all 3 PRs before merge.
+#
+# TEMPORARY narrowings still active (drop before merge):
+#   - python: ["3.12"] — fast-iteration; widens to aggregate [3.10..3.14] later
+#
+# CBC layout notes:
+#   - gpu_variant is zipped with cuda_compiler_version on win/linux (so the CPU
+#     variant doesn't duplicate across CUDA versions) and zipped with MACOSX_SDK
+#     / CONDA_BUILD_SYSROOT on osx-arm64 (so CPU and Metal builds get separate
+#     SDKs). Build strings key off the literal cpu/metal/cuda values.
+#   - The two `cuda` entries in gpu_variant are intentional (NOT a typo). They
+#     pair row-wise with cuda_compiler_version [none, none, 12.9, 13.0] via the
+#     zip_keys block at the bottom:
+#       entry 3 (selector: win or linux-x86_64) pairs with cuda 12.9
+#       entry 4 (selector: win or linux)        pairs with cuda 13.0
+#     linux-aarch64 only matches entry 4, so it builds cuda 13.0 only (CUDA 12.x
+#     requires gcc <15 but aarch64 needs gcc 15.2.0).
 
 python:
   - "3.12"
@@ -13,28 +30,43 @@ python:
 gpu_variant:
   - cpu                              # all platforms
   - metal                            # [(osx and arm64)]
+  - cuda                             # [win or (linux and x86_64)]
+  - cuda                             # [win or linux]
+
+# Upstream PyTorch v2.13.0 supports CUDA 12.6/12.8/12.9/13.0/13.2 in
+# .ci/manywheel/build.sh; pkgs/main currently ships cuda-nvcc 12.9 and 13.0
+# (no 13.2 yet). aarch64 only supports CUDA 13.x (CUDA 12.x requires gcc <15,
+# but aarch64 needs gcc 15.2.0). "none" pairs with gpu_variant=cpu/metal under
+# zip_keys; the recipe ignores cuda_compiler_version for non-CUDA variants but
+# the key must align lengthwise.
+cuda_compiler_version:
+  - none                             # cpu
+  - none                             # [(osx and arm64)]  # metal pair
+  - 12.9                             # [win or (linux and x86_64)]
+  - 13.0                             # [win or linux]
 
 # blas_impl is gated to [win] here because aggregate root CBC already defines
 # `mkl # [(x86 or x86_64) and not osx]` + `openblas` for the other platforms.
 # This block ADDS the Windows variants; non-Windows blas_impl is inherited
-# from aggregate (mkl on linux-x86_64, openblas on aarch64/osx). Note: per
+# from aggregate (mkl on linux-x86_64, openblas on aarch64/osx). Per
 # conda-build's "local CBC REPLACES" rule the local entry would normally wipe
 # the aggregate value, but because the selector `[win]` only fires on Windows,
 # linux/osx see no local override and inherit normally.
 blas_impl:                   # [win]
   - mkl                      # [win]
   - openblas                 # [win]
+
 # Linux aarch64 needs gcc 15.2.0 due to a bug with 14.3 with vector instructions.
-# Linux x86_64 needs gcc 14 due to CUDA 12.x compatibility (kept for parity
-# with the CUDA follow-up PRs — no functional effect on CPU-only builds here).
+# Linux x86_64 needs gcc 14 due to CUDA 12.x compatibility.
 c_compiler_version:
   - 15.2.0                   # [linux and aarch64]
   - 14                       # [linux and x86_64]
 cxx_compiler_version:
   - 15.2.0                   # [linux and aarch64]
   - 14                       # [linux and x86_64]
+
 # CONDA_BUILD_SYSROOT is defined in the base cbc.yaml, but it's reflected here so we can zip the keys and
-# build Metal and CPU at the same time for osx-arm64. It'll need to be manually updated here if the base cbc is changed.
+# build GPU and CPU at the same time for osx-arm64. It'll need to be manually updated here if the base cbc is changed.
 # This could be done using extend_keys instead, with a change to the base cbc.yaml.
 # However there's currently a conda-forge bug that prevents this: https://github.com/conda/conda-build/issues/5048
 MACOSX_SDK_VERSION:          # [(osx and arm64)]
@@ -43,14 +75,20 @@ MACOSX_SDK_VERSION:          # [(osx and arm64)]
 CONDA_BUILD_SYSROOT:         # [(osx and arm64)]
   - /Library/Developer/CommandLineTools/SDKs/MacOSX13.3.sdk  # [(osx and arm64)]
   - /Library/Developer/CommandLineTools/SDKs/MacOSX14.5.sdk  # [(osx and arm64)]
-# osx-arm64: zip gpu_variant with the two SDK keys (cpu↔13.3, metal↔14.5).
-# The win/linux zip (gpu_variant × cuda_compiler_version) is dropped in this
-# CPU-only pass — no cuda_compiler_version key exists to zip against.
+
+# Two zip groups, gated by platform so the shared `gpu_variant` key doesn't conflict:
+#   - osx-arm64: zip gpu_variant with the two SDK keys (cpu↔13.3, metal↔14.5).
+#   - win/linux: zip gpu_variant with cuda_compiler_version so the CPU variant
+#                exists exactly once per platform (no Cartesian-product duplicates).
 zip_keys:
   -                              # [(osx and arm64)]
     - gpu_variant                # [(osx and arm64)]
     - MACOSX_SDK_VERSION         # [(osx and arm64)]
     - CONDA_BUILD_SYSROOT        # [(osx and arm64)]
+  -                              # [win or linux]
+    - gpu_variant                # [win or linux]
+    - cuda_compiler_version      # [win or linux]
+
 # megabuild is disabled as our CI runners work on each python version separately.
 megabuild:
 - false
