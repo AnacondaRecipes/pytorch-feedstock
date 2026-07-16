@@ -692,6 +692,13 @@ outputs:
     build:
       skip: true  # [gpu_variant == "cpu" or blas_impl == "mkl"]
     requirements:
+      # `cuda_compiler` in build has zero function for this metapackage BUT it
+      # forces PBP to route the wrapper's test task to a GPU worker pool that
+      # provides the `__cuda` virtual package. Without it the wrapper's test
+      # env can't resolve (libtorch's `run: [__cuda]` is unsatisfiable on the
+      # CPU test pool). See memory/reference_pbp-gpu-worker-routing.md.
+      build:
+        - {{ compiler('cuda') }}                # [gpu_variant == "cuda"]
       run:
         - pytorch ={{ version }}=gpu*
     test:
