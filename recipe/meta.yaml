@@ -569,9 +569,16 @@ outputs:
   # Modeled after conda-forge pytorch-cpu-feedstock's pytorch-tests output.
   - name: pytorch-tests
     build:
-      string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
-      string: gpu_mps_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
-      string: cpu_{{ blas_impl }}_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
+      # blas_impl embedded in the CUDA string so it becomes a tracked variant
+      # var for this output — without it, mkl+openblas CUDA builds collapse
+      # to the same PKG_HASH → PBP graph-submitter rejects duplicate task
+      # names. Matches conda-forge/pytorch-cpu-feedstock's pytorch-tests
+      # convention. (The base pytorch output doesn't need this because its
+      # requirements section already references blas_impl via mkl-devel /
+      # openblas-devel host deps; pytorch-tests has no such reference.)
+      string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_{{ blas_impl }}_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
+      string: gpu_mps_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                                   # [gpu_variant == "metal"]
+      string: cpu_{{ blas_impl }}_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                                     # [gpu_variant == "cpu"]
       detect_binary_files_with_prefix: false
     requirements:
       host:
