@@ -5,11 +5,8 @@
 #
 # All 3 PRs have identical `recipe/` — meta.yaml differs only in the top-level
 # `build.skip` line, same convention 2.12 used (#97/#101/#102 differed only in
-# the py-bucket skip). Widening python from [3.12] to [3.10..3.14] happens as
-# a final coordinated step across all 3 PRs before merge.
-#
-# TEMPORARY narrowings still active (drop before merge):
-#   - python: ["3.12"] — fast-iteration; widens to aggregate [3.10..3.14] later
+# the py-bucket skip). Python is now widened to inherit the aggregate
+# [3.10..3.14] matrix (was locally pinned to [3.12] during fast iteration).
 #
 # CBC layout notes:
 #   - gpu_variant is zipped with cuda_compiler_version on win/linux (so the CPU
@@ -23,9 +20,6 @@
 #       entry 4 (selector: win or linux)        pairs with cuda 13.0
 #     linux-aarch64 only matches entry 4, so it builds cuda 13.0 only (CUDA 12.x
 #     requires gcc <15 but aarch64 needs gcc 15.2.0).
-
-python:
-  - "3.12"
 
 gpu_variant:
   - cpu                              # all platforms

@@ -38,7 +38,7 @@ package:
   version: {{ version }}
 
 source:
-  # Content-addressable source pinned to the exact commit v2.12.0 points at.
+  # Content-addressable source pinned to the exact commit v2.13.0 points at.
   # Tags are mutable on GitHub — a retag would silently change our source —
   # so we pin the SHA, not the tag. This also sidesteps the release-tarball
   # regeneration that broke sha256-pinned fetches (asset re-generated several
@@ -47,7 +47,7 @@ source:
   - git_url: https://github.com/pytorch/pytorch.git
     git_rev: {{ git_rev_sha }}   # v{{ version }} — see top-of-file derivation
     # NOTE: no git_depth pin. `git_depth: 1` makes conda-build do a shallow
-    # `git clone --depth 1` (defaults to HEAD), then `git checkout v2.12.0`
+    # `git clone --depth 1` (defaults to HEAD), then `git checkout v2.13.0`
     # fails because the tag isn't reachable in the shallow history. Full
     # clone (~430 MB) is fine — happens once per worker via src_cache.
     patches:
@@ -63,9 +63,11 @@ source:
       - patches/0011-remove-DESTINATION-lib-from-CMake-install-TARGETS-di.patch             # [win]
       - patches/0014-point-include-paths-to-PREFIX-include.patch
       - patches/0015-point-lib-paths-to-PREFIX-lib.patch
-      # 0018 (USE_SYSTEM_KLEIDIAI/CUDNN_FRONTEND/CUTLASS/FMT) dropped for
-      # CPU-only first pass — will rebase and re-apply for the CUDA follow-up
-      # PRs (PKG-12885 / PKG-12884). Upstream PR #166824 remains closed.
+      # 0018 (USE_SYSTEM_KLEIDIAI/CUDNN_FRONTEND/CUTLASS/FMT) dropped — the
+      # options it adds to CMakeLists.txt are inert unless build.sh sets any
+      # of them to 1 (it doesn't). Empirically confirmed: #109 CUDA 12.9 linux
+      # builds passed cleanly without this patch (graph 2e4f86c5). Upstream
+      # PR #166824 remains closed.
       - patches/0021-fix-onednn-cuda-include.patch
       - patches/0022-force-bundled-mkldnn.patch
       # 0023 (remove-conftest-extra-param) dropped for 2.13: upstream removed
@@ -95,8 +97,6 @@ build:
   #   - PKG-12885 cuda129 — skip: gpu_variant != "cuda" or cuda_compiler_version != "12.9"  (this PR)
   #   - cuda130 (PKG-12885/12884/12888) — skip: gpu_variant != "cuda" or cuda_compiler_version != "13.0"
   # Drop these skip lines on merge-to-master once all three are green.
-  # Also: local CBC restricts python to 3.12 for fast iteration — widen to the
-  # aggregate matrix (3.10–3.14) coordinated across all 3 PRs before merge.
   # osx-arm64 metal: re-enabled after SIR-3273 root cause fix in build.sh
   # (export SDKROOT + CMAKE_ARGS sed for 12.1 → MACOSX_SDK_VERSION).
   # Verified on PR #103 debug graph 935c2593-eeac-41a8-8683-ec3e80f48478.
