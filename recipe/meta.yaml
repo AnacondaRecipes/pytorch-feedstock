@@ -76,8 +76,12 @@ source:
       # Extends upstream's gcc-14-only SVE ICE workaround on Unfold2d.cpp to
       # also cover gcc 15 (AR's linux-aarch64 default).
       - patches/0025-extend-gcc-sve-ice-workaround-to-gcc15.patch                   # [linux and aarch64]
+  # sha256 required — without it conda-build bypasses the pbp src_cache and
+  # re-downloads every run, which hits GitHub raw's HTTP 429 rate limit on
+  # busy graphs (observed on win-64 py3.11/py3.14 in graph 2dd074ea).
   - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.ci/pytorch/smoke_test/smoke_test.py
     folder: smoke_test
+    sha256: 19ecd4e78cf2997fadff1c6799d3fcb7fbc0c1fd080e60d166c934593b036314
   # check_wheel_tags.py is a sibling helper imported by smoke_test.py since the
   # 2.12 release (smoke_test.py:13 `from check_wheel_tags import …`). Without
   # this file the win-64 pytorch test command `python ./smoke_test/smoke_test.py
@@ -86,6 +90,7 @@ source:
   # set, so it works fine on conda-installed packages.
   - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.ci/pytorch/smoke_test/check_wheel_tags.py
     folder: smoke_test
+    sha256: 7c2419886b6a8e9e278c1666b415ed250227167eba1b8b3ab15b11dd1c601071
   # NOTE: .gitignore (required by upstream's `setup.py clean`) now comes
   # from the git_url checkout above — no separate download needed.
 
