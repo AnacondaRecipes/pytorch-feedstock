@@ -1,7 +1,7 @@
 {% set version = "2.12.0" %}
 # Set the RC number to build release candidates. Set to None otherwise.
 {% set rc = None %}
-{% set build = 0 %}
+{% set build = 1 %}
 
 # Single source of truth: the commit SHA the v{{ version }} tag points at.
 # Drives BOTH the source git_rev AND the smoke_test fetches below — one SHA
@@ -154,10 +154,10 @@ requirements:
     - libuv     # [win]
     - cmake
     - ninja-base
-    - libabseil
+    - libabseil 20260526.0
     # Keep libprotobuf here so that a compatibile version
     # of protobuf is installed between build and host
-    - libprotobuf
+    - libprotobuf 7.35.1
     - make      # [linux]
   host:
     # GPU requirements
@@ -211,8 +211,8 @@ requirements:
     - intel-openmp {{ mkl }}         # [blas_impl == "mkl"]
     - libgomp                        # [linux and blas_impl == "openblas"]
     - llvm-openmp                    # [osx and not (blas_impl == "mkl")]
-    - libabseil {{ libabseil }}
-    - libprotobuf {{ libprotobuf }}
+    - libabseil 20260526.0
+    - libprotobuf 7.35.1
     # sleef 3.9.0 OpenMP-flavor variant must match parent env's runtime to
     # avoid mismatched DT_NEEDED on torch_cpu:
     #   linux+openblas → libgomp     (AR libgcc *_gnu mutex)
@@ -380,7 +380,7 @@ outputs:
         - ninja-base
         # Keep libprotobuf here so that a compatibile version
         # of protobuf is installed between build and host
-        - libprotobuf
+        - libprotobuf 7.35.1
         - make      # [linux]
       host:
         # GPU requirements
@@ -428,8 +428,8 @@ outputs:
         - intel-openmp {{ mkl }}      # [blas_impl == "mkl"]
         - libgomp                     # [linux and blas_impl == "openblas"]
         - llvm-openmp                 # [osx and not (blas_impl == "mkl")]
-        - libabseil
-        - libprotobuf {{ libprotobuf }}
+        - libabseil 20260526.0
+        - libprotobuf 7.35.1
         # sleef: see libtorch host above for the 3.9.0 variant-matching rationale.
         - sleef 3.9.0 *libgomp*       # [linux and blas_impl != "mkl"]
         - sleef 3.9.0 *llvm_openmp*   # [osx]
