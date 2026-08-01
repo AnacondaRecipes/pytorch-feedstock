@@ -56,25 +56,13 @@ source:
       - patches/0003-Force-usage-of-python-3-and-error-without-numpy.patch
       # https://github.com/pytorch/pytorch/issues/150918 - continue tests on failure due to flaky tests
       - patches/0007-continue-tests-on-failure.patch
-      # 0008 (add-missing-includes) dropped for 2.13: upstream added <vector>
-      # to Handlers.hpp; re-add here only if osx-arm64 metal fails on
-      # <unordered_map>.
       - patches/0009-use-prefix-include-for-inductor.patch
       - patches/0011-remove-DESTINATION-lib-from-CMake-install-TARGETS-di.patch             # [win]
       - patches/0014-point-include-paths-to-PREFIX-include.patch
       - patches/0015-point-lib-paths-to-PREFIX-lib.patch
-      # 0018 (USE_SYSTEM_KLEIDIAI/CUDNN_FRONTEND/CUTLASS/FMT) dropped — the
-      # options it adds to CMakeLists.txt are inert unless build.sh sets any
-      # of them to 1 (it doesn't). Empirically confirmed: #109 CUDA 12.9 linux
-      # builds passed cleanly without this patch (graph 2e4f86c5). Upstream
-      # PR #166824 remains closed.
       - patches/0021-fix-onednn-cuda-include.patch
       - patches/0022-force-bundled-mkldnn.patch
-      # 0023 (remove-conftest-extra-param) dropped for 2.13: upstream removed
-      # the deprecated pytest `path` param — patch already applied upstream.
       - patches/0024-Allow-fbgemm_genai-to-be-assigned-to-a-Ninja-job-pool.patch    # [linux and gpu_variant == "cuda"]
-      # Extends upstream's gcc-14-only SVE ICE workaround on Unfold2d.cpp to
-      # also cover gcc 15 (AR's linux-aarch64 default).
       - patches/0025-extend-gcc-sve-ice-workaround-to-gcc15.patch                   # [linux and aarch64]
   # sha256 required — without it conda-build bypasses the pbp src_cache and
   # re-downloads every run, which hits GitHub raw's HTTP 429 rate limit on
@@ -99,7 +87,7 @@ build:
   # 2.13.0 3-PR split (CBC identical across all 3, meta.yaml differs ONLY in
   # this skip line, same convention as 2.12's #97/#101/#102):
   #   - PKG-12886 cpu     — skip: gpu_variant == "cuda"
-  #   - PKG-12885 cuda129 — skip: gpu_variant != "cuda" or cuda_compiler_version != "12.9"  (this PR)
+  #   - PKG-12885 cuda129 — skip: gpu_variant != "cuda" or cuda_compiler_version != "12.9"
   #   - cuda130 (PKG-12885/12884/12888) — skip: gpu_variant != "cuda" or cuda_compiler_version != "13.0"
   # Drop these skip lines on merge-to-master once all three are green.
   # osx-arm64 metal: re-enabled after SIR-3273 root cause fix in build.sh
@@ -181,7 +169,7 @@ requirements:
     {% if cuda_major < 13 %}
     - cudnn 9.17.0.29                          # [(gpu_variant or "").startswith("cuda")]
     - nccl 2.29.3.1                            # [(gpu_variant or "").startswith("cuda") and linux]
-    {% else %}    
+    {% else %}
     - cudnn                  # [(gpu_variant or "").startswith("cuda")]
     - nccl                   # [(gpu_variant or "").startswith("cuda") and linux]
     {% endif %}
