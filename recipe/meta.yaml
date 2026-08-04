@@ -615,10 +615,39 @@ outputs:
         - python -c "import torch; torch.tensor(1).to('cpu').numpy(); print('numpy support enabled!!!')"
         - test -f $PREFIX/lib/libtorch_python${SHLIB_EXT}     # [unix]
 
-  - name: pytorch-{{ "cpu" if gpu_variant == "cpu" else "gpu" }}
+  # Two static-name wrapper outputs (formerly a single dynamic-name output).
+  # Splitting fixes two issues at once:
+  #   1. PBP graph-submitter rejected the single-output form as duplicate test
+  #      tasks on x86 platforms — the wrapper's build.string had no blas_impl,
+  #      so mkl and openblas variants rendered identical PKG_HASH.
+  #   2. The dynamic-name form emitted BOTH pytorch-cpu and pytorch-gpu wrappers
+  #      from the same variant — and the pytorch-gpu wrapper's test env then
+  #      couldn't resolve `pytorch =...=gpu*` → `__cuda` on the CPU test pool.
+  # Static names + selector-gated skip on gpu_variant keeps conda-build's
+  # variant tracking honest: one wrapper per (gpu_variant, blas=openblas) pair.
+  - name: pytorch-cpu
+    build:
+      skip: true  # [gpu_variant != "cpu" or blas_impl == "mkl"]
     requirements:
       run:
-        - pytorch ={{ version }}={{ "cpu" if gpu_variant == "cpu" else "gpu" }}* # NB pinning exact=True will also pin to the python version
+        - pytorch ={{ version }}=cpu*
+    test:
+      imports:
+        - torch
+
+  - name: pytorch-gpu
+    build:
+      skip: true  # [gpu_variant == "cpu" or blas_impl == "mkl"]
+    requirements:
+      # `cuda_compiler` in build has zero function for this metapackage BUT it
+      # forces PBP to route the wrapper's test task to a GPU worker pool that
+      # provides the `__cuda` virtual package. Without it the wrapper's test
+      # env can't resolve (libtorch's `run: [__cuda]` is unsatisfiable on the
+      # CPU test pool). See memory/reference_pbp-gpu-worker-routing.md.
+      build:
+        - {{ compiler('cuda') }}                # [gpu_variant == "cuda"]
+      run:
+        - pytorch ={{ version }}=gpu*
     test:
       imports:
         - torch
