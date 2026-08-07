@@ -86,14 +86,17 @@ build:
   number: {{ build }}
   # 2.13.0 3-PR split (CBC identical across all 3, meta.yaml differs ONLY in
   # this skip line, same convention as 2.12's #97/#101/#102):
-  #   - PKG-12886 cpu     — skip: gpu_variant == "cuda"
+  #   - PKG-12886 cpu     — skip: gpu_variant == "cuda" or win
   #   - PKG-12885 cuda129 — skip: gpu_variant != "cuda" or cuda_compiler_version != "12.9"
   #   - cuda130 (PKG-12885/12884/12888) — skip: gpu_variant != "cuda" or cuda_compiler_version != "13.0"
   # Drop these skip lines on merge-to-master once all three are green.
+  # win-64 CPU is temporarily skipped here: SIR-3657 (claim-expired on the
+  # non-CUDA win pool) blocks its PBP release. Those 10 win-64 CPU artifacts are
+  # built off-CI on a dev instance + manual-released; drop `or win` once fixed.
   # osx-arm64 metal: re-enabled after SIR-3273 root cause fix in build.sh
   # (export SDKROOT + CMAKE_ARGS sed for 12.1 → MACOSX_SDK_VERSION).
   # Verified on PR #103 debug graph 935c2593-eeac-41a8-8683-ec3e80f48478.
-  skip: true  # [gpu_variant == "cuda"]
+  skip: true  # [gpu_variant == "cuda" or win]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
