@@ -9,3 +9,6 @@ upstream_sources:
     packages:
       - libtorch
       - pytorch
+      - pytorch-tests
+      - pytorch-cpu
+      - pytorch-gpu
