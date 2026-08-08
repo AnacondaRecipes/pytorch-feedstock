@@ -1,4 +1,4 @@
-{% set version = "2.12.0" %}
+{% set version = "2.13.0" %}
 # Set the RC number to build release candidates. Set to None otherwise.
 {% set rc = None %}
 {% set build = 0 %}
@@ -9,12 +9,12 @@
 # To resolve for a future release:
 #   gh api repos/pytorch/pytorch/git/refs/tags/v<version> --jq '.object.sha'
 # (de-reference annotated tags via .object.type == "tag" → /git/tags/<sha>.)
-{% set git_rev_sha = "0d62256a2b23365f8e1604297eb23a6545102aa8" %}
+{% set git_rev_sha = "cf30153c4c131c8164ee7798e5022d810682e2cb" %}
 {% set smoke_test_commit = git_rev_sha %}
 
 # see https://github.com/pytorch/pytorch/blame/v{{ version }}/.ci/docker/ci_commit_pins/triton.txt
-# 2.12 pins triton to release/3.7.x (commit b4e20bbe) — needs triton 3.7.0 in pkgs/main.
-{% set triton = "3.7.0" %}
+# 2.13 pins triton to commit 5d6048aa (triton 3.7.1) — same version as 2.12.1.
+{% set triton = "3.7.1" %}
 
 # Use a higher build number for the CUDA variant, to ensure that it's
 # preferred by conda's solver, and it's preferentially
@@ -38,7 +38,7 @@ package:
   version: {{ version }}
 
 source:
-  # Content-addressable source pinned to the exact commit v2.12.0 points at.
+  # Content-addressable source pinned to the exact commit v2.13.0 points at.
   # Tags are mutable on GitHub — a retag would silently change our source —
   # so we pin the SHA, not the tag. This also sidesteps the release-tarball
   # regeneration that broke sha256-pinned fetches (asset re-generated several
@@ -47,7 +47,7 @@ source:
   - git_url: https://github.com/pytorch/pytorch.git
     git_rev: {{ git_rev_sha }}   # v{{ version }} — see top-of-file derivation
     # NOTE: no git_depth pin. `git_depth: 1` makes conda-build do a shallow
-    # `git clone --depth 1` (defaults to HEAD), then `git checkout v2.12.0`
+    # `git clone --depth 1` (defaults to HEAD), then `git checkout v2.13.0`
     # fails because the tag isn't reachable in the shallow history. Full
     # clone (~430 MB) is fine — happens once per worker via src_cache.
     patches:
@@ -56,18 +56,20 @@ source:
       - patches/0003-Force-usage-of-python-3-and-error-without-numpy.patch
       # https://github.com/pytorch/pytorch/issues/150918 - continue tests on failure due to flaky tests
       - patches/0007-continue-tests-on-failure.patch
-      - patches/0008-add-missing-includes.patch
       - patches/0009-use-prefix-include-for-inductor.patch
       - patches/0011-remove-DESTINATION-lib-from-CMake-install-TARGETS-di.patch             # [win]
       - patches/0014-point-include-paths-to-PREFIX-include.patch
       - patches/0015-point-lib-paths-to-PREFIX-lib.patch
-      - patches/0018-Add-USE_SYSTEM-options-for-KLEIDI-CUDNN_FRONTEND-CUT.patch
       - patches/0021-fix-onednn-cuda-include.patch
       - patches/0022-force-bundled-mkldnn.patch
-      - patches/0023-remove-conftest-extra-param.patch
       - patches/0024-Allow-fbgemm_genai-to-be-assigned-to-a-Ninja-job-pool.patch    # [linux and gpu_variant == "cuda"]
+      - patches/0025-extend-gcc-sve-ice-workaround-to-gcc15.patch                   # [linux and aarch64]
+  # sha256 required — without it conda-build bypasses the pbp src_cache and
+  # re-downloads every run, which hits GitHub raw's HTTP 429 rate limit on
+  # busy graphs (observed on win-64 py3.11/py3.14 in graph 2dd074ea).
   - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.ci/pytorch/smoke_test/smoke_test.py
     folder: smoke_test
+    sha256: 19ecd4e78cf2997fadff1c6799d3fcb7fbc0c1fd080e60d166c934593b036314
   # check_wheel_tags.py is a sibling helper imported by smoke_test.py since the
   # 2.12 release (smoke_test.py:13 `from check_wheel_tags import …`). Without
   # this file the win-64 pytorch test command `python ./smoke_test/smoke_test.py
@@ -76,21 +78,22 @@ source:
   # set, so it works fine on conda-installed packages.
   - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.ci/pytorch/smoke_test/check_wheel_tags.py
     folder: smoke_test
+    sha256: 7c2419886b6a8e9e278c1666b415ed250227167eba1b8b3ab15b11dd1c601071
   # NOTE: .gitignore (required by upstream's `setup.py clean`) now comes
   # from the git_url checkout above — no separate download needed.
 
 build:
   number: {{ build }}
-  # 15 builds at py3.14: linux-64 (cpu/cuda12.9/cuda13.0 × openblas/mkl),
-  # linux-aarch64 (cpu + cuda13.0, no triton per PKG-13219), osx-arm64 (cpu),
-  # win-64 (same 6 as linux-64). mkl is x86_64-only via aggregate CBC.
-  # Matrix split across 3 sibling PRs (SIR-2711 /tmp limit); recipe identical,
-  # only skip differs — #97 py3.14, #101 py3.10/3.11, #102 py3.12/3.13.
-  # Drop skip on merge-to-master once all three green.
-  skip: true  # [py != 314]
+  # 2.13.0 3-PR split (CBC identical across all 3, meta.yaml differs ONLY in
+  # this skip line, same convention as 2.12's #97/#101/#102):
+  #   - PKG-12886 cpu     — skip: gpu_variant == "cuda"
+  #   - PKG-12885 cuda129 — skip: gpu_variant != "cuda" or cuda_compiler_version != "12.9"
+  #   - cuda130 (PKG-12885/12884/12888) — skip: gpu_variant != "cuda" or cuda_compiler_version != "13.0"
+  # Drop these skip lines on merge-to-master once all three are green.
   # osx-arm64 metal: re-enabled after SIR-3273 root cause fix in build.sh
   # (export SDKROOT + CMAKE_ARGS sed for 12.1 → MACOSX_SDK_VERSION).
   # Verified on PR #103 debug graph 935c2593-eeac-41a8-8683-ec3e80f48478.
+  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version != "12.9"]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
@@ -122,7 +125,7 @@ requirements:
     - cuda-version {{ cuda_compiler_version }}  # [(gpu_variant or "").startswith("cuda")]
     - nvtx-c                                 # [(gpu_variant or "").startswith("cuda") and build_platform != target_platform]
     {% if cuda_major >= 12 %}
-    # pytorch 2.12 cmake/public/cuda.cmake:165 link-resolves CUDA::cuda_driver
+    # pytorch 2.13 cmake/public/cuda.cmake:159 link-resolves CUDA::cuda_driver
     # at configure time; need the driver stub in build for native too, not
     # just cross-compile.
     - cuda-driver-dev                        # [linux and (gpu_variant or "").startswith("cuda")]
@@ -166,13 +169,13 @@ requirements:
     {% if cuda_major < 13 %}
     - cudnn 9.17.0.29                          # [(gpu_variant or "").startswith("cuda")]
     - nccl 2.29.3.1                            # [(gpu_variant or "").startswith("cuda") and linux]
-    {% else %}    
+    {% else %}
     - cudnn                  # [(gpu_variant or "").startswith("cuda")]
     - nccl                   # [(gpu_variant or "").startswith("cuda") and linux]
     {% endif %}
     {% if cuda_major >= 12 %}
     # cuda-driver-dev's libcuda.so stub must be in host (not just build):
-    # FindCUDAToolkit searches the host prefix, and pytorch 2.12's
+    # FindCUDAToolkit searches the host prefix, and pytorch 2.13's
     # cuda.cmake link-resolves CUDA::cuda_driver at configure time.
     - cuda-driver-dev                        # [linux]
     - cuda-cudart-dev
@@ -194,8 +197,8 @@ requirements:
     - python       # [not megabuild]
     - numpy >=1.26.0,<3.0.0
     - pip
-    # upstream requirements-build.txt: setuptools>=70.1.0,<82
-    - setuptools >=70.1.0,<82
+    # upstream requirements-build.txt: setuptools>=77.0.0,<82
+    - setuptools >=77.0.0,<82
     - wheel
     - pyyaml
     - requests
@@ -227,10 +230,10 @@ requirements:
     # upstream requirements-build.txt: typing-extensions>=4.15.0
     - typing_extensions >=4.15.0
     - packaging
-    # upstream pytorch 2.12 vendors pybind11 3.0.1 (third_party submodule).
+    # upstream pytorch 2.13 vendors pybind11 3.0.4 (third_party submodule).
     # ABI-compatible up to 3.0.x; cap at 4.0 for future safety. pybind11-abi
     # explicitly included to pin the ABI version (PKG-13552; mamba-feedstock pattern).
-    - pybind11 >=3.0.1,<4
+    - pybind11 >=3.0.4,<4
     - pybind11-abi ==11     # strict — survives partial rebuilds
     - eigen {{ eigen }}
     - zlib {{ zlib }}
@@ -350,7 +353,7 @@ outputs:
         - {{ compiler('cuda') }}                 # [(gpu_variant or "").startswith("cuda")]
         - nvtx-c                                 # [(gpu_variant or "").startswith("cuda") and build_platform != target_platform]
         {% if cuda_major >= 12 %}
-        # pytorch 2.12 cmake/public/cuda.cmake:165 link-resolves CUDA::cuda_driver
+        # pytorch 2.13 cmake/public/cuda.cmake:159 link-resolves CUDA::cuda_driver
         # at configure time; need the driver stub in build for native too.
         - cuda-driver-dev                        # [linux and (gpu_variant or "").startswith("cuda")]
         - cuda-cudart-dev                        # [build_platform != target_platform]
@@ -395,7 +398,7 @@ outputs:
         - magma <2.10                     # [(gpu_variant or "").startswith("cuda")]
         - nvtx-c                          # [(gpu_variant or "").startswith("cuda")]
         {% if cuda_major >= 12 %}
-        # pytorch 2.12 cmake/public/cuda.cmake:165 needs CUDA::cuda_driver at
+        # pytorch 2.13 cmake/public/cuda.cmake:159 needs CUDA::cuda_driver at
         # configure time; ship the driver stub on all linux CUDA hosts.
         - cuda-driver-dev                 # [linux and (gpu_variant or "").startswith("cuda")]
         - cuda-cudart-dev
@@ -416,8 +419,8 @@ outputs:
         - python
         - numpy >=1.26.0,<3.0.0
         - pip
-        # upstream requirements-build.txt: setuptools>=70.1.0,<82
-        - setuptools >=70.1.0,<82
+        # upstream requirements-build.txt: setuptools>=77.0.0,<82
+        - setuptools >=77.0.0,<82
         - wheel
         - pyyaml
         - requests
@@ -440,9 +443,9 @@ outputs:
         - typing_extensions >=4.15.0
         - packaging
         - {{ pin_subpackage('libtorch', exact=True) }}
-        # upstream pytorch 2.12 vendors pybind11 3.0.1; ABI-compatible up to 3.0.x.
+        # upstream pytorch 2.13 vendors pybind11 3.0.4; ABI-compatible up to 3.0.x.
         # pybind11-abi explicit (PKG-13552, mamba pattern).
-        - pybind11 >=3.0.1,<4
+        - pybind11 >=3.0.4,<4
         - pybind11-abi ==11     # strict — survives partial rebuilds
         - eigen {{ eigen }}
         - zlib {{ zlib }}
@@ -472,14 +475,115 @@ outputs:
         # Required to support torch.compile. This is tested in smoke_test.py, which is required to pass
         - triton =={{ triton }}       # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
         - {{ pin_subpackage('libtorch', exact=True) }}
-        # upstream requirements-build.txt: setuptools>=70.1.0,<82
-        - setuptools >=70.1.0,<82
+        # upstream requirements-build.txt: setuptools>=77.0.0,<82
+        - setuptools >=77.0.0,<82
       run_constrained:
         # current intel-openmp builds are incompatible with llvm-openmp on osx-64
         - llvm-openmp <0a0                # [(blas_impl == "mkl") and (osx and x86_64)]  
 
     test:
       requires:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        # PKG-14712: pin the c-stdlib provider so osx-arm64 test env has
+        # consistent C++ stdlib headers (cstdlib/iostream) — works around
+        # ld64/cctools clobber observed during pytorch QS env testing.
+        - {{ stdlib('c') }}
+        # PKG-15465: heavy pytest deps (boto3 / hypothesis / scipy / pytest-* /
+        # ninja / pybind11 / binutils / cuda-driver-dev) moved to the new
+        # pytorch-tests output below, together with run_test.py --core /
+        # inductor / MPS commands. The base `pytorch` output keeps only the
+        # fast smoke path (imports, smoke_test.py, arch verifications,
+        # DLL/lib presence) so its test env is lean.
+        - pip
+        # cuda-nvrtc-dev is still needed for smoke_test's
+        # torch.backends.cuda.is_built assertion (triggers a dlopen).
+        - {{ compiler('cuda') }}    # [(gpu_variant or "").startswith("cuda")]
+        - cuda-version {{ cuda_compiler_version }}   # [(gpu_variant or "").startswith("cuda")]
+        - cuda-nvrtc-dev            # [(gpu_variant or "").startswith("cuda")]
+      imports:
+        - torch
+      source_files:
+        - smoke_test
+      commands:
+        # the smoke test script takes a bunch of env variables, defined below
+        - set MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cuda_compiler_version.split('.')[:2]) }}"    # [(gpu_variant == "cuda") and (win)]
+        - set MATRIX_GPU_ARCH_TYPE="cuda"                                                       # [(gpu_variant or "").startswith("cuda") and (win)]
+        - set MATRIX_GPU_ARCH_VERSION="none"                                                    # [(gpu_variant == "cpu") and (win)]
+        - set MATRIX_GPU_ARCH_TYPE="none"                                                       # [(gpu_variant == "cpu") and (win)]
+        - set MATRIX_CHANNEL="defaults"                                                         # [win]
+        - set MATRIX_STABLE_VERSION={{ version }}                                               # [win]
+        - set MATRIX_PACKAGE_TYPE="conda"                                                       # [win]
+        - set TARGET_OS="windows"                                                               # [win]
+        - set OMP_NUM_THREADS=4                                                                 # [win]
+        - export MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cuda_compiler_version.split('.')[:2]) }}" # [(gpu_variant == "cuda") and linux]
+        - export MATRIX_GPU_ARCH_VERSION="{{ MACOSX_SDK_VERSION }}"                             # [(gpu_variant == "metal")]
+        - export MATRIX_GPU_ARCH_TYPE="cuda"                                                    # [(gpu_variant or "").startswith("cuda") and linux]
+        - export MATRIX_GPU_ARCH_TYPE="mps"                                                     # [(gpu_variant == "metal")]
+        - export MATRIX_GPU_ARCH_VERSION="none"                                                 # [(gpu_variant == "cpu") and (not win)]
+        - export MATRIX_GPU_ARCH_TYPE="none"                                                    # [(gpu_variant == "cpu") and (not win)]
+        - export MATRIX_CHANNEL="defaults"                                                      # [not win]
+        - export MATRIX_STABLE_VERSION="{{ version }}"                                          # [not win]
+        - export MATRIX_PACKAGE_TYPE="conda"                                                    # [not win]
+        - export TARGET_OS="linux"                                                              # [linux]
+        - export TARGET_OS="macos-arm64"                                                        # [(osx and arm64)]
+        - export TARGET_OS="macos-x86_64"                                                       # [(osx and x86_64)]
+        - export OMP_NUM_THREADS=4                                                              # [not win]
+        # Smoke test is not supported on Windows with CUDA
+        - python ./smoke_test/smoke_test.py --package torchonly  # [not (gpu_variant or "").startswith("cuda") and win]
+        # PKG-15465: run_test.py --core / inductor / MPS pytest suite moved to
+        # the pytorch-tests output. What remains here is the fast smoke path:
+        # smoke_test.py above, arch verifications below, DLL/lib checks.
+        # Run pip check so as to ensure that all pytorch packages are installed
+        # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/24
+        - pip check
+        - python -c "import torch; print(torch.__version__)"
+        # We have had issues with openmp .dylibs being doubly loaded in certain cases. These two tests catch those issues
+        - python -c "import torch; import numpy"
+        - python -c "import numpy; import torch"
+        # distributed support is enabled by default on linux; for mac, we enable it manually in build.sh
+        - python -c "import torch; assert torch.distributed.is_available()"        # [linux or osx]
+        # mkldnn is set in build.sh for linux/non-cuda variants
+        - python -c "import torch; assert torch.backends.mkldnn.m.is_available()"  # [linux and not (gpu_variant or "").startswith("cuda")]
+        # Add debug for GPU tests
+        - python -c "import torch; print('CUDA is_built:', torch.backends.cuda.is_built()); assert torch.backends.cuda.is_built()"                # [(gpu_variant or "").startswith("cuda")]
+        - python -c "import torch; print('CUDA is_available:', torch.cuda.is_available()); assert torch.cuda.is_available()"                      # [(gpu_variant or "").startswith("cuda")]
+        - python -c "import torch; print('cuDNN is_available:', torch.backends.cudnn.is_available()); assert torch.backends.cudnn.is_available()" # [(gpu_variant or "").startswith("cuda")]
+        - python -c "import torch; print('cuDNN enabled:', torch.backends.cudnn.enabled); assert torch.backends.cudnn.enabled"                    # [(gpu_variant or "").startswith("cuda")]
+        - python -c "import torch; assert torch.backends.mps.is_built()"           # [(gpu_variant == "metal")]
+        - python -c "import torch; torch.tensor(1).to('cpu').numpy(); print('numpy support enabled!!!')"
+        - test -f $PREFIX/lib/libtorch_python${SHLIB_EXT}     # [unix]
+
+  # PKG-15465: separate output that carries the heavy pytest suite (run_test.py
+  # --core / inductor / MPS) and its deps (boto3, hypothesis, pytest-* etc.).
+  # Users installing the base `pytorch` output no longer pull in either. The
+  # Windows 260-char path-length issue that motivated the split is addressed
+  # by not fetching `test/compiled_autograd_skips/…` into the base test env.
+  # Modeled after conda-forge pytorch-cpu-feedstock's pytorch-tests output.
+  - name: pytorch-tests
+    build:
+      # blas_impl embedded in the CUDA string so it becomes a tracked variant
+      # var for this output — without it, mkl+openblas CUDA builds collapse
+      # to the same PKG_HASH → PBP graph-submitter rejects duplicate task
+      # names. Matches conda-forge/pytorch-cpu-feedstock's pytorch-tests
+      # convention. (The base pytorch output doesn't need this because its
+      # requirements section already references blas_impl via mkl-devel /
+      # openblas-devel host deps; pytorch-tests has no such reference.)
+      string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_{{ blas_impl }}_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
+      string: gpu_mps_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                                   # [gpu_variant == "metal"]
+      string: cpu_{{ blas_impl }}_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                                     # [gpu_variant == "cpu"]
+      detect_binary_files_with_prefix: false
+    requirements:
+      host:
+        - python
+      run:
+        # Match the exact pytorch build we just produced (same version + build
+        # string + build_number). Users installing pytorch-tests get the same
+        # pytorch back — this is a heavy-deps + test-source meta bundle.
+        - {{ pin_subpackage('pytorch', exact=True) }}
+    test:
+      requires:
+        # cmake needs a compiler to run package detection
         - {{ compiler('c') }}
         - {{ compiler('cxx') }}
         # PKG-14712: pin the c-stdlib provider so osx-arm64 test env has
@@ -507,7 +611,7 @@ outputs:
         # (torch.utils.cpp_extension.load_inline requires ninja).
         - ninja
         # Needed for test_autograd.py
-        - pybind11 >=3.0.1,<4
+        - pybind11 >=3.0.4,<4
         # the inductor "test_aoti_eager..." tests require objcopy
         - binutils  # [linux]
         # Triton JIT links cuda_utils.c against libcuda; use driver stubs from the env (no system /lib64 driver in many builders)
@@ -521,48 +625,14 @@ outputs:
         - cuda-cudart-dev           # [(gpu_variant or "").startswith("cuda")]
         {% endif %}
         - cuda-nvrtc-dev            # [(gpu_variant or "").startswith("cuda")]
-      imports:
-        - torch
       source_files:
         - test
         # tools/ is needed to optimise test run
         # as of pytorch=2.0.0, there is a bug when trying to run tests without the tools
         - tools
-        - smoke_test
         # See files needed: https://github.com/pytorch/pytorch/blob/main/test/test_ops.py#350-L351
         - aten/src/ATen/native
       commands:
-        # the smoke test script takes a bunch of env variables, defined below
-        - set MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cuda_compiler_version.split('.')[:2]) }}"    # [(gpu_variant == "cuda") and (win)]
-        - set MATRIX_GPU_ARCH_TYPE="cuda"                                                       # [(gpu_variant or "").startswith("cuda") and (win)]
-        - set MATRIX_GPU_ARCH_VERSION="none"                                                    # [(gpu_variant == "cpu") and (win)]
-        - set MATRIX_GPU_ARCH_TYPE="none"                                                       # [(gpu_variant == "cpu") and (win)]
-        - set MATRIX_CHANNEL="defaults"                                                         # [win]
-        - set MATRIX_STABLE_VERSION={{ version }}                                               # [win]
-        - set MATRIX_PACKAGE_TYPE="conda"                                                       # [win]
-        - set TARGET_OS="windows"                                                               # [win]
-        - set OMP_NUM_THREADS=4                                                                 # [win]
-        - export MATRIX_GPU_ARCH_VERSION="{{ '.'.join(cuda_compiler_version.split('.')[:2]) }}" # [(gpu_variant == "cuda") and linux]
-        - export MATRIX_GPU_ARCH_VERSION="{{ MACOSX_SDK_VERSION }}"                             # [(gpu_variant == "metal")]
-        - export MATRIX_GPU_ARCH_TYPE="cuda"                                                    # [(gpu_variant or "").startswith("cuda") and linux]
-        - export MATRIX_GPU_ARCH_TYPE="mps"                                                     # [(gpu_variant == "metal")]
-        - export MATRIX_GPU_ARCH_VERSION="none"                                                 # [(gpu_variant == "cpu") and (not win)]
-        - export MATRIX_GPU_ARCH_TYPE="none"                                                    # [(gpu_variant == "cpu") and (not win)]
-        - export MATRIX_CHANNEL="defaults"                                                      # [not win]
-        - export MATRIX_STABLE_VERSION="{{ version }}"                                          # [not win]
-        - export MATRIX_PACKAGE_TYPE="conda"                                                    # [not win]
-        - export TARGET_OS="linux"                                                              # [linux]
-        - export TARGET_OS="macos-arm64"                                                        # [(osx and arm64)]
-        - export TARGET_OS="macos-x86_64"                                                       # [(osx and x86_64)]
-        - export OMP_NUM_THREADS=4                                                              # [not win]
-        # Smoke test is not supported on Windows with CUDA
-        - python ./smoke_test/smoke_test.py --package torchonly  # [not (gpu_variant or "").startswith("cuda") and win]
-        # We seem to have individual platform-specific test failures or flaky
-        # tests, but the majority of tests pass.
-        # Note that the `|| true` expression will make the build continue even if the whole script falls over completely
-        # (for example, in the case of missing imports). There doesn't seem to be a way of making a script exception return
-        # non-zero but failing tests return zero.
-        # ------------------------------------------------------------------------------------------------
         # Flaky complex linear-algebra cases (see run_test_core_k); https://github.com/pytorch/pytorch/issues/150918
         {% set run_test_core_k = "not (complex and (linalg_vecdot or dot or vdot))" %}
         # py3.10: scipy 1.17 dropped py3.10 → scipy missing from test env → test_numpy_ref_*
@@ -595,30 +665,42 @@ outputs:
         {% set inductor_skips = inductor_skips ~ " or test_lite_regional_compile_flex_attention_cuda" %}
         - python test/run_test.py -i inductor/test_torchinductor.py --continue-through-error -k "not ({{ inductor_skips }})" || true   # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
         - python ./test/run_test.py --mps --continue-through-error || true                                           # [(gpu_variant == "metal")]
-        # Run pip check so as to ensure that all pytorch packages are installed
-        # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/24
-        - pip check
-        - python -c "import torch; print(torch.__version__)"
-        # We have had issues with openmp .dylibs being doubly loaded in certain cases. These two tests catch those issues
-        - python -c "import torch; import numpy"
-        - python -c "import numpy; import torch"
-        # distributed support is enabled by default on linux; for mac, we enable it manually in build.sh
-        - python -c "import torch; assert torch.distributed.is_available()"        # [linux or osx]
-        # mkldnn is set in build.sh for linux/non-cuda variants
-        - python -c "import torch; assert torch.backends.mkldnn.m.is_available()"  # [linux and not (gpu_variant or "").startswith("cuda")]
-        # Add debug for GPU tests
-        - python -c "import torch; print('CUDA is_built:', torch.backends.cuda.is_built()); assert torch.backends.cuda.is_built()"                # [(gpu_variant or "").startswith("cuda")]
-        - python -c "import torch; print('CUDA is_available:', torch.cuda.is_available()); assert torch.cuda.is_available()"                      # [(gpu_variant or "").startswith("cuda")]
-        - python -c "import torch; print('cuDNN is_available:', torch.backends.cudnn.is_available()); assert torch.backends.cudnn.is_available()" # [(gpu_variant or "").startswith("cuda")]
-        - python -c "import torch; print('cuDNN enabled:', torch.backends.cudnn.enabled); assert torch.backends.cudnn.enabled"                    # [(gpu_variant or "").startswith("cuda")]
-        - python -c "import torch; assert torch.backends.mps.is_built()"           # [(gpu_variant == "metal")]
-        - python -c "import torch; torch.tensor(1).to('cpu').numpy(); print('numpy support enabled!!!')"
-        - test -f $PREFIX/lib/libtorch_python${SHLIB_EXT}     # [unix]
 
-  - name: pytorch-{{ "cpu" if gpu_variant == "cpu" else "gpu" }}
+  # Two static-name wrapper outputs (formerly a single dynamic-name output).
+  # Splitting fixes two issues at once:
+  #   1. PBP graph-submitter rejected the single-output form as duplicate test
+  #      tasks on x86 platforms — the wrapper's build.string had no blas_impl,
+  #      so mkl and openblas variants rendered identical PKG_HASH.
+  #   2. The `skip: [blas_impl == "mkl"]` half-fix caused conda-build to
+  #      hash the wrapper on blas_impl only (dropping gpu_variant from tracked
+  #      vars), which then emitted BOTH pytorch-cpu and pytorch-gpu wrappers
+  #      from the same variant — and the pytorch-gpu wrapper's test env then
+  #      couldn't resolve `pytorch =...=gpu*` (osx-arm64 metal wrapper failure).
+  # Static names + selector-gated skip on gpu_variant keeps conda-build's
+  # variant tracking honest: one wrapper per (gpu_variant, blas=openblas) pair.
+  - name: pytorch-cpu
+    build:
+      skip: true  # [gpu_variant != "cpu" or blas_impl == "mkl"]
     requirements:
       run:
-        - pytorch ={{ version }}={{ "cpu" if gpu_variant == "cpu" else "gpu" }}* # NB pinning exact=True will also pin to the python version
+        - pytorch ={{ version }}=cpu*
+    test:
+      imports:
+        - torch
+
+  - name: pytorch-gpu
+    build:
+      skip: true  # [gpu_variant == "cpu" or blas_impl == "mkl"]
+    requirements:
+      # `cuda_compiler` in build has zero function for this metapackage BUT it
+      # forces PBP to route the wrapper's test task to a GPU worker pool that
+      # provides the `__cuda` virtual package. Without it the wrapper's test
+      # env can't resolve (libtorch's `run: [__cuda]` is unsatisfiable on the
+      # CPU test pool). See memory/reference_pbp-gpu-worker-routing.md.
+      build:
+        - {{ compiler('cuda') }}                # [gpu_variant == "cuda"]
+      run:
+        - pytorch ={{ version }}=gpu*
     test:
       imports:
         - torch

@@ -5,20 +5,14 @@ Subject: [PATCH] remove `DESTINATION lib` from CMake `install(TARGETS`
  directives
 
 Suggested-By: Silvio Traversaro <silvio@traversaro.it>
----
- c10/CMakeLists.txt                      |  2 +-
- c10/cuda/CMakeLists.txt                 |  2 +-
- c10/hip/CMakeLists.txt                  |  2 +-
- c10/xpu/CMakeLists.txt                  |  2 +-
- caffe2/CMakeLists.txt                   | 20 ++++++++++----------
- torch/CMakeLists.txt                    |  2 +-
- torch/lib/libshm_windows/CMakeLists.txt |  2 +-
- 7 files changed, 16 insertions(+), 16 deletions(-)
 
-Index: pytorch-2.12.0/c10/CMakeLists.txt
-===================================================================
---- pytorch-2.12.0.orig/c10/CMakeLists.txt
-+++ pytorch-2.12.0/c10/CMakeLists.txt
+Regenerated against pytorch v2.13.0 (git am -3 failed on 2.12.0-based
+line offsets — patch(1) tolerated fuzz but git am doesn't).
+---
+diff --git a/c10/CMakeLists.txt b/c10/CMakeLists.txt
+index bd138d220..b11fb7975 100644
+--- a/c10/CMakeLists.txt
++++ b/c10/CMakeLists.txt
 @@ -162,7 +162,7 @@ if(NOT BUILD_LIBTORCHLESS)
    # Note: for now, we will put all export path into one single Caffe2Targets group
    # to deal with the cmake deployment need. Inside the Caffe2Targets set, the
@@ -28,10 +22,10 @@ Index: pytorch-2.12.0/c10/CMakeLists.txt
  endif()
  
  install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-Index: pytorch-2.12.0/c10/cuda/CMakeLists.txt
-===================================================================
---- pytorch-2.12.0.orig/c10/cuda/CMakeLists.txt
-+++ pytorch-2.12.0/c10/cuda/CMakeLists.txt
+diff --git a/c10/cuda/CMakeLists.txt b/c10/cuda/CMakeLists.txt
+index a3376140c..4979ecc54 100644
+--- a/c10/cuda/CMakeLists.txt
++++ b/c10/cuda/CMakeLists.txt
 @@ -86,7 +86,7 @@ if(NOT BUILD_LIBTORCHLESS)
  # Note: for now, we will put all export path into one single Caffe2Targets group
  # to deal with the cmake deployment need. Inside the Caffe2Targets set, the
@@ -41,11 +35,11 @@ Index: pytorch-2.12.0/c10/cuda/CMakeLists.txt
  
  endif()
  
-Index: pytorch-2.12.0/c10/hip/CMakeLists.txt
-===================================================================
---- pytorch-2.12.0.orig/c10/hip/CMakeLists.txt
-+++ pytorch-2.12.0/c10/hip/CMakeLists.txt
-@@ -56,7 +56,7 @@ if(NOT BUILD_LIBTORCHLESS)
+diff --git a/c10/hip/CMakeLists.txt b/c10/hip/CMakeLists.txt
+index 0f86f03ca..ac5030b61 100644
+--- a/c10/hip/CMakeLists.txt
++++ b/c10/hip/CMakeLists.txt
+@@ -52,7 +52,7 @@ if(NOT BUILD_LIBTORCHLESS)
        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../..>
        $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
        $<INSTALL_INTERFACE:include>)
@@ -54,10 +48,10 @@ Index: pytorch-2.12.0/c10/hip/CMakeLists.txt
    set(C10_HIP_LIB c10_hip)
  endif()
  
-Index: pytorch-2.12.0/c10/xpu/CMakeLists.txt
-===================================================================
---- pytorch-2.12.0.orig/c10/xpu/CMakeLists.txt
-+++ pytorch-2.12.0/c10/xpu/CMakeLists.txt
+diff --git a/c10/xpu/CMakeLists.txt b/c10/xpu/CMakeLists.txt
+index 349b209ae..9b1c27ada 100644
+--- a/c10/xpu/CMakeLists.txt
++++ b/c10/xpu/CMakeLists.txt
 @@ -49,7 +49,7 @@ if(NOT BUILD_LIBTORCHLESS)
        $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
        $<INSTALL_INTERFACE:include>
@@ -67,11 +61,11 @@ Index: pytorch-2.12.0/c10/xpu/CMakeLists.txt
    set(C10_XPU_LIB c10_xpu)
    add_subdirectory(test)
  endif()
-Index: pytorch-2.12.0/caffe2/CMakeLists.txt
-===================================================================
---- pytorch-2.12.0.orig/caffe2/CMakeLists.txt
-+++ pytorch-2.12.0/caffe2/CMakeLists.txt
-@@ -571,7 +571,7 @@ if(USE_CUDA)
+diff --git a/caffe2/CMakeLists.txt b/caffe2/CMakeLists.txt
+index e4a0454ec..e5628f907 100644
+--- a/caffe2/CMakeLists.txt
++++ b/caffe2/CMakeLists.txt
+@@ -561,7 +561,7 @@ if(USE_CUDA)
    endif()
  
    target_link_libraries(caffe2_nvrtc PRIVATE caffe2::nvrtc ${DELAY_LOAD_FLAGS})
@@ -80,7 +74,7 @@ Index: pytorch-2.12.0/caffe2/CMakeLists.txt
    if(USE_NCCL)
      list(APPEND Caffe2_GPU_SRCS
        ${TORCH_SRC_DIR}/csrc/cuda/nccl.cpp)
-@@ -654,7 +654,7 @@ if(USE_ROCM)
+@@ -645,7 +645,7 @@ if(USE_ROCM)
    target_link_libraries(caffe2_nvrtc hip::amdhip64 hiprtc::hiprtc)
    target_include_directories(caffe2_nvrtc PRIVATE ${CMAKE_BINARY_DIR})
    target_compile_definitions(caffe2_nvrtc PRIVATE USE_ROCM __HIP_PLATFORM_AMD__)
@@ -107,7 +101,7 @@ Index: pytorch-2.12.0/caffe2/CMakeLists.txt
    endif()
  
    if(USE_PRECOMPILED_HEADERS)
-@@ -1672,17 +1672,17 @@ endif()
+@@ -1673,17 +1673,17 @@ endif()
  
  caffe2_interface_library(torch torch_library)
  
@@ -130,7 +124,7 @@ Index: pytorch-2.12.0/caffe2/CMakeLists.txt
  
  target_link_libraries(torch PUBLIC torch_cpu_library)
  
-@@ -1825,7 +1825,7 @@ if(BUILD_SHARED_LIBS)
+@@ -1826,7 +1826,7 @@ if(BUILD_SHARED_LIBS)
        target_link_libraries(torch_global_deps torch::nvtoolsext)
      endif()
    endif()
@@ -139,23 +133,23 @@ Index: pytorch-2.12.0/caffe2/CMakeLists.txt
  endif()
  
  # ---[ Caffe2 HIP sources.
-Index: pytorch-2.12.0/torch/CMakeLists.txt
-===================================================================
---- pytorch-2.12.0.orig/torch/CMakeLists.txt
-+++ pytorch-2.12.0/torch/CMakeLists.txt
-@@ -464,7 +464,7 @@ if(NOT TORCH_PYTHON_LINK_FLAGS STREQUAL
-     set_target_properties(torch_python PROPERTIES LINK_FLAGS ${TORCH_PYTHON_LINK_FLAGS})
+diff --git a/torch/CMakeLists.txt b/torch/CMakeLists.txt
+index 23aa88ddc..7756b7ce8 100644
+--- a/torch/CMakeLists.txt
++++ b/torch/CMakeLists.txt
+@@ -439,7 +439,7 @@ if(NOT TORCH_PYTHON_LINK_FLAGS STREQUAL "")
+     set_target_properties(torch_python PROPERTIES LINK_FLAGS "${TORCH_PYTHON_LINK_FLAGS}")
  endif()
  
 -install(TARGETS torch_python DESTINATION "${TORCH_INSTALL_LIB_DIR}")
 +install(TARGETS torch_python)
  
- # Generate torch/version.py from the appropriate CMake cache variables.
- if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-Index: pytorch-2.12.0/torch/lib/libshm_windows/CMakeLists.txt
-===================================================================
---- pytorch-2.12.0.orig/torch/lib/libshm_windows/CMakeLists.txt
-+++ pytorch-2.12.0/torch/lib/libshm_windows/CMakeLists.txt
+ # Build the torch._C Python extension module from the thin stub that
+ # forwards to torch_python.  This was historically built by setuptools;
+diff --git a/torch/lib/libshm_windows/CMakeLists.txt b/torch/lib/libshm_windows/CMakeLists.txt
+index df2a10649..5fa15e6be 100644
+--- a/torch/lib/libshm_windows/CMakeLists.txt
++++ b/torch/lib/libshm_windows/CMakeLists.txt
 @@ -19,7 +19,7 @@ target_include_directories(shm PRIVATE
  target_link_libraries(shm torch c10)
  
@@ -165,3 +159,6 @@ Index: pytorch-2.12.0/torch/lib/libshm_windows/CMakeLists.txt
  install(FILES libshm.h DESTINATION "include")
  
  if(MSVC AND BUILD_SHARED_LIBS)
+-- 
+2.42.0
+

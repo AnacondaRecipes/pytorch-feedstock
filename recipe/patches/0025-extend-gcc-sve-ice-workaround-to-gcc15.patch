@@ -1,0 +1,40 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Xianglong Kong <xkong@anaconda.com>
+Date: Mon, 14 Jul 2026 12:00:00 -0400
+Subject: [PATCH] Extend gcc SVE ICE workaround to gcc 15
+
+Upstream commit 8fd50939 added __attribute__((optimize("no-tree-vectorize")))
+on unfolded2d_acc_kernel to work around a gcc-14.2.0 ICE during RTL pass:
+vregs when compiling for SVE. See pytorch/pytorch#172630.
+
+The same ICE class re-appears with gcc 15.2.0 building for linux-aarch64
+(-march=armv8-a+sve+bf16 -msve-vector-bits=256):
+
+  Unfold2d.cpp:226:1: error: unrecognizable insn:
+    (insn ... (set (reg:VNx8BI 2854) (unspec:VNx16BI [(reg:VNx8BI 2856) (nil)]))
+  during RTL pass: vregs
+  internal compiler error: in extract_insn, at recog.cc:2882
+
+AR's ctng-compiler-activation ships gcc 15.2.0 for linux-aarch64 (14.3 has
+a distinct vector-instruction bug). Extend the workaround gate from
+__GNUC__ == 14 to __GNUC__ >= 14 so it also applies to gcc 15.
+
+Once upstream widens the gate, or gcc 15.3+ ships the RTL fix, this
+patch can be dropped.
+---
+diff --git a/aten/src/ATen/native/cpu/Unfold2d.cpp b/aten/src/ATen/native/cpu/Unfold2d.cpp
+index 9ae1391e2..49ba11af2 100644
+--- a/aten/src/ATen/native/cpu/Unfold2d.cpp
++++ b/aten/src/ATen/native/cpu/Unfold2d.cpp
+@@ -169,7 +169,7 @@ void unfolded2d_acc_channels_last(
+ 
+ /* note: due to write issues, this one cannot be parallelized as well as
+  * unfolded2d_copy */
+-#if defined(__GNUC__) && __GNUC__ == 14 && defined(__ARM_FEATURE_SVE)
++#if defined(__GNUC__) && __GNUC__ >= 14 && defined(__ARM_FEATURE_SVE)
+ // Workaround for gcc-14.2.0 ICE during RTL pass: vregs when compiling for SVE
+ // NS: With or without BF16, see https://github.com/pytorch/pytorch/issues/172630
+ __attribute__((optimize("no-tree-vectorize")))
+-- 
+2.42.0
+
