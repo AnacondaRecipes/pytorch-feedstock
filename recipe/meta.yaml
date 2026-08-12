@@ -88,6 +88,12 @@ build:
   # only skip differs — #97 py3.14, #101 py3.10/3.11, #102 py3.12/3.13.
   # Drop skip on merge-to-master once all three green.
   skip: true  # [py != 314]
+  # win-64 CPU (cpu_mkl / cpu_openblas) claim-expires on the windows-server-2025
+  # non-CUDA pool (SIR-3657) — the >2h build outlives the worker claim. win-64
+  # CUDA routes to the healthy GPU pool and stays on CI. The CPU variants are
+  # built off-CI on a dev instance and manually released; drop this skip once
+  # SIR-3657 is fixed.
+  skip: true  # [win and gpu_variant == "cpu"]
   # osx-arm64 metal: re-enabled after SIR-3273 root cause fix in build.sh
   # (export SDKROOT + CMAKE_ARGS sed for 12.1 → MACOSX_SDK_VERSION).
   # Verified on PR #103 debug graph 935c2593-eeac-41a8-8683-ec3e80f48478.
