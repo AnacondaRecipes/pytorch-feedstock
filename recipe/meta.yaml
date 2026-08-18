@@ -93,7 +93,11 @@ build:
   # osx-arm64 metal: re-enabled after SIR-3273 root cause fix in build.sh
   # (export SDKROOT + CMAKE_ARGS sed for 12.1 → MACOSX_SDK_VERSION).
   # Verified on PR #103 debug graph 935c2593-eeac-41a8-8683-ec3e80f48478.
-  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version != "12.9"]
+  # SIR-3657 TEST (DO NOT MERGE): build ONLY win-64 CPU py3.14 (mkl + openblas)
+  # on PBP to check whether the win non-CUDA pool still CLAIM_EXPIREs on the long
+  # (>2h) pytorch build. Everything else — non-win platforms, CUDA/metal, other
+  # pythons — is skipped so this is 2 quick builds.
+  skip: true  # [not (win and gpu_variant == "cpu") or py != 314]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
