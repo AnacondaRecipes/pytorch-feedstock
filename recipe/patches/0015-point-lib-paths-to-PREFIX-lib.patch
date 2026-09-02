@@ -1,23 +1,26 @@
 From 0945e6e7d259cf3b196a06c850d0b4d56faf343c Mon Sep 17 00:00:00 2001
 From: Daniel Petry <dpetry@anaconda.com>
 Date: Thu, 6 Mar 2025 00:00:00 +0000
-Subject: [PATCH 09/13] Point lib paths to $PREFIX/lib
+Subject: [PATCH] Point lib paths to $PREFIX/lib
 
 Point cpp_extension, which is used in cpp_builder to compile at runtime,
 towards the lib directory rather than the site-packages directory, because
 that's where are sos/dlls are.
+
+Rebased for 2.14: upstream now sets _TORCH_PATH via get_file_path("torch")
+(scikit-build-core editable-install redirect). The CONDA_BUILD/CONDA_PREFIX
+override is unchanged and still falls back to the upstream default.
 ---
  torch/utils/cpp_extension.py | 13 ++++++++++++-
  1 file changed, 12 insertions(+), 1 deletion(-)
 
-Index: pytorch-2.12.0/torch/utils/cpp_extension.py
-===================================================================
---- pytorch-2.12.0.orig/torch/utils/cpp_extension.py
-+++ pytorch-2.12.0/torch/utils/cpp_extension.py
-@@ -40,7 +40,18 @@ SHARED_FLAG = '/DLL' if IS_WINDOWS else
- 
- _HERE = os.path.abspath(__file__)
- _TORCH_PATH = os.path.dirname(os.path.dirname(_HERE))
+diff --git a/torch/utils/cpp_extension.py b/torch/utils/cpp_extension.py
+--- a/torch/utils/cpp_extension.py
++++ b/torch/utils/cpp_extension.py
+@@ -46,7 +46,18 @@
+ # from, so resolve it the same way torch._utils_internal does instead of from
+ # this file's location.
+ _TORCH_PATH = get_file_path("torch")
 -TORCH_LIB_PATH = os.path.join(_TORCH_PATH, 'lib')
 +if os.environ.get("CONDA_BUILD", None) is not None:
 +    # regular build (& testing) phase --> PREFIX is set
@@ -31,6 +34,6 @@ Index: pytorch-2.12.0/torch/utils/cpp_extension.py
 +    TORCH_LIB_PATH = os.path.join(*pieces)
 +else:
 +    TORCH_LIB_PATH = os.path.join(_TORCH_PATH, 'lib')
- 
- 
+
+
  SUBPROCESS_DECODE_ARGS = ('oem',) if IS_WINDOWS else ()

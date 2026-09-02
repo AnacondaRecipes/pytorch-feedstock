@@ -10,8 +10,10 @@ echo "####################################################################"
 # https://github.com/pytorch/pytorch/blob/v2.3.1/setup.py#L341
 export PACKAGE_TYPE=conda
 
-# remove pyproject.toml to avoid installing deps from pip
-rm -rf pyproject.toml
+# 2.14's build backend is scikit-build-core — both the backend selection and the
+# build config ([tool.scikit-build]) live in pyproject.toml, so we must NOT remove
+# it. (Pre-2.14 setuptools builds deleted it to stop pip installing build-system
+# deps; the `pip ... --no-build-isolation` invocation below already prevents that.)
 
 # On linux+mkl, gate dnnl's OpenMP.cmake to use compile-only flags so gcc
 # doesn't auto-link libgomp into libdnnl.so. (Paired with patch 0022's

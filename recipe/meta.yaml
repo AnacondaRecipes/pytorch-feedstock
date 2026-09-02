@@ -1,4 +1,4 @@
-{% set version = "2.13.0" %}
+{% set version = "2.14.0" %}
 # Set the RC number to build release candidates. Set to None otherwise.
 {% set rc = None %}
 {% set build = 0 %}
@@ -9,12 +9,12 @@
 # To resolve for a future release:
 #   gh api repos/pytorch/pytorch/git/refs/tags/v<version> --jq '.object.sha'
 # (de-reference annotated tags via .object.type == "tag" → /git/tags/<sha>.)
-{% set git_rev_sha = "cf30153c4c131c8164ee7798e5022d810682e2cb" %}
+{% set git_rev_sha = "2b3ec34829036a65cd9d1398ea72a0167dc37470" %}   # v2.14.0
 {% set smoke_test_commit = git_rev_sha %}
 
 # see https://github.com/pytorch/pytorch/blame/v{{ version }}/.ci/docker/ci_commit_pins/triton.txt
-# 2.13 pins triton to commit 5d6048aa (triton 3.7.1) — same version as 2.12.1.
-{% set triton = "3.7.1" %}
+# 2.14 pins triton to commit 675c5987 (triton 3.8.0).
+{% set triton = "3.8.0" %}
 
 # Use a higher build number for the CUDA variant, to ensure that it's
 # preferred by conda's solver, and it's preferentially
@@ -38,7 +38,7 @@ package:
   version: {{ version }}
 
 source:
-  # Content-addressable source pinned to the exact commit v2.13.0 points at.
+  # Content-addressable source pinned to the exact commit v2.14.0 points at.
   # Tags are mutable on GitHub — a retag would silently change our source —
   # so we pin the SHA, not the tag. This also sidesteps the release-tarball
   # regeneration that broke sha256-pinned fetches (asset re-generated several
@@ -47,7 +47,7 @@ source:
   - git_url: https://github.com/pytorch/pytorch.git
     git_rev: {{ git_rev_sha }}   # v{{ version }} — see top-of-file derivation
     # NOTE: no git_depth pin. `git_depth: 1` makes conda-build do a shallow
-    # `git clone --depth 1` (defaults to HEAD), then `git checkout v2.13.0`
+    # `git clone --depth 1` (defaults to HEAD), then `git checkout v2.14.0`
     # fails because the tag isn't reachable in the shallow history. Full
     # clone (~430 MB) is fine — happens once per worker via src_cache.
     patches:
@@ -84,16 +84,17 @@ source:
 
 build:
   number: {{ build }}
-  # 2.13.0 3-PR split (CBC identical across all 3, meta.yaml differs ONLY in
-  # this skip line, same convention as 2.12's #97/#101/#102):
-  #   - PKG-12886 cpu     — skip: gpu_variant == "cuda"
-  #   - PKG-12885 cuda129 — skip: gpu_variant != "cuda" or cuda_compiler_version != "12.9"
-  #   - cuda130 (PKG-12885/12884/12888) — skip: gpu_variant != "cuda" or cuda_compiler_version != "13.0"
-  # Drop these skip lines on merge-to-master once all three are green.
+  # 2.14.0: single combined PR (CPU + all CUDA variants), unlike 2.13's 3-PR split.
+  # STAGE 1 — SINGLE smoke build (linux-64 + CPU + openblas + py3.13) to validate
+  # the scikit-build-core build flow (2.14's new backend) cheaply before spending
+  # CUDA hours. Comment out these lines to widen (platforms → CUDA → other Pythons);
+  # drop them all for merge-to-master.
   # osx-arm64 metal: re-enabled after SIR-3273 root cause fix in build.sh
   # (export SDKROOT + CMAKE_ARGS sed for 12.1 → MACOSX_SDK_VERSION).
-  # Verified on PR #103 debug graph 935c2593-eeac-41a8-8683-ec3e80f48478.
-  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version != "12.9"]
+  skip: true  # [not (linux and x86_64)]
+  skip: true  # [gpu_variant != "cpu"]
+  skip: true  # [blas_impl != "openblas"]
+  skip: true  # [py != 313]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
@@ -200,6 +201,12 @@ requirements:
     # upstream requirements-build.txt: setuptools>=77.0.0,<82
     - setuptools >=77.0.0,<82
     - wheel
+    # 2.14 migrated the build backend from setuptools to scikit-build-core
+    # (pyproject.toml [build-system]). Provide it so pip's PEP-517 build uses it.
+    # RE-POLISH (after GA): build.sh:13 removes pyproject.toml — that step must be
+    # reworked, since scikit-build-core's build config lives in pyproject.toml
+    # ([tool.scikit-build]). Validate the full build flow against final v2.14.0.
+    - scikit-build-core >=1.0
     - pyyaml
     - requests
     - six
