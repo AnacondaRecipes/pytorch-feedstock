@@ -427,6 +427,10 @@ outputs:
         - pip
         # upstream requirements-build.txt: setuptools>=77.0.0,<82
         - setuptools >=77.0.0,<82
+        # 2.14 build backend: scikit-build-core drives the pytorch-output
+        # `pip install .` (2nd megabuild phase) too, so it must be in this
+        # multi-output host as well — not just libtorch's.
+        - scikit-build-core >=1.0
         - wheel
         - pyyaml
         - requests
