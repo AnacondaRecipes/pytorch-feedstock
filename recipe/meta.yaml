@@ -84,15 +84,16 @@ source:
 
 build:
   number: {{ build }}
-  # 2.14.0: single combined PR (CPU + all CUDA variants), unlike 2.13's 3-PR split.
-  # STAGE 1 — SINGLE smoke build (linux-64 + CPU + openblas + py3.13) to validate
-  # the scikit-build-core build flow (2.14's new backend) cheaply before spending
-  # CUDA hours. Comment out these lines to widen (platforms → CUDA → other Pythons);
-  # drop them all for merge-to-master.
+  # 2.14.0 CUDA sibling of the CPU PR (#113) — identical recipe; only this skip
+  # line differs (per the 2.13 sibling-PR pattern, for trivial merge-to-master).
+  # STAGE 1 — SINGLE CUDA smoke build (linux-64 + CUDA 13.0 + openblas + py3.13)
+  # to validate the scikit-build-core + CUDA flow in parallel with the CPU smoke.
+  # Comment out lines to widen (other CUDA ver → Pythons); drop all for merge.
   # osx-arm64 metal: re-enabled after SIR-3273 root cause fix in build.sh
   # (export SDKROOT + CMAKE_ARGS sed for 12.1 → MACOSX_SDK_VERSION).
   skip: true  # [not (linux and x86_64)]
-  skip: true  # [gpu_variant != "cpu"]
+  skip: true  # [gpu_variant != "cuda"]
+  skip: true  # [cuda_compiler_version != "13.0"]
   skip: true  # [blas_impl != "openblas"]
   skip: true  # [py != 313]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
