@@ -253,6 +253,11 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     # we can override the default and set USE_DISTRIBUTED=1.
     export USE_DISTRIBUTED=1
 
+    # cmake 4.x enables C++20 module dependency scanning (P1689) for -std=gnu++20
+    # targets, which needs clang-scan-deps — absent from the osx clang toolchain.
+    # pytorch/fmt don't use C++20 modules, so disable the scan.
+    export CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_CXX_SCAN_FOR_MODULES=OFF"
+
     if [[ "$target_platform" == "osx-arm64" ]]; then
         # MKLDNN did not support on Apple M1 at the time support Apple M1
         # was added. Revisit later
