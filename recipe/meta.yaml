@@ -69,7 +69,7 @@ source:
   # busy graphs (observed on win-64 py3.11/py3.14 in graph 2dd074ea).
   - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.ci/pytorch/smoke_test/smoke_test.py
     folder: smoke_test
-    sha256: 19ecd4e78cf2997fadff1c6799d3fcb7fbc0c1fd080e60d166c934593b036314
+    sha256: ee18c7cbbdabee3bdea339fe556ee1256a76bad5efcd4537c1a9d196bf69e26d
   # check_wheel_tags.py is a sibling helper imported by smoke_test.py since the
   # 2.12 release (smoke_test.py:13 `from check_wheel_tags import …`). Without
   # this file the win-64 pytorch test command `python ./smoke_test/smoke_test.py
@@ -84,16 +84,14 @@ source:
 
 build:
   number: {{ build }}
-  # 2.14.0 CUDA sibling of the CPU PR (#113) — identical recipe; only this skip
-  # line differs (per the 2.13 sibling-PR pattern, for trivial merge-to-master).
-  # STAGE 1 — SINGLE CUDA smoke build (linux-64 + CUDA 13.0 + openblas + py3.13)
-  # to validate the scikit-build-core + CUDA flow in parallel with the CPU smoke.
-  # Comment out lines to widen (other CUDA ver → Pythons); drop all for merge.
+  # 2.14.0 CUDA sibling of the CPU PR (#113) — identical recipe; only these skip
+  # lines differ (per the 2.13 sibling-PR pattern, for trivial merge-to-master).
+  # CUDA track: linux-64 + CUDA 12.9 & 13.0 + openblas + py3.13. Widen further
+  # (mkl, other Pythons) as builds go green; drop all skip lines for merge.
   # osx-arm64 metal: re-enabled after SIR-3273 root cause fix in build.sh
   # (export SDKROOT + CMAKE_ARGS sed for 12.1 → MACOSX_SDK_VERSION).
   skip: true  # [not (linux and x86_64)]
   skip: true  # [gpu_variant != "cuda"]
-  skip: true  # [cuda_compiler_version != "13.0"]
   skip: true  # [blas_impl != "openblas"]
   skip: true  # [py != 313]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
