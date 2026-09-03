@@ -90,6 +90,10 @@ build:
   # osx-arm64 metal: re-enabled after SIR-3273 root cause fix in build.sh
   # (export SDKROOT + CMAKE_ARGS sed for 12.1 → MACOSX_SDK_VERSION).
   skip: true  # [gpu_variant == "cuda"]
+  # PR-scoping filter (split-PR convention): this PR is the win-arm64 release
+  # vehicle — DROP this line when folding win-arm64 support into the mainline
+  # recipe. Keeps this PR's CI from rebuilding the platforms #113 owns.
+  skip: true  # [not (win and arm64)]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
