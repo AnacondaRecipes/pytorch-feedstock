@@ -168,8 +168,8 @@ if "%PKG_NAME%" == "pytorch" (
 @REM Use pip instead of raw setup.py for a cleaner build flow.
 @REM --no-clean preserves build dir so CMake can do incremental work.
 @REM --no-build-isolation uses our conda environment packages.
-@REM --config-settings=--global-option=-q reduces setup.py noise.
-%PYTHON% -m pip %PIP_ACTION% . --no-build-isolation --no-deps %PIP_VERBOSITY% --no-clean --config-settings=--global-option=-q
+@REM (2.14's scikit-build-core backend rejects the legacy --global-option config-setting.)
+%PYTHON% -m pip %PIP_ACTION% . --no-build-isolation --no-deps %PIP_VERBOSITY% --no-clean
 if %ERRORLEVEL% neq 0 exit 1
 
 @REM ========================= PACKAGE SPLIT ====================================
