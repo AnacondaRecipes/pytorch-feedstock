@@ -25,7 +25,9 @@ if "%target_platform%" == "win-arm64" (
     @REM vcomp140.dll is not shipped on the win-arm64 channel (vc14_runtime
     @REM carries no OpenMP runtime there), so point MSVC's LLVM OpenMP mode at
     @REM conda's llvm-openmp (libomp) instead of the default /openmp (vcomp).
-    set "CMAKE_ARGS=!CMAKE_ARGS! -DOpenMP_C_FLAGS=/openmp:llvm -DOpenMP_CXX_FLAGS=/openmp:llvm -DOpenMP_C_LIB_NAMES=libomp -DOpenMP_CXX_LIB_NAMES=libomp -DOpenMP_libomp_LIBRARY=%LIBRARY_LIB%\libomp.lib"
+    @REM Forward slashes: scikit-build-core splits CMAKE_ARGS shlex-style,
+    @REM which eats backslashes ("C:\Users\..." -> "C:Users...").
+    set "CMAKE_ARGS=!CMAKE_ARGS! -DOpenMP_C_FLAGS=/openmp:llvm -DOpenMP_CXX_FLAGS=/openmp:llvm -DOpenMP_C_LIB_NAMES=libomp -DOpenMP_CXX_LIB_NAMES=libomp -DOpenMP_libomp_LIBRARY=%LIBRARY_LIB:\=/%/libomp.lib"
 )
 
 @REM ========================= BLAS SETUP =======================================
