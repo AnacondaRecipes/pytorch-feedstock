@@ -21,7 +21,10 @@ set MAX_JOBS=6
 @REM ========================= WIN-ARM64 ========================================
 if "%target_platform%" == "win-arm64" (
     @REM win-arm64 workers have 16GB RAM (vs 64GB win-64) - cap parallelism.
-    set MAX_JOBS=4
+    @REM MAX_JOBS=4 tripped the TaskCluster memory watchdog (sustained >90%%,
+    @REM peak 15.7/16GB) in the generated python_torch_functions_* TU cluster
+    @REM at ~91%% of the build; 3 keeps that cluster under the ceiling.
+    set MAX_JOBS=3
     @REM vcomp140.dll is not shipped on the win-arm64 channel (vc14_runtime
     @REM carries no OpenMP runtime there), so point MSVC's LLVM OpenMP mode at
     @REM conda's llvm-openmp (libomp) instead of the default /openmp (vcomp).
