@@ -86,6 +86,20 @@ zip_keys:
     - gpu_variant                # [win or linux]
     - cuda_compiler_version      # [win or linux]
 
+# The win-arm64 bootstrap channel ships only the NEWER library stacks
+# (protobuf-7 migration, eigen 5) — the aggregate pins (libprotobuf 6.33.5,
+# libabseil 20260107, eigen 3.3.7) have no win-arm64 builds. Key-line
+# selectors make these keys exist only on win-arm64, so every other platform
+# still inherits the aggregate pins (openblas-feedstock CBC-merge pattern).
+# Note: pytorch 2.14's vendored eigen is post-3.4/master-era, so system
+# eigen 5.0.1 is closer to upstream's tested combination than 3.3.7.
+libprotobuf:                 # [win and arm64]
+  - 7.35.1                   # [win and arm64]
+libabseil:                   # [win and arm64]
+  - '20260526'               # [win and arm64]
+eigen:                       # [win and arm64]
+  - 5.0.1                    # [win and arm64]
+
 # megabuild is disabled as our CI runners work on each python version separately.
 megabuild:
 - false
