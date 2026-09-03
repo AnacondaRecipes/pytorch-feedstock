@@ -84,16 +84,12 @@ source:
 
 build:
   number: {{ build }}
-  # 2.14.0 CPU track (sibling of the CUDA PR #114) — identical recipe; only these
-  # skip lines differ (per the 2.13 sibling-PR pattern, for trivial merge-to-master).
-  # CPU on all platforms (linux-64, linux-aarch64, osx-arm64, win-64) + openblas +
-  # py3.13. Widen further (mkl, other Pythons, osx metal) as builds go green; drop
-  # all skip lines for merge-to-master.
+  # 2.14.0 — CUDA 13.0 split PR: full matrix (linux-64 + win-64 + linux-aarch64;
+  # all Pythons, all BLAS). Merges to the 2.14-cuda130 branch. Shares this exact
+  # recipe with the CPU and cuda12.9 PRs; differs ONLY in the skip line below.
   # osx-arm64 metal: re-enabled after SIR-3273 root cause fix in build.sh
   # (export SDKROOT + CMAKE_ARGS sed for 12.1 → MACOSX_SDK_VERSION).
-  skip: true  # [gpu_variant != "cpu"]
-  skip: true  # [blas_impl != "openblas"]
-  skip: true  # [py != 313]
+  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version != "13.0"]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
