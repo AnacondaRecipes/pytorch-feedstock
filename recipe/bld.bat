@@ -25,6 +25,11 @@ if "%target_platform%" == "win-arm64" (
     @REM peak 15.7/16GB) in the generated python_torch_functions_* TU cluster
     @REM at ~91%% of the build; 3 keeps that cluster under the ceiling.
     set MAX_JOBS=3
+    @REM 2.14's scikit-build-core backend does NOT read MAX_JOBS (that was the
+    @REM legacy setup.py path) - ninja ran at default CPU-count parallelism and
+    @REM tripped the watchdog twice at identical peaks. skbuild honors
+    @REM CMAKE_BUILD_PARALLEL_LEVEL.
+    set CMAKE_BUILD_PARALLEL_LEVEL=3
     @REM vcomp140.dll is not shipped on the win-arm64 channel (vc14_runtime
     @REM carries no OpenMP runtime there), so point MSVC's LLVM OpenMP mode at
     @REM conda's llvm-openmp (libomp) instead of the default /openmp (vcomp).
