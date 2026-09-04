@@ -42,7 +42,10 @@ if "%target_platform%" == "win-arm64" (
     @REM provably honors (fbgemm pool precedent): cap compiles at 2 and links
     @REM at 1 so the ~4.5GB/TU generated python_torch_functions cluster peaks
     @REM ~11GB instead of >15.5GB.
-    set "CMAKE_ARGS=!CMAKE_ARGS! -DCMAKE_JOB_POOLS=compile_pool=2;link_pool=1 -DCMAKE_JOB_POOL_COMPILE=compile_pool -DCMAKE_JOB_POOL_LINK=link_pool"
+    @REM pool=2 still tripped the watchdog: the generated python_functions_*
+    @REM TUs cost ~6-7GB EACH under MSVC/ARM64, so two concurrent bust 90% of
+    @REM 16GB. Serialize compiles entirely and force IPO/LTCG off.
+    set "CMAKE_ARGS=!CMAKE_ARGS! -DCMAKE_JOB_POOLS=compile_pool=1;link_pool=1 -DCMAKE_JOB_POOL_COMPILE=compile_pool -DCMAKE_JOB_POOL_LINK=link_pool -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF"
 )
 
 @REM ========================= BLAS SETUP =======================================
