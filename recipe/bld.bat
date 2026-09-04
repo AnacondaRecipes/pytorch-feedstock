@@ -36,6 +36,13 @@ if "%target_platform%" == "win-arm64" (
     @REM Forward slashes: scikit-build-core splits CMAKE_ARGS shlex-style,
     @REM which eats backslashes ("C:\Users\..." -> "C:Users...").
     set "CMAKE_ARGS=!CMAKE_ARGS! -DOpenMP_C_FLAGS=/openmp:llvm -DOpenMP_CXX_FLAGS=/openmp:llvm -DOpenMP_C_LIB_NAMES=libomp -DOpenMP_CXX_LIB_NAMES=libomp -DOpenMP_libomp_LIBRARY=%LIBRARY_LIB:\=/%/libomp.lib"
+    @REM Neither MAX_JOBS nor CMAKE_BUILD_PARALLEL_LEVEL reached ninja (three
+    @REM watchdog kills at identical ~15.6GB peaks / 4h20m on the 4-vCPU 16GB
+    @REM workers). Ninja JOB POOLS go through CMAKE_ARGS, which skbuild
+    @REM provably honors (fbgemm pool precedent): cap compiles at 2 and links
+    @REM at 1 so the ~4.5GB/TU generated python_torch_functions cluster peaks
+    @REM ~11GB instead of >15.5GB.
+    set "CMAKE_ARGS=!CMAKE_ARGS! -DCMAKE_JOB_POOLS=compile_pool=2;link_pool=1 -DCMAKE_JOB_POOL_COMPILE=compile_pool -DCMAKE_JOB_POOL_LINK=link_pool"
 )
 
 @REM ========================= BLAS SETUP =======================================
