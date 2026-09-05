@@ -18,6 +18,37 @@ set PYTORCH_BUILD_NUMBER=0
 @REM 6 is safe on our 64GB runners.
 set MAX_JOBS=6
 
+@REM ========================= WIN-ARM64 ========================================
+if "%target_platform%" == "win-arm64" (
+    @REM win-arm64 workers have 16GB RAM (vs 64GB win-64) - cap parallelism.
+    @REM MAX_JOBS=4 tripped the TaskCluster memory watchdog (sustained >90%%,
+    @REM peak 15.7/16GB) in the generated python_torch_functions_* TU cluster
+    @REM at ~91%% of the build; 3 keeps that cluster under the ceiling.
+    set MAX_JOBS=3
+    @REM 2.14's scikit-build-core backend does NOT read MAX_JOBS (that was the
+    @REM legacy setup.py path) - ninja ran at default CPU-count parallelism and
+    @REM tripped the watchdog twice at identical peaks. skbuild honors
+    @REM CMAKE_BUILD_PARALLEL_LEVEL.
+    set CMAKE_BUILD_PARALLEL_LEVEL=3
+    @REM vcomp140.dll is not shipped on the win-arm64 channel (vc14_runtime
+    @REM carries no OpenMP runtime there), so point MSVC's LLVM OpenMP mode at
+    @REM conda's llvm-openmp (libomp) instead of the default /openmp (vcomp).
+    @REM Forward slashes: scikit-build-core splits CMAKE_ARGS shlex-style,
+    @REM which eats backslashes ("C:\Users\..." -> "C:Users...").
+    set "CMAKE_ARGS=!CMAKE_ARGS! -DOpenMP_C_FLAGS=/openmp:llvm -DOpenMP_CXX_FLAGS=/openmp:llvm -DOpenMP_C_LIB_NAMES=libomp -DOpenMP_CXX_LIB_NAMES=libomp -DOpenMP_libomp_LIBRARY=%LIBRARY_LIB:\=/%/libomp.lib"
+    @REM Neither MAX_JOBS nor CMAKE_BUILD_PARALLEL_LEVEL reached ninja (three
+    @REM watchdog kills at identical ~15.6GB peaks / 4h20m on the 4-vCPU 16GB
+    @REM workers). Ninja JOB POOLS go through CMAKE_ARGS, which skbuild
+    @REM provably honors (fbgemm pool precedent): cap compiles at 2 and links
+    @REM at 1 so the ~4.5GB/TU generated python_torch_functions cluster peaks
+    @REM ~11GB instead of >15.5GB.
+    @REM Even ONE python_functions_N.cpp shard needed 13-15GB (watchdog kill
+    @REM at pool=1) -> patch 0026 raises the codegen shard count 5->20
+    @REM (~3.5GB/TU), but 2 concurrent shards still bust 16GB (~7GB each); serialize compiles;
+    @REM IPO/LTCG stays off to keep link memory bounded.
+    set "CMAKE_ARGS=!CMAKE_ARGS! -DCMAKE_JOB_POOLS=compile_pool=1;link_pool=1 -DCMAKE_JOB_POOL_COMPILE=compile_pool -DCMAKE_JOB_POOL_LINK=link_pool -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF"
+)
+
 @REM ========================= BLAS SETUP =======================================
 if "%blas_impl%" == "openblas" (
     set BLAS=OpenBLAS
