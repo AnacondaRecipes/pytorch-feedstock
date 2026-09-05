@@ -44,9 +44,9 @@ if "%target_platform%" == "win-arm64" (
     @REM ~11GB instead of >15.5GB.
     @REM Even ONE python_functions_N.cpp shard needed 13-15GB (watchdog kill
     @REM at pool=1) -> patch 0026 raises the codegen shard count 5->20
-    @REM (~3.5GB/TU), letting compiles run 2-wide. Links stay serialized;
+    @REM (~3.5GB/TU), but 2 concurrent shards still bust 16GB (~7GB each); serialize compiles;
     @REM IPO/LTCG stays off to keep link memory bounded.
-    set "CMAKE_ARGS=!CMAKE_ARGS! -DCMAKE_JOB_POOLS=compile_pool=2;link_pool=1 -DCMAKE_JOB_POOL_COMPILE=compile_pool -DCMAKE_JOB_POOL_LINK=link_pool -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF"
+    set "CMAKE_ARGS=!CMAKE_ARGS! -DCMAKE_JOB_POOLS=compile_pool=1;link_pool=1 -DCMAKE_JOB_POOL_COMPILE=compile_pool -DCMAKE_JOB_POOL_LINK=link_pool -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF"
 )
 
 @REM ========================= BLAS SETUP =======================================
