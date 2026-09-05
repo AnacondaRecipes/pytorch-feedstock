@@ -1,0 +1,31 @@
+From: Anaconda recipe maintenance <pkg-team@anaconda.com>
+Subject: [PATCH] Increase autograd python_functions codegen sharding 5 -> 20
+
+A single generated python_functions_N.cpp shard costs 13-15GB to compile
+with MSVC targeting arm64, which exceeds the 16GB PBP win-arm64 worker's
+memory watchdog even with fully serialized compiles (five watchdog aborts
+at the same TU cluster; see pytorch-feedstock#118). Quadrupling the shard
+count brings per-TU compiler memory to roughly 3.5GB.
+
+num_shards is a local variable consumed by both the python_functions.h
+forward-declarations/init calls and the sharded .cpp writer, so the change
+is self-consistent with no C++-side sync required (unlike the
+python_torch_functions count, which must match gatherTorchFunctions).
+
+Applied only on win-arm64 via a meta.yaml patch selector.
+---
+ tools/autograd/gen_autograd_functions.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/tools/autograd/gen_autograd_functions.py b/tools/autograd/gen_autograd_functions.py
+--- a/tools/autograd/gen_autograd_functions.py
++++ b/tools/autograd/gen_autograd_functions.py
+@@ -568,7 +568,7 @@ def gen_autograd_functions_python(
+     template_path: str,
+ ) -> None:
+     fm = FileManager(install_dir=out, template_dir=template_path, dry_run=False)
+-    num_shards = 5
++    num_shards = 20
+     fm.write(
+         "python_functions.h",
+         lambda: {

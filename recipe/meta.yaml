@@ -64,6 +64,9 @@ source:
       - patches/0022-force-bundled-mkldnn.patch
       - patches/0024-Allow-fbgemm_genai-to-be-assigned-to-a-Ninja-job-pool.patch    # [linux and gpu_variant == "cuda"]
       - patches/0025-extend-gcc-sve-ice-workaround-to-gcc15.patch                   # [linux and aarch64]
+      # A single python_functions_N.cpp shard needs 13-15GB with MSVC/arm64,
+      # over the 16GB worker watchdog even fully serialized; 20 shards ≈ 3.5GB/TU.
+      - patches/0026-Increase-autograd-python_functions-codegen-sharding.patch      # [win and arm64]
   # sha256 required — without it conda-build bypasses the pbp src_cache and
   # re-downloads every run, which hits GitHub raw's HTTP 429 rate limit on
   # busy graphs (observed on win-64 py3.11/py3.14 in graph 2dd074ea).
