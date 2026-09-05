@@ -1,22 +1,45 @@
 From: Anaconda recipe maintenance <pkg-team@anaconda.com>
-Subject: [PATCH] Increase autograd python_functions codegen sharding 5 -> 20
+Subject: [PATCH] Increase autograd python_functions codegen sharding 5 -> 10
 
-A single generated python_functions_N.cpp shard costs 13-15GB to compile
-with MSVC targeting arm64, which exceeds the 16GB PBP win-arm64 worker's
-memory watchdog even with fully serialized compiles (five watchdog aborts
-at the same TU cluster; see pytorch-feedstock#118). Quadrupling the shard
-count brings per-TU compiler memory to roughly 3.5GB.
+A single generated python_functions_N.cpp shard costs ~14GB to compile with
+MSVC targeting arm64, exceeding the 16GB PBP win-arm64 worker's memory
+watchdog even with fully serialized compiles (pytorch-feedstock#118). Halving
+the per-shard content brings each TU to ~7GB, which fits.
 
-num_shards is a local variable consumed by both the python_functions.h
-forward-declarations/init calls and the sharded .cpp writer, so the change
-is self-consistent with no C++-side sync required (unlike the
-python_torch_functions count, which must match gatherTorchFunctions).
+TWO edits are required and must stay in sync:
+  1. tools/autograd/gen_autograd_functions.py: num_shards drives BOTH the
+     python_functions.h forward-declares/init-calls and the .cpp writer.
+  2. caffe2/CMakeLists.txt: GENERATED_CXX_PYTHON hardcodes the shard file
+     list the build actually compiles. Without extending it, codegen emits
+     10 balanced shards but CMake compiles only 0..4 — dropping half the
+     autograd function registrations (a silent-miscompile, not just a
+     no-op). The generator count and this list MUST match.
+
+The python_torch_functions_* count is deliberately left at 3 — it must stay
+synced with gatherTorchFunctions in python_torch_functions_manual.cpp and is
+not the memory hotspot.
 
 Applied only on win-arm64 via a meta.yaml patch selector.
 ---
+ caffe2/CMakeLists.txt                    | 5 +++++
  tools/autograd/gen_autograd_functions.py | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ 2 files changed, 6 insertions(+), 1 deletion(-)
 
+diff --git a/caffe2/CMakeLists.txt b/caffe2/CMakeLists.txt
+--- a/caffe2/CMakeLists.txt
++++ b/caffe2/CMakeLists.txt
+@@ -292,6 +292,11 @@ set(GENERATED_CXX_PYTHON
+   "${TORCH_SRC_DIR}/csrc/autograd/generated/python_functions_2.cpp"
+   "${TORCH_SRC_DIR}/csrc/autograd/generated/python_functions_3.cpp"
+   "${TORCH_SRC_DIR}/csrc/autograd/generated/python_functions_4.cpp"
++  "${TORCH_SRC_DIR}/csrc/autograd/generated/python_functions_5.cpp"
++  "${TORCH_SRC_DIR}/csrc/autograd/generated/python_functions_6.cpp"
++  "${TORCH_SRC_DIR}/csrc/autograd/generated/python_functions_7.cpp"
++  "${TORCH_SRC_DIR}/csrc/autograd/generated/python_functions_8.cpp"
++  "${TORCH_SRC_DIR}/csrc/autograd/generated/python_functions_9.cpp"
+   "${TORCH_SRC_DIR}/csrc/autograd/generated/python_variable_methods.cpp"
+   "${TORCH_SRC_DIR}/csrc/autograd/generated/python_torch_functions_0.cpp"
+   "${TORCH_SRC_DIR}/csrc/autograd/generated/python_torch_functions_1.cpp"
 diff --git a/tools/autograd/gen_autograd_functions.py b/tools/autograd/gen_autograd_functions.py
 --- a/tools/autograd/gen_autograd_functions.py
 +++ b/tools/autograd/gen_autograd_functions.py
@@ -25,7 +48,7 @@ diff --git a/tools/autograd/gen_autograd_functions.py b/tools/autograd/gen_autog
  ) -> None:
      fm = FileManager(install_dir=out, template_dir=template_path, dry_run=False)
 -    num_shards = 5
-+    num_shards = 20
++    num_shards = 10
      fm.write(
          "python_functions.h",
          lambda: {
