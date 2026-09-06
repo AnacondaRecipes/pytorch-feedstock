@@ -24,8 +24,10 @@
 gpu_variant:
   - cpu                              # all platforms
   - metal                            # [(osx and arm64)]
-  - cuda                             # [win or (linux and x86_64)]
-  - cuda                             # [win or linux]
+  # No CUDA toolkit exists for win-arm64 yet (NVIDIA WoA CTK pending) — gate
+  # the cuda rows to win x86_64 so win-arm64 builds the cpu variant only.
+  - cuda                             # [(win and x86_64) or (linux and x86_64)]
+  - cuda                             # [(win and x86_64) or linux]
 
 # Upstream PyTorch v2.13.0 supports CUDA 12.6/12.8/12.9/13.0/13.2 in
 # .ci/manywheel/build.sh; pkgs/main currently ships cuda-nvcc 12.9 and 13.0
@@ -36,8 +38,8 @@ gpu_variant:
 cuda_compiler_version:
   - none                             # cpu
   - none                             # [(osx and arm64)]  # metal pair
-  - 12.9                             # [win or (linux and x86_64)]
-  - 13.0                             # [win or linux]
+  - 12.9                             # [(win and x86_64) or (linux and x86_64)]
+  - 13.0                             # [(win and x86_64) or linux]
 
 # blas_impl is gated to [win] here because aggregate root CBC already defines
 # `mkl # [(x86 or x86_64) and not osx]` + `openblas` for the other platforms.
@@ -47,7 +49,8 @@ cuda_compiler_version:
 # the aggregate value, but because the selector `[win]` only fires on Windows,
 # linux/osx see no local override and inherit normally.
 blas_impl:                   # [win]
-  - mkl                      # [win]
+  # mkl is x86-only; win-arm64 gets openblas only (0.3.31 _5 on pkgs/main).
+  - mkl                      # [win and x86_64]
   - openblas                 # [win]
 
 # Linux aarch64 needs gcc 15.2.0 due to a bug with 14.3 with vector instructions.
@@ -82,6 +85,20 @@ zip_keys:
   -                              # [win or linux]
     - gpu_variant                # [win or linux]
     - cuda_compiler_version      # [win or linux]
+
+# The win-arm64 bootstrap channel ships only the NEWER library stacks
+# (protobuf-7 migration, eigen 5) — the aggregate pins (libprotobuf 6.33.5,
+# libabseil 20260107, eigen 3.3.7) have no win-arm64 builds. Key-line
+# selectors make these keys exist only on win-arm64, so every other platform
+# still inherits the aggregate pins (openblas-feedstock CBC-merge pattern).
+# Note: pytorch 2.14's vendored eigen is post-3.4/master-era, so system
+# eigen 5.0.1 is closer to upstream's tested combination than 3.3.7.
+libprotobuf:                 # [win and arm64]
+  - 7.35.1                   # [win and arm64]
+libabseil:                   # [win and arm64]
+  - '20260526'               # [win and arm64]
+eigen:                       # [win and arm64]
+  - 5.0.1                    # [win and arm64]
 
 # megabuild is disabled as our CI runners work on each python version separately.
 megabuild:
