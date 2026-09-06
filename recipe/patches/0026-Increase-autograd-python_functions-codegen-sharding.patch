@@ -1,31 +1,28 @@
 From: Anaconda recipe maintenance <pkg-team@anaconda.com>
-Subject: [PATCH] Increase autograd python_functions codegen sharding 5 -> 10
+Subject: [PATCH] win-arm64: shard python_functions + disable optimizer on binding glue
 
-A single generated python_functions_N.cpp shard costs ~14GB to compile with
-MSVC targeting arm64, exceeding the 16GB PBP win-arm64 worker's memory
-watchdog even with fully serialized compiles (pytorch-feedstock#118). Halving
-the per-shard content brings each TU to ~7GB, which fits.
+The generated python_functions_N.cpp autograd-binding TUs each need ~15GB to
+compile with the MSVC /O2 optimizer targeting arm64 (template-instantiation
+blowup), exceeding the 16GB PBP win-arm64 worker memory watchdog. Empirically
+the peak is a FIXED per-TU cost: halving shard content and serializing
+compiles left the peak unchanged at ~15.6GB (pytorch-feedstock#118 smoke 3-10),
+proving the cost is optimizer memory on the generated code, not scheduling or
+file size.
 
-TWO edits are required and must stay in sync:
-  1. tools/autograd/gen_autograd_functions.py: num_shards drives BOTH the
-     python_functions.h forward-declares/init-calls and the .cpp writer.
-  2. caffe2/CMakeLists.txt: GENERATED_CXX_PYTHON hardcodes the shard file
-     list the build actually compiles. Without extending it, codegen emits
-     10 balanced shards but CMake compiles only 0..4 — dropping half the
-     autograd function registrations (a silent-miscompile, not just a
-     no-op). The generator count and this list MUST match.
+Fix, win-arm64-only via meta.yaml patch selector:
+  1. num_shards 5->10 (gen_autograd_functions.py) + the matching hardcoded
+     GENERATED_CXX_PYTHON list in caffe2/CMakeLists.txt (both are sources of
+     truth for the shard count; the CMake list is what actually gets compiled,
+     so a mismatch silently drops autograd registrations).
+  2. /Od on the generated Python-binding TUs (set_source_files_properties):
+     these are registration glue, not perf-critical, so disabling the
+     optimizer removes the ~15GB spike with no meaningful runtime cost.
 
-The python_torch_functions_* count is deliberately left at 3 — it must stay
-synced with gatherTorchFunctions in python_torch_functions_manual.cpp and is
-not the memory hotspot.
-
-Applied only on win-arm64 via a meta.yaml patch selector.
----
- caffe2/CMakeLists.txt                    | 5 +++++
- tools/autograd/gen_autograd_functions.py | 2 +-
- 2 files changed, 6 insertions(+), 1 deletion(-)
+The python_torch_functions_* count stays at 3 (must sync with
+gatherTorchFunctions) and is not the hotspot.
 
 diff --git a/caffe2/CMakeLists.txt b/caffe2/CMakeLists.txt
+index bf0e3f0..6e1fb77 100644
 --- a/caffe2/CMakeLists.txt
 +++ b/caffe2/CMakeLists.txt
 @@ -292,6 +292,11 @@ set(GENERATED_CXX_PYTHON
@@ -40,7 +37,26 @@ diff --git a/caffe2/CMakeLists.txt b/caffe2/CMakeLists.txt
    "${TORCH_SRC_DIR}/csrc/autograd/generated/python_variable_methods.cpp"
    "${TORCH_SRC_DIR}/csrc/autograd/generated/python_torch_functions_0.cpp"
    "${TORCH_SRC_DIR}/csrc/autograd/generated/python_torch_functions_1.cpp"
+@@ -307,6 +312,17 @@ set(GENERATED_CXX_PYTHON
+   "${TORCH_SRC_DIR}/csrc/functionalization/generated/ViewMetaClassesPythonBinding.cpp"
+   )
+ 
++# win-arm64 memory workaround: the generated Python-binding TUs are autograd
++# registration glue (not perf-critical); under MSVC/arm64 the /O2 optimizer
++# needs ~15GB per shard (template instantiation blowup), over the 16GB PBP
++# worker memory watchdog. /Od removes that optimizer spike.
++if(MSVC)
++  set_source_files_properties(
++    ${GENERATED_CXX_PYTHON}
++    PROPERTIES COMPILE_FLAGS "/Od"
++  )
++endif()
++
+ set(GENERATED_H_PYTHON
+   "${TORCH_SRC_DIR}/csrc/autograd/generated/python_functions.h"
+   "${TORCH_SRC_DIR}/csrc/autograd/generated/python_return_types.h"
 diff --git a/tools/autograd/gen_autograd_functions.py b/tools/autograd/gen_autograd_functions.py
+index 002a551..2a6471b 100644
 --- a/tools/autograd/gen_autograd_functions.py
 +++ b/tools/autograd/gen_autograd_functions.py
 @@ -568,7 +568,7 @@ def gen_autograd_functions_python(
