@@ -30,6 +30,9 @@ if "%target_platform%" == "win-arm64" (
     @REM tripped the watchdog twice at identical peaks. skbuild honors
     @REM CMAKE_BUILD_PARALLEL_LEVEL.
     set CMAKE_BUILD_PARALLEL_LEVEL=3
+    @REM Verbose so the log echoes compile flags (confirm /Od reaches the
+    @REM generated python_functions TUs; earlier scope bug went undetected).
+    set "CMAKE_ARGS=!CMAKE_ARGS! -DCMAKE_VERBOSE_MAKEFILE=ON"
     @REM vcomp140.dll is not shipped on the win-arm64 channel (vc14_runtime
     @REM carries no OpenMP runtime there), so point MSVC's LLVM OpenMP mode at
     @REM conda's llvm-openmp (libomp) instead of the default /openmp (vcomp).
