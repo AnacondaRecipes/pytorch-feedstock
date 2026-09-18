@@ -30,6 +30,17 @@ if "%blas_impl%" == "openblas" (
     exit /b 1
 )
 
+@REM ===================== WIN-64 OPENBLAS OPENMP ===============================
+@REM The openblas/nomkl win-64 build otherwise links libomp140.x86_64.dll (LLVM
+@REM OpenMP under the VS toolset name), which no conda package provides, so a
+@REM clean-env import fails (anaconda-issues#13513). Route OpenMP to conda's
+@REM llvm-openmp (libomp) so torch_cpu.dll links the provided libomp.dll instead.
+@REM (win+mkl routes to intel-openmp; unaffected.) Forward slashes: scikit-build-
+@REM core splits CMAKE_ARGS shlex-style, which eats backslashes.
+if "%blas_impl%" == "openblas" (
+    set "CMAKE_ARGS=!CMAKE_ARGS! -DOpenMP_C_FLAGS=/openmp:llvm -DOpenMP_CXX_FLAGS=/openmp:llvm -DOpenMP_C_LIB_NAMES=libomp -DOpenMP_CXX_LIB_NAMES=libomp -DOpenMP_libomp_LIBRARY=%LIBRARY_LIB:\=/%/libomp.lib"
+)
+
 @REM ========================= COMMON BUILD FLAGS ===============================
 set "BUILD_CUSTOM_PROTOBUF=OFF"
 set "USE_LITE_PROTO=ON"
