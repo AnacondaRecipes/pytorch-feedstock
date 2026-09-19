@@ -30,6 +30,13 @@ if "%blas_impl%" == "openblas" (
     exit /b 1
 )
 
+@REM Win-64 openblas OpenMP: route to conda llvm-openmp so torch_cpu.dll links
+@REM the provided libomp.dll instead of the absent libomp140.x86_64.dll.
+@REM Ref anaconda-issues 13513 / PKG-18188. win+mkl uses intel-openmp, unaffected.
+if "%blas_impl%" == "openblas" (
+    set "CMAKE_ARGS=!CMAKE_ARGS! -DOpenMP_C_FLAGS=/openmp:llvm -DOpenMP_CXX_FLAGS=/openmp:llvm -DOpenMP_C_LIB_NAMES=libomp -DOpenMP_CXX_LIB_NAMES=libomp -DOpenMP_libomp_LIBRARY=%LIBRARY_LIB:\=/%/libomp.lib"
+)
+
 @REM ========================= COMMON BUILD FLAGS ===============================
 set "BUILD_CUSTOM_PROTOBUF=OFF"
 set "USE_LITE_PROTO=ON"

@@ -96,7 +96,11 @@ build:
   # osx-arm64 metal: re-enabled after SIR-3273 root cause fix in build.sh
   # (export SDKROOT + CMAKE_ARGS sed for 12.1 → MACOSX_SDK_VERSION).
   # Verified on PR #103 debug graph 935c2593-eeac-41a8-8683-ec3e80f48478.
-  skip: true  # [gpu_variant == "cuda" or win]
+  # TEST-ONLY (win openblas OpenMP fix, PKG-18188): restrict to win-64 cpu — both
+  # blas + the wrapper outputs, to avoid the multi-output hash-input crash that a
+  # blas_impl-based skip caused on #119. For the full CPU rebuild, revert to
+  # `skip: true  # [gpu_variant == "cuda"]` (build all CPU platforms incl. win).
+  skip: true  # [not (win and gpu_variant == "cpu")]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
@@ -155,8 +159,11 @@ requirements:
     # with intel-openmp's *_intel on linux+mkl — scope to non-mkl linux only.
     - libgomp   # [linux and blas_impl != "mkl"]
     # This has a strong run_export so we don't need to put it in `host` or `run`
-    # We use llvm-openmp for openblas variants on osx.
+    # We use llvm-openmp for openblas variants on osx, and on win — the win-64
+    # openblas build links LLVM OpenMP (libomp) and needs libomp.lib at build
+    # time (see bld.bat routing). win+mkl uses intel-openmp instead.
     - llvm-openmp                 # [osx and not (blas_impl == "mkl")]
+    - llvm-openmp                 # [win and blas_impl == "openblas"]
     - libuv     # [win]
     - cmake
     - ninja-base
@@ -213,10 +220,13 @@ requirements:
     #   - linux+openblas → libgomp (added here in host + run; matches
     #     suitesparse-feedstock pattern)
     #   - osx → llvm-openmp
+    #   - win+openblas → llvm-openmp (torch_cpu.dll links libomp; no other
+    #     conda package provides it — anaconda-issues#13513 / PKG-18188)
     # Strong run_exports from each pull the correct _openmp_mutex flavor.
     - intel-openmp {{ mkl }}         # [blas_impl == "mkl"]
     - libgomp                        # [linux and blas_impl == "openblas"]
     - llvm-openmp                    # [osx and not (blas_impl == "mkl")]
+    - llvm-openmp                    # [win and blas_impl == "openblas"]
     - libabseil {{ libabseil }}
     - libprotobuf {{ libprotobuf }}
     # sleef 3.9.0 OpenMP-flavor variant must match parent env's runtime to
