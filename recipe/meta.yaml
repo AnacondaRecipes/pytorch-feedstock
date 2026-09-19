@@ -1,7 +1,7 @@
 {% set version = "2.14.0" %}
 # Set the RC number to build release candidates. Set to None otherwise.
 {% set rc = None %}
-{% set build = 0 %}
+{% set build = 1 %}
 
 # Single source of truth: the commit SHA the v{{ version }} tag points at.
 # Drives BOTH the source git_rev AND the smoke_test fetches below — one SHA
@@ -90,10 +90,6 @@ build:
   # osx-arm64 metal: re-enabled after SIR-3273 root cause fix in build.sh
   # (export SDKROOT + CMAKE_ARGS sed for 12.1 → MACOSX_SDK_VERSION).
   skip: true  # [gpu_variant == "cuda"]
-  # TEST-ONLY (win-64 openblas OpenMP fix, anaconda-issues#13513): restrict the
-  # matrix to win-64 x86_64 openblas cpu so CI builds ~5 tasks, not the full ~80.
-  # REVERT this line before merge.
-  skip: true  # [not (win and x86_64 and gpu_variant == "cpu" and blas_impl == "openblas")]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
