@@ -20,36 +20,22 @@ set MAX_JOBS=6
 
 @REM ========================= WIN-ARM64 ========================================
 if "%target_platform%" == "win-arm64" (
-    @REM win-arm64 workers have 16GB RAM (vs 64GB win-64) - cap parallelism.
-    @REM MAX_JOBS=4 tripped the TaskCluster memory watchdog (sustained >90%%,
-    @REM peak 15.7/16GB) in the generated python_torch_functions_* TU cluster
-    @REM at ~91%% of the build; 3 keeps that cluster under the ceiling.
-    set MAX_JOBS=3
-    @REM 2.14's scikit-build-core backend does NOT read MAX_JOBS (that was the
-    @REM legacy setup.py path) - ninja ran at default CPU-count parallelism and
-    @REM tripped the watchdog twice at identical peaks. skbuild honors
-    @REM CMAKE_BUILD_PARALLEL_LEVEL.
-    set CMAKE_BUILD_PARALLEL_LEVEL=3
-    @REM Verbose so the log echoes compile flags (confirm /Od reaches the
-    @REM generated python_functions TUs; earlier scope bug went undetected).
-    set "CMAKE_ARGS=!CMAKE_ARGS! -DCMAKE_VERBOSE_MAKEFILE=ON"
+    @REM NOT buildable on the 16GB PBP win-arm64 workers (PKG-17812): the
+    @REM torch_cpu.dll link (MSVC link.exe over ~13.7GB of objects, >=12GB
+    @REM private) exhausts RAM; compile-side knobs can't lower it.
+    @REM Built off-CI on a 54GB win-arm64 machine instead.
     @REM vcomp140.dll is not shipped on the win-arm64 channel (vc14_runtime
     @REM carries no OpenMP runtime there), so point MSVC's LLVM OpenMP mode at
     @REM conda's llvm-openmp (libomp) instead of the default /openmp (vcomp).
     @REM Forward slashes: scikit-build-core splits CMAKE_ARGS shlex-style,
     @REM which eats backslashes ("C:\Users\..." -> "C:Users...").
     set "CMAKE_ARGS=!CMAKE_ARGS! -DOpenMP_C_FLAGS=/openmp:llvm -DOpenMP_CXX_FLAGS=/openmp:llvm -DOpenMP_C_LIB_NAMES=libomp -DOpenMP_CXX_LIB_NAMES=libomp -DOpenMP_libomp_LIBRARY=%LIBRARY_LIB:\=/%/libomp.lib"
-    @REM Neither MAX_JOBS nor CMAKE_BUILD_PARALLEL_LEVEL reached ninja (three
-    @REM watchdog kills at identical ~15.6GB peaks / 4h20m on the 4-vCPU 16GB
-    @REM workers). Ninja JOB POOLS go through CMAKE_ARGS, which skbuild
-    @REM provably honors (fbgemm pool precedent): cap compiles at 2 and links
-    @REM at 1 so the ~4.5GB/TU generated python_torch_functions cluster peaks
-    @REM ~11GB instead of >15.5GB.
-    @REM Even ONE python_functions_N.cpp shard needed 13-15GB (watchdog kill
-    @REM at pool=1) -> patch 0026 raises the codegen shard count 5->20
-    @REM (~3.5GB/TU), but 2 concurrent shards still bust 16GB (~7GB each); serialize compiles;
-    @REM IPO/LTCG stays off to keep link memory bounded.
-    set "CMAKE_ARGS=!CMAKE_ARGS! -DCMAKE_JOB_POOLS=compile_pool=1;link_pool=1 -DCMAKE_JOB_POOL_COMPILE=compile_pool -DCMAKE_JOB_POOL_LINK=link_pool -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF"
+    @REM Parallelism: 2.14's scikit-build-core ignores MAX_JOBS and
+    @REM CMAKE_BUILD_PARALLEL_LEVEL never reached ninja; ninja JOB POOLS via
+    @REM CMAKE_ARGS are the knob that works. Ordinary TUs run in compile_pool;
+    @REM patch 0026 moves torch_python (the generated binding TUs) into its own
+    @REM pool of 2 as a safety margin; they measure ~0.6GB each off-CI.
+    set "CMAKE_ARGS=!CMAKE_ARGS! -DCMAKE_JOB_POOLS=compile_pool=8;torch_python_pool=2;link_pool=2 -DCMAKE_JOB_POOL_COMPILE=compile_pool -DCMAKE_JOB_POOL_LINK=link_pool -DTORCH_PYTHON_JOB_POOL=torch_python_pool"
 )
 
 @REM ========================= BLAS SETUP =======================================

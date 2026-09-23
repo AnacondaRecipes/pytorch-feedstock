@@ -1,0 +1,30 @@
+From: Anaconda recipe maintenance <pkg-team@anaconda.com>
+Subject: [PATCH] win-arm64: give torch_python its own ninja compile job pool
+
+Add an opt-in TORCH_PYTHON_JOB_POOL cache variable that puts only the
+torch_python target (the generated autograd-binding TUs) in a separate,
+smaller ninja job pool, so the rest of the build can run at full
+parallelism. No-op unless the variable is set.
+
+win-arm64-only via meta.yaml patch selector (set from bld.bat).
+
+diff --git a/torch/CMakeLists.txt b/torch/CMakeLists.txt
+index 4f7d6da..02b8563 100644
+--- a/torch/CMakeLists.txt
++++ b/torch/CMakeLists.txt
+@@ -390,6 +390,15 @@ set_source_files_properties(
+     PROPERTIES GENERATED TRUE
+     )
+ 
++# Opt-in: compile torch_python in its own ninja job pool. Its generated
++# autograd-binding TUs (python_functions_N.cpp, python_torch_functions_N.cpp)
++# peak far above the rest of the build (~15GB/TU with MSVC/arm64), so they
++# need a lower concurrency cap than ordinary sources. The pool itself is
++# declared by the caller via -DCMAKE_JOB_POOLS=<name>=<n>.
++if(TORCH_PYTHON_JOB_POOL)
++  set_property(TARGET torch_python PROPERTY JOB_POOL_COMPILE ${TORCH_PYTHON_JOB_POOL})
++endif()
++
+ # Disable certain warnings for GCC-9.X
+ if(CMAKE_COMPILER_IS_GNUCXX)
+   set_source_files_properties(${TORCH_SRC_DIR}/csrc/Module.cpp PROPERTIES COMPILE_FLAGS "-Wno-cast-function-type")
