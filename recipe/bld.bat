@@ -234,9 +234,12 @@ if "%PKG_NAME%" == "libtorch" (
         rmdir /s /q %SP_DIR%\torch\include\%%f
     )
 
-    @REM Copy Python-specific libs back for torch's internal import machinery
+    @REM Copy Python-specific libs back for torch's internal import machinery.
+    @REM Copy, not move: cpp_extension links against TORCH_LIB_PATH, which
+    @REM patch 0015 points at Library\lib, so torch_python.lib must stay there
+    @REM too (test_autograd test_multi_grad_all_hooks failed LNK1181 without it).
     mkdir %SP_DIR%\torch\lib
-    robocopy /NP /NFL /NDL /NJH /E /MOV %LIBRARY_LIB%\ %SP_DIR%\torch\lib\ torch_python.lib _C.lib
+    robocopy /NP /NFL /NDL /NJH /E %LIBRARY_LIB%\ %SP_DIR%\torch\lib\ torch_python.lib _C.lib
 )
 
 @REM Robocopy exit codes: 0=nothing copied, 1=files copied, 2=extras found,

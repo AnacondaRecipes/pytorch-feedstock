@@ -18,8 +18,8 @@ index 4f7d6da..02b8563 100644
  
 +# Opt-in: compile torch_python in its own ninja job pool. Its generated
 +# autograd-binding TUs (python_functions_N.cpp, python_torch_functions_N.cpp)
-+# peak far above the rest of the build (~15GB/TU with MSVC/arm64), so they
-+# need a lower concurrency cap than ordinary sources. The pool itself is
++# get a lower concurrency cap as a precaution (measured ~0.6GB each; the real
++# memory peak is the torch_cpu.dll link, not these). The pool itself is
 +# declared by the caller via -DCMAKE_JOB_POOLS=<name>=<n>.
 +if(TORCH_PYTHON_JOB_POOL)
 +  set_property(TARGET torch_python PROPERTY JOB_POOL_COMPILE ${TORCH_PYTHON_JOB_POOL})

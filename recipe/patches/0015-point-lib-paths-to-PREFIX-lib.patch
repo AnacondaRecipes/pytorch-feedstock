@@ -10,6 +10,11 @@ that's where are sos/dlls are.
 Rebased for 2.14: upstream now sets _TORCH_PATH via get_file_path("torch")
 (scikit-build-core editable-install redirect). The CONDA_BUILD/CONDA_PREFIX
 override is unchanged and still falls back to the upstream default.
+
+Windows: point at Library/lib, not Library/bin. TORCH_LIB_PATH is the
+linker search path for extensions (/LIBPATH), so it must hold the .lib
+import libraries (c10/torch/torch_cpu/torch_python.lib); Library/bin only
+has the DLLs.
 ---
  torch/utils/cpp_extension.py | 13 ++++++++++++-
  1 file changed, 12 insertions(+), 1 deletion(-)
@@ -25,12 +30,12 @@ diff --git a/torch/utils/cpp_extension.py b/torch/utils/cpp_extension.py
 +if os.environ.get("CONDA_BUILD", None) is not None:
 +    # regular build (& testing) phase --> PREFIX is set
 +    # linux: PREFIX + lib
-+    # windows: PREFIX + Library/bin/
-+    pieces = [os.environ["PREFIX"]] + ["Library/bin" if IS_WINDOWS else "lib"]
++    # windows: PREFIX + Library/lib (import libs; DLLs are in Library/bin)
++    pieces = [os.environ["PREFIX"]] + ["Library/lib" if IS_WINDOWS else "lib"]
 +    TORCH_LIB_PATH = os.path.join(*pieces)
 +elif os.environ.get("CONDA_PREFIX", None) is not None:
 +    # final environment
-+    pieces = [os.environ["CONDA_PREFIX"]] + ["Library/bin" if IS_WINDOWS else "lib"]
++    pieces = [os.environ["CONDA_PREFIX"]] + ["Library/lib" if IS_WINDOWS else "lib"]
 +    TORCH_LIB_PATH = os.path.join(*pieces)
 +else:
 +    TORCH_LIB_PATH = os.path.join(_TORCH_PATH, 'lib')
