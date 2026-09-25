@@ -1,7 +1,7 @@
 {% set version = "2.14.0" %}
 # Set the RC number to build release candidates. Set to None otherwise.
 {% set rc = None %}
-{% set build = 0 %}
+{% set build = 1 %}
 
 # Single source of truth: the commit SHA the v{{ version }} tag points at.
 # Drives BOTH the source git_rev AND the smoke_test fetches below — one SHA
@@ -93,10 +93,6 @@ build:
   # osx-arm64 metal: re-enabled after SIR-3273 root cause fix in build.sh
   # (export SDKROOT + CMAKE_ARGS sed for 12.1 → MACOSX_SDK_VERSION).
   skip: true  # [gpu_variant == "cuda"]
-  # PR-scoping filter (split-PR convention): this PR is the win-arm64 release
-  # vehicle — DROP this line when folding win-arm64 support into the mainline
-  # recipe. Keeps this PR's CI from rebuilding the platforms #113 owns.
-  skip: true  # [not (win and arm64)]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
@@ -157,9 +153,10 @@ requirements:
     # This has a strong run_export so we don't need to put it in `host` or `run`
     # We use llvm-openmp for openblas variants on osx.
     - llvm-openmp                 # [osx and not (blas_impl == "mkl")]
-    # win-arm64 has no vcomp (vc14_runtime ships no OpenMP runtime there);
-    # MSVC builds use /openmp:llvm against conda llvm-openmp (see bld.bat).
-    - llvm-openmp                 # [win and arm64]
+    # win+openblas (win-64 and win-arm64): MSVC /openmp:llvm against conda
+    # llvm-openmp (libomp.dll); vcomp140 / libomp140 are not provided by any
+    # conda package (anaconda-issues#13513). See bld.bat.
+    - llvm-openmp                 # [win and blas_impl == "openblas"]
     - libuv     # [win]
     - cmake
     - ninja-base
@@ -222,13 +219,16 @@ requirements:
     #   - linux+openblas → libgomp (added here in host + run; matches
     #     suitesparse-feedstock pattern)
     #   - osx → llvm-openmp
+    #   - win+openblas (win-64, win-arm64) → llvm-openmp (torch_cpu.dll links
+    #     libomp; no other conda package provides it — anaconda-issues#13513)
     # Strong run_exports from each pull the correct _openmp_mutex flavor.
     - intel-openmp {{ mkl }}         # [blas_impl == "mkl"]
     - libgomp                        # [linux and blas_impl == "openblas"]
     - llvm-openmp                    # [osx and not (blas_impl == "mkl")]
-    # win-arm64 has no vcomp (vc14_runtime ships no OpenMP runtime there);
-    # MSVC builds use /openmp:llvm against conda llvm-openmp (see bld.bat).
-    - llvm-openmp                 # [win and arm64]
+    # win+openblas (win-64 and win-arm64): MSVC /openmp:llvm against conda
+    # llvm-openmp (libomp.dll); vcomp140 / libomp140 are not provided by any
+    # conda package (anaconda-issues#13513). See bld.bat.
+    - llvm-openmp                 # [win and blas_impl == "openblas"]
     - libabseil {{ libabseil }}
     - libprotobuf {{ libprotobuf }}
     # sleef 3.9.0 OpenMP-flavor variant must match parent env's runtime to
@@ -394,9 +394,10 @@ outputs:
         # This has a strong run_export so we don't need to put it in `host` or `run`
         # We use llvm-openmp for openblas variants on osx.
         - llvm-openmp                # [osx and not (blas_impl == "mkl")]
-        # win-arm64 has no vcomp (vc14_runtime ships no OpenMP runtime there);
-        # MSVC builds use /openmp:llvm against conda llvm-openmp (see bld.bat).
-        - llvm-openmp                 # [win and arm64]
+        # win+openblas (win-64 and win-arm64): MSVC /openmp:llvm against conda
+        # llvm-openmp (libomp.dll); vcomp140 / libomp140 are not provided by any
+        # conda package (anaconda-issues#13513). See bld.bat.
+        - llvm-openmp                 # [win and blas_impl == "openblas"]
         - cmake
         - ninja-base
         # Keep libprotobuf here so that a compatibile version
@@ -453,9 +454,10 @@ outputs:
         - intel-openmp {{ mkl }}      # [blas_impl == "mkl"]
         - libgomp                     # [linux and blas_impl == "openblas"]
         - llvm-openmp                 # [osx and not (blas_impl == "mkl")]
-        # win-arm64 has no vcomp (vc14_runtime ships no OpenMP runtime there);
-        # MSVC builds use /openmp:llvm against conda llvm-openmp (see bld.bat).
-        - llvm-openmp                 # [win and arm64]
+        # win+openblas (win-64 and win-arm64): MSVC /openmp:llvm against conda
+        # llvm-openmp (libomp.dll); vcomp140 / libomp140 are not provided by any
+        # conda package (anaconda-issues#13513). See bld.bat.
+        - llvm-openmp                 # [win and blas_impl == "openblas"]
         - libabseil
         - libprotobuf {{ libprotobuf }}
         # sleef: see libtorch host above for the 3.9.0 variant-matching rationale.
@@ -479,9 +481,10 @@ outputs:
         - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
         - libgomp                                # [linux and blas_impl == "openblas"]
         - llvm-openmp                            # [osx and not (blas_impl == "mkl")]
-        # win-arm64 has no vcomp (vc14_runtime ships no OpenMP runtime there);
-        # MSVC builds use /openmp:llvm against conda llvm-openmp (see bld.bat).
-        - llvm-openmp                 # [win and arm64]
+        # win+openblas (win-64 and win-arm64): MSVC /openmp:llvm against conda
+        # llvm-openmp (libomp.dll); vcomp140 / libomp140 are not provided by any
+        # conda package (anaconda-issues#13513). See bld.bat.
+        - llvm-openmp                 # [win and blas_impl == "openblas"]
         # GPU requirements without run_exports
         - {{ pin_compatible('libcudnn') }}          # [(gpu_variant or "").startswith("cuda")]
         # other requirements

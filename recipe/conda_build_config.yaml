@@ -24,8 +24,9 @@
 gpu_variant:
   - cpu                              # all platforms
   - metal                            # [(osx and arm64)]
-  # No CUDA toolkit exists for win-arm64 yet (NVIDIA WoA CTK pending) — gate
-  # the cuda rows to win x86_64 so win-arm64 builds the cpu variant only.
+  # win-arm64 builds the cpu variant only for now: CUDA 13.4 for WoA is on
+  # pkgs/main, but cudnn (PKG-18402) and magma (PKG-18376) for win-arm64 are
+  # not yet (tracked in PKG-17783), so the cuda rows stay gated to x86_64.
   - cuda                             # [(win and x86_64) or (linux and x86_64)]
   - cuda                             # [(win and x86_64) or linux]
 

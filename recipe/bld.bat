@@ -20,16 +20,10 @@ set MAX_JOBS=6
 
 @REM ========================= WIN-ARM64 ========================================
 if "%target_platform%" == "win-arm64" (
-    @REM NOT buildable on the 16GB PBP win-arm64 workers (PKG-17812): the
-    @REM torch_cpu.dll link (MSVC link.exe over ~13.7GB of objects, >=12GB
-    @REM private) exhausts RAM; compile-side knobs can't lower it.
-    @REM Built off-CI on a 54GB win-arm64 machine instead.
-    @REM vcomp140.dll is not shipped on the win-arm64 channel (vc14_runtime
-    @REM carries no OpenMP runtime there), so point MSVC's LLVM OpenMP mode at
-    @REM conda's llvm-openmp (libomp) instead of the default /openmp (vcomp).
-    @REM Forward slashes: scikit-build-core splits CMAKE_ARGS shlex-style,
-    @REM which eats backslashes ("C:\Users\..." -> "C:Users...").
-    set "CMAKE_ARGS=!CMAKE_ARGS! -DOpenMP_C_FLAGS=/openmp:llvm -DOpenMP_CXX_FLAGS=/openmp:llvm -DOpenMP_C_LIB_NAMES=libomp -DOpenMP_CXX_LIB_NAMES=libomp -DOpenMP_libomp_LIBRARY=%LIBRARY_LIB:\=/%/libomp.lib"
+    @REM Memory: the peak is the torch_cpu.dll link - MSVC link.exe over about
+    @REM 13.7GB of objects, 12GB+ private. That OOMed the old 16GB PBP workers;
+    @REM they are 32GB since 2026-09-24. OpenMP routing is in the openblas
+    @REM block below, shared with win-64.
     @REM Parallelism: 2.14's scikit-build-core ignores MAX_JOBS and
     @REM CMAKE_BUILD_PARALLEL_LEVEL never reached ninja; ninja JOB POOLS via
     @REM CMAKE_ARGS are the knob that works. Ordinary TUs run in compile_pool;
@@ -48,6 +42,16 @@ if "%blas_impl%" == "openblas" (
 ) else (
     echo [ERROR] Unsupported BLAS implementation: %blas_impl%
     exit /b 1
+)
+
+@REM Win openblas OpenMP, both win-64 and win-arm64: route MSVC's LLVM OpenMP
+@REM mode to conda llvm-openmp so torch_cpu.dll links the provided libomp.dll
+@REM instead of libomp140.<arch>.dll or vcomp140.dll, which no conda package
+@REM provides. Ref anaconda-issues 13513. win+mkl uses intel-openmp instead.
+@REM Forward slashes: scikit-build-core splits CMAKE_ARGS shlex-style and
+@REM eats backslashes.
+if "%blas_impl%" == "openblas" (
+    set "CMAKE_ARGS=!CMAKE_ARGS! -DOpenMP_C_FLAGS=/openmp:llvm -DOpenMP_CXX_FLAGS=/openmp:llvm -DOpenMP_C_LIB_NAMES=libomp -DOpenMP_CXX_LIB_NAMES=libomp -DOpenMP_libomp_LIBRARY=%LIBRARY_LIB:\=/%/libomp.lib"
 )
 
 @REM ========================= COMMON BUILD FLAGS ===============================
