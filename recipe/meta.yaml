@@ -87,12 +87,12 @@ source:
 
 build:
   number: {{ build }}
-  # 2.14.0 split PRs — CPU / cuda12.9 / cuda13.0 / win-arm64 cuda13.4 — share
-  # this exact recipe and differ ONLY in the skip line below:
-  #   CPU:                 skip: true  # [gpu_variant == "cuda"]
-  #   cuda12.9:            skip: true  # [gpu_variant != "cuda" or cuda_compiler_version != "12.9"]
-  #   cuda13.0:            skip: true  # [gpu_variant != "cuda" or cuda_compiler_version != "13.0"]
-  #   win-arm64 cuda13.4:  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version != "13.4"]
+  # 2.14.0 split PRs — CPU / cuda12.9 / cuda13.x — share this exact recipe and
+  # differ ONLY in the skip line below. cuda13.x covers x86 CUDA 13.0 and
+  # win-arm64 CUDA 13.4 (standard PR CI ignores win-arm64; it is built off-CI):
+  #   CPU:       skip: true  # [gpu_variant == "cuda"]
+  #   cuda12.9:  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version != "12.9"]
+  #   cuda13.x:  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version not in ("13.0", "13.4")]
   # osx-arm64 metal: re-enabled after SIR-3273 root cause fix in build.sh
   # (export SDKROOT + CMAKE_ARGS sed for 12.1 → MACOSX_SDK_VERSION).
   skip: true  # [gpu_variant != "cuda" or cuda_compiler_version != "13.0"]
