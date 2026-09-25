@@ -27,9 +27,12 @@ if "%target_platform%" == "win-arm64" (
     @REM Parallelism: 2.14's scikit-build-core ignores MAX_JOBS and
     @REM CMAKE_BUILD_PARALLEL_LEVEL never reached ninja; ninja JOB POOLS via
     @REM CMAKE_ARGS are the knob that works. Ordinary TUs run in compile_pool;
-    @REM patch 0026 moves torch_python (the generated binding TUs) into its own
-    @REM pool of 2 as a safety margin; they measure ~0.6GB each off-CI.
-    set "CMAKE_ARGS=!CMAKE_ARGS! -DCMAKE_JOB_POOLS=compile_pool=8;torch_python_pool=2;link_pool=2 -DCMAKE_JOB_POOL_COMPILE=compile_pool -DCMAKE_JOB_POOL_LINK=link_pool -DTORCH_PYTHON_JOB_POOL=torch_python_pool"
+    @REM patch 0026 moves torch_python, the generated binding TUs, into its own
+    @REM pool. Pools are sized for the 32GB PBP worker, 8 vCPU: with 8 compiles +
+    @REM 2 torch_python + 2 links the torch_cpu.dll link peaked at 31.7 of 32 GiB
+    @REM and the py3.13 build was watchdog-killed twice - graph 1f996af7. 4/1/1
+    @REM leaves headroom for the link at the cost of a slower compile.
+    set "CMAKE_ARGS=!CMAKE_ARGS! -DCMAKE_JOB_POOLS=compile_pool=4;torch_python_pool=1;link_pool=1 -DCMAKE_JOB_POOL_COMPILE=compile_pool -DCMAKE_JOB_POOL_LINK=link_pool -DTORCH_PYTHON_JOB_POOL=torch_python_pool"
 )
 
 @REM ========================= BLAS SETUP =======================================
