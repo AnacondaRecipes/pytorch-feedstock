@@ -24,11 +24,12 @@
 gpu_variant:
   - cpu                              # all platforms
   - metal                            # [(osx and arm64)]
-  # win-arm64 builds the cpu variant only for now: CUDA 13.4 for WoA is on
-  # pkgs/main, but cudnn (PKG-18402) and magma (PKG-18376) for win-arm64 are
-  # not yet (tracked in PKG-17783), so the cuda rows stay gated to x86_64.
+  # The x86 cuda rows (12.9 / 13.0) stay gated to x86_64. win-arm64 gets its
+  # own cuda row: CUDA 13.4 is the only Windows-on-ARM toolkit on pkgs/main
+  # (PKG-17783; needs cudnn 9.26 win-arm64 + magma PKG-18376).
   - cuda                             # [(win and x86_64) or (linux and x86_64)]
   - cuda                             # [(win and x86_64) or linux]
+  - cuda                             # [win and arm64]
 
 # Upstream PyTorch v2.13.0 supports CUDA 12.6/12.8/12.9/13.0/13.2 in
 # .ci/manywheel/build.sh; pkgs/main currently ships cuda-nvcc 12.9 and 13.0
@@ -41,6 +42,7 @@ cuda_compiler_version:
   - none                             # [(osx and arm64)]  # metal pair
   - 12.9                             # [(win and x86_64) or (linux and x86_64)]
   - 13.0                             # [(win and x86_64) or linux]
+  - 13.4                             # [win and arm64]
 
 # blas_impl is gated to [win] here because aggregate root CBC already defines
 # `mkl # [(x86 or x86_64) and not osx]` + `openblas` for the other platforms.

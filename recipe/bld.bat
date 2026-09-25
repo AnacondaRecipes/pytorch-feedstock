@@ -99,6 +99,10 @@ if "%gpu_variant:~0,4%" == "cuda" (
         set "TORCH_CUDA_ARCH_LIST=7.5;8.0;8.6;9.0;10.0;12.0+PTX"
     ) else if "!cuda_major!" == "13" (
         set "TORCH_CUDA_ARCH_LIST=7.5;8.0;8.6;9.0;10.0;12.0+PTX"
+        @REM win-arm64: win-64 list plus 12.1 - the NVIDIA N1X / GB10-class GPU
+        @REM that ships in Windows-on-ARM machines gets its own SASS; 12.0 SASS
+        @REM would also run on it, since the major version is the same.
+        if "%target_platform%" == "win-arm64" set "TORCH_CUDA_ARCH_LIST=7.5;8.0;8.6;9.0;10.0;12.0;12.1+PTX"
     ) else (
         echo [ERROR] No CUDA architecture list exists for CUDA v%cuda_compiler_version%
         echo Use https://en.wikipedia.org/wiki/CUDA#GPUs_supported to make one.

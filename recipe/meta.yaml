@@ -87,9 +87,12 @@ source:
 
 build:
   number: {{ build }}
-  # 2.14.0 — CPU split PR: full matrix (cpu + metal; all platforms, Pythons, BLAS).
-  # Merges to master. The cuda12.9 / cuda13.0 sibling PRs share this exact recipe
-  # and differ ONLY in the skip line below (2.13 3-PR convention).
+  # 2.14.0 split PRs — CPU / cuda12.9 / cuda13.0 / win-arm64 cuda13.4 — share
+  # this exact recipe and differ ONLY in the skip line below:
+  #   CPU:                 skip: true  # [gpu_variant == "cuda"]
+  #   cuda12.9:            skip: true  # [gpu_variant != "cuda" or cuda_compiler_version != "12.9"]
+  #   cuda13.0:            skip: true  # [gpu_variant != "cuda" or cuda_compiler_version != "13.0"]
+  #   win-arm64 cuda13.4:  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version != "13.4"]
   # osx-arm64 metal: re-enabled after SIR-3273 root cause fix in build.sh
   # (export SDKROOT + CMAKE_ARGS sed for 12.1 → MACOSX_SDK_VERSION).
   skip: true  # [gpu_variant == "cuda"]
@@ -176,6 +179,11 @@ requirements:
     - cudnn                  # [(gpu_variant or "").startswith("cuda")]
     - nccl                   # [(gpu_variant or "").startswith("cuda") and linux]
     {% endif %}
+    # libtorch compiles the CUDA linear-algebra code (BatchLinearAlgebra.cpp),
+    # so magma must be in THIS host env. It was dropped here in 7a8c95e, and
+    # every CUDA build since configured "MAGMA not found. Compiling without
+    # MAGMA support", while run still pinned magma via pin_compatible below.
+    - magma                  # [(gpu_variant or "").startswith("cuda")]
     {% if cuda_major >= 12 %}
     # cuda-driver-dev's libcuda.so stub must be in host (not just build):
     # FindCUDAToolkit searches the host prefix, and pytorch 2.13's
@@ -413,8 +421,12 @@ outputs:
         - cudnn                           # [(gpu_variant or "").startswith("cuda")]
         - nccl                            # [(gpu_variant or "").startswith("cuda") and linux]
         {% endif %}
-        # MAGMA_VERSION_MINOR>=10 (deliberate guard — their AT_MAGMA_VERSION
-        - magma <2.10                     # [(gpu_variant or "").startswith("cuda")]
+        # No `<2.10` cap: pytorch 2.12's AT_MAGMA_VERSION packed minor*10 and
+        # #errored on magma 2.10; 2.14 packs minor*100 and only errors at >=100
+        # (aten/src/ATen/native/cuda/linalg/BatchLinearAlgebra.cpp#L54-L59).
+        # The cap would also conflict with libtorch's pin_compatible('magma').
+        # win-arm64 only has magma 2.10 (PKG-18376).
+        - magma                           # [(gpu_variant or "").startswith("cuda")]
         - nvtx-c                          # [(gpu_variant or "").startswith("cuda")]
         {% if cuda_major >= 12 %}
         # pytorch 2.13 cmake/public/cuda.cmake:159 needs CUDA::cuda_driver at
