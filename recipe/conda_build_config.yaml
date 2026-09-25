@@ -24,8 +24,12 @@
 gpu_variant:
   - cpu                              # all platforms
   - metal                            # [(osx and arm64)]
-  - cuda                             # [win or (linux and x86_64)]
-  - cuda                             # [win or linux]
+  # The x86 cuda rows (12.9 / 13.0) stay gated to x86_64. win-arm64 gets its
+  # own cuda row: CUDA 13.4 is the only Windows-on-ARM toolkit on pkgs/main
+  # (PKG-17783; needs cudnn 9.26 win-arm64 + magma PKG-18376).
+  - cuda                             # [(win and x86_64) or (linux and x86_64)]
+  - cuda                             # [(win and x86_64) or linux]
+  - cuda                             # [win and arm64]
 
 # Upstream PyTorch v2.13.0 supports CUDA 12.6/12.8/12.9/13.0/13.2 in
 # .ci/manywheel/build.sh; pkgs/main currently ships cuda-nvcc 12.9 and 13.0
@@ -36,8 +40,9 @@ gpu_variant:
 cuda_compiler_version:
   - none                             # cpu
   - none                             # [(osx and arm64)]  # metal pair
-  - 12.9                             # [win or (linux and x86_64)]
-  - 13.0                             # [win or linux]
+  - 12.9                             # [(win and x86_64) or (linux and x86_64)]
+  - 13.0                             # [(win and x86_64) or linux]
+  - 13.4                             # [win and arm64]
 
 # blas_impl is gated to [win] here because aggregate root CBC already defines
 # `mkl # [(x86 or x86_64) and not osx]` + `openblas` for the other platforms.
@@ -47,7 +52,8 @@ cuda_compiler_version:
 # the aggregate value, but because the selector `[win]` only fires on Windows,
 # linux/osx see no local override and inherit normally.
 blas_impl:                   # [win]
-  - mkl                      # [win]
+  # mkl is x86-only; win-arm64 gets openblas only (0.3.31 _5 on pkgs/main).
+  - mkl                      # [win and x86_64]
   - openblas                 # [win]
 
 # Linux aarch64 needs gcc 15.2.0 due to a bug with 14.3 with vector instructions.
@@ -82,6 +88,16 @@ zip_keys:
   -                              # [win or linux]
     - gpu_variant                # [win or linux]
     - cuda_compiler_version      # [win or linux]
+
+# win-arm64 ships only eigen 5.x; the aggregate pin (eigen 3.3.7) has no
+# win-arm64 build. The key-line selector makes this key exist only on
+# win-arm64, so every other platform still inherits the aggregate pin
+# (openblas-feedstock CBC-merge pattern). libprotobuf 7.35.1 / libabseil
+# 20260526 now come from the aggregate CBC itself, so no override is needed.
+# Note: pytorch 2.14's vendored eigen is post-3.4/master-era, so system
+# eigen 5.0.1 is closer to upstream's tested combination than 3.3.7.
+eigen:                       # [win and arm64]
+  - 5.0.1                    # [win and arm64]
 
 # megabuild is disabled as our CI runners work on each python version separately.
 megabuild:
