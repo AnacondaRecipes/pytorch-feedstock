@@ -1,7 +1,7 @@
 {% set version = "2.14.0" %}
 # Set the RC number to build release candidates. Set to None otherwise.
 {% set rc = None %}
-{% set build = 0 %}
+{% set build = 1 %}
 
 # Single source of truth: the commit SHA the v{{ version }} tag points at.
 # Drives BOTH the source git_rev AND the smoke_test fetches below — one SHA
@@ -64,6 +64,9 @@ source:
       - patches/0022-force-bundled-mkldnn.patch
       - patches/0024-Allow-fbgemm_genai-to-be-assigned-to-a-Ninja-job-pool.patch    # [linux and gpu_variant == "cuda"]
       - patches/0025-extend-gcc-sve-ice-workaround-to-gcc15.patch                   # [linux and aarch64]
+      # Opt-in ninja pool for torch_python (safety margin for the generated
+      # binding TUs) so the rest of the build runs at full parallelism.
+      - patches/0026-win-arm64-torch_python-job-pool.patch                         # [win and arm64]
   # sha256 required — without it conda-build bypasses the pbp src_cache and
   # re-downloads every run, which hits GitHub raw's HTTP 429 rate limit on
   # busy graphs (observed on win-64 py3.11/py3.14 in graph 2dd074ea).
@@ -84,9 +87,12 @@ source:
 
 build:
   number: {{ build }}
-  # 2.14.0 — CPU split PR: full matrix (cpu + metal; all platforms, Pythons, BLAS).
-  # Merges to master. The cuda12.9 / cuda13.0 sibling PRs share this exact recipe
-  # and differ ONLY in the skip line below (2.13 3-PR convention).
+  # 2.14.0 split PRs — CPU / cuda12.9 / cuda13.x — share this exact recipe and
+  # differ ONLY in the skip line below. cuda13.x covers x86 CUDA 13.0 and
+  # win-arm64 CUDA 13.4 (standard PR CI ignores win-arm64; it is built off-CI):
+  #   CPU:       skip: true  # [gpu_variant == "cuda"]
+  #   cuda12.9:  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version != "12.9"]
+  #   cuda13.x:  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version not in ("13.0", "13.4")]
   # osx-arm64 metal: re-enabled after SIR-3273 root cause fix in build.sh
   # (export SDKROOT + CMAKE_ARGS sed for 12.1 → MACOSX_SDK_VERSION).
   skip: true  # [gpu_variant == "cuda"]
@@ -150,6 +156,10 @@ requirements:
     # This has a strong run_export so we don't need to put it in `host` or `run`
     # We use llvm-openmp for openblas variants on osx.
     - llvm-openmp                 # [osx and not (blas_impl == "mkl")]
+    # win+openblas (win-64 and win-arm64): MSVC /openmp:llvm against conda
+    # llvm-openmp (libomp.dll); vcomp140 / libomp140 are not provided by any
+    # conda package (anaconda-issues#13513). See bld.bat.
+    - llvm-openmp                 # [win and blas_impl == "openblas"]
     - libuv     # [win]
     - cmake
     - ninja-base
@@ -169,6 +179,11 @@ requirements:
     - cudnn                  # [(gpu_variant or "").startswith("cuda")]
     - nccl                   # [(gpu_variant or "").startswith("cuda") and linux]
     {% endif %}
+    # libtorch compiles the CUDA linear-algebra code (BatchLinearAlgebra.cpp),
+    # so magma must be in THIS host env. It was dropped here in 7a8c95e, and
+    # every CUDA build since configured "MAGMA not found. Compiling without
+    # MAGMA support", while run still pinned magma via pin_compatible below.
+    - magma                  # [(gpu_variant or "").startswith("cuda")]
     {% if cuda_major >= 12 %}
     # cuda-driver-dev's libcuda.so stub must be in host (not just build):
     # FindCUDAToolkit searches the host prefix, and pytorch 2.13's
@@ -212,10 +227,16 @@ requirements:
     #   - linux+openblas → libgomp (added here in host + run; matches
     #     suitesparse-feedstock pattern)
     #   - osx → llvm-openmp
+    #   - win+openblas (win-64, win-arm64) → llvm-openmp (torch_cpu.dll links
+    #     libomp; no other conda package provides it — anaconda-issues#13513)
     # Strong run_exports from each pull the correct _openmp_mutex flavor.
     - intel-openmp {{ mkl }}         # [blas_impl == "mkl"]
     - libgomp                        # [linux and blas_impl == "openblas"]
     - llvm-openmp                    # [osx and not (blas_impl == "mkl")]
+    # win+openblas (win-64 and win-arm64): MSVC /openmp:llvm against conda
+    # llvm-openmp (libomp.dll); vcomp140 / libomp140 are not provided by any
+    # conda package (anaconda-issues#13513). See bld.bat.
+    - llvm-openmp                 # [win and blas_impl == "openblas"]
     - libabseil {{ libabseil }}
     - libprotobuf {{ libprotobuf }}
     # sleef 3.9.0 OpenMP-flavor variant must match parent env's runtime to
@@ -381,6 +402,10 @@ outputs:
         # This has a strong run_export so we don't need to put it in `host` or `run`
         # We use llvm-openmp for openblas variants on osx.
         - llvm-openmp                # [osx and not (blas_impl == "mkl")]
+        # win+openblas (win-64 and win-arm64): MSVC /openmp:llvm against conda
+        # llvm-openmp (libomp.dll); vcomp140 / libomp140 are not provided by any
+        # conda package (anaconda-issues#13513). See bld.bat.
+        - llvm-openmp                 # [win and blas_impl == "openblas"]
         - cmake
         - ninja-base
         # Keep libprotobuf here so that a compatibile version
@@ -396,8 +421,12 @@ outputs:
         - cudnn                           # [(gpu_variant or "").startswith("cuda")]
         - nccl                            # [(gpu_variant or "").startswith("cuda") and linux]
         {% endif %}
-        # MAGMA_VERSION_MINOR>=10 (deliberate guard — their AT_MAGMA_VERSION
-        - magma <2.10                     # [(gpu_variant or "").startswith("cuda")]
+        # No `<2.10` cap: pytorch 2.12's AT_MAGMA_VERSION packed minor*10 and
+        # #errored on magma 2.10; 2.14 packs minor*100 and only errors at >=100
+        # (aten/src/ATen/native/cuda/linalg/BatchLinearAlgebra.cpp#L54-L59).
+        # The cap would also conflict with libtorch's pin_compatible('magma').
+        # win-arm64 only has magma 2.10 (PKG-18376).
+        - magma                           # [(gpu_variant or "").startswith("cuda")]
         - nvtx-c                          # [(gpu_variant or "").startswith("cuda")]
         {% if cuda_major >= 12 %}
         # pytorch 2.13 cmake/public/cuda.cmake:159 needs CUDA::cuda_driver at
@@ -437,6 +466,10 @@ outputs:
         - intel-openmp {{ mkl }}      # [blas_impl == "mkl"]
         - libgomp                     # [linux and blas_impl == "openblas"]
         - llvm-openmp                 # [osx and not (blas_impl == "mkl")]
+        # win+openblas (win-64 and win-arm64): MSVC /openmp:llvm against conda
+        # llvm-openmp (libomp.dll); vcomp140 / libomp140 are not provided by any
+        # conda package (anaconda-issues#13513). See bld.bat.
+        - llvm-openmp                 # [win and blas_impl == "openblas"]
         - libabseil
         - libprotobuf {{ libprotobuf }}
         # sleef: see libtorch host above for the 3.9.0 variant-matching rationale.
@@ -460,6 +493,10 @@ outputs:
         - {{ pin_compatible('intel-openmp') }}   # [blas_impl == "mkl"]
         - libgomp                                # [linux and blas_impl == "openblas"]
         - llvm-openmp                            # [osx and not (blas_impl == "mkl")]
+        # win+openblas (win-64 and win-arm64): MSVC /openmp:llvm against conda
+        # llvm-openmp (libomp.dll); vcomp140 / libomp140 are not provided by any
+        # conda package (anaconda-issues#13513). See bld.bat.
+        - llvm-openmp                 # [win and blas_impl == "openblas"]
         # GPU requirements without run_exports
         - {{ pin_compatible('libcudnn') }}          # [(gpu_variant or "").startswith("cuda")]
         # other requirements
@@ -556,6 +593,8 @@ outputs:
         - python -c "import torch; print('CUDA is_available:', torch.cuda.is_available()); assert torch.cuda.is_available()"                      # [(gpu_variant or "").startswith("cuda")]
         - python -c "import torch; print('cuDNN is_available:', torch.backends.cudnn.is_available()); assert torch.backends.cudnn.is_available()" # [(gpu_variant or "").startswith("cuda")]
         - python -c "import torch; print('cuDNN enabled:', torch.backends.cudnn.enabled); assert torch.backends.cudnn.enabled"                    # [(gpu_variant or "").startswith("cuda")]
+        # MAGMA is a build-time flag (at::hasMAGMA); CMake silently drops it if discovery fails (PKG-18413).
+        - python -c "import torch; print('MAGMA built:', torch.cuda.has_magma); assert torch.cuda.has_magma"                    # [(gpu_variant or "").startswith("cuda")]
         - python -c "import torch; assert torch.backends.mps.is_built()"           # [(gpu_variant == "metal")]
         - python -c "import torch; torch.tensor(1).to('cpu').numpy(); print('numpy support enabled!!!')"
         - test -f $PREFIX/lib/libtorch_python${SHLIB_EXT}     # [unix]

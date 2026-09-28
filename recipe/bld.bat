@@ -18,6 +18,23 @@ set PYTORCH_BUILD_NUMBER=0
 @REM 6 is safe on our 64GB runners.
 set MAX_JOBS=6
 
+@REM ========================= WIN-ARM64 ========================================
+if "%target_platform%" == "win-arm64" (
+    @REM Memory: the peak is the torch_cpu.dll link - MSVC link.exe over about
+    @REM 13.7GB of objects, 12GB+ private. That OOMed the old 16GB PBP workers;
+    @REM they are 32GB since 2026-09-24. OpenMP routing is in the openblas
+    @REM block below, shared with win-64.
+    @REM Parallelism: 2.14's scikit-build-core ignores MAX_JOBS and
+    @REM CMAKE_BUILD_PARALLEL_LEVEL never reached ninja; ninja JOB POOLS via
+    @REM CMAKE_ARGS are the knob that works. Ordinary TUs run in compile_pool;
+    @REM patch 0026 moves torch_python, the generated binding TUs, into its own
+    @REM pool. Pools are sized for the 32GB PBP worker, 8 vCPU: with 8 compiles +
+    @REM 2 torch_python + 2 links the torch_cpu.dll link peaked at 31.7 of 32 GiB
+    @REM and the py3.13 build was watchdog-killed twice - graph 1f996af7. 4/1/1
+    @REM leaves headroom for the link at the cost of a slower compile.
+    set "CMAKE_ARGS=!CMAKE_ARGS! -DCMAKE_JOB_POOLS=compile_pool=4;torch_python_pool=1;link_pool=1 -DCMAKE_JOB_POOL_COMPILE=compile_pool -DCMAKE_JOB_POOL_LINK=link_pool -DTORCH_PYTHON_JOB_POOL=torch_python_pool"
+)
+
 @REM ========================= BLAS SETUP =======================================
 if "%blas_impl%" == "openblas" (
     set BLAS=OpenBLAS
@@ -28,6 +45,16 @@ if "%blas_impl%" == "openblas" (
 ) else (
     echo [ERROR] Unsupported BLAS implementation: %blas_impl%
     exit /b 1
+)
+
+@REM Win openblas OpenMP, both win-64 and win-arm64: route MSVC's LLVM OpenMP
+@REM mode to conda llvm-openmp so torch_cpu.dll links the provided libomp.dll
+@REM instead of libomp140.<arch>.dll or vcomp140.dll, which no conda package
+@REM provides. Ref anaconda-issues 13513. win+mkl uses intel-openmp instead.
+@REM Forward slashes: scikit-build-core splits CMAKE_ARGS shlex-style and
+@REM eats backslashes.
+if "%blas_impl%" == "openblas" (
+    set "CMAKE_ARGS=!CMAKE_ARGS! -DOpenMP_C_FLAGS=/openmp:llvm -DOpenMP_CXX_FLAGS=/openmp:llvm -DOpenMP_C_LIB_NAMES=libomp -DOpenMP_CXX_LIB_NAMES=libomp -DOpenMP_libomp_LIBRARY=%LIBRARY_LIB:\=/%/libomp.lib"
 )
 
 @REM ========================= COMMON BUILD FLAGS ===============================
@@ -75,6 +102,10 @@ if "%gpu_variant:~0,4%" == "cuda" (
         set "TORCH_CUDA_ARCH_LIST=7.5;8.0;8.6;9.0;10.0;12.0+PTX"
     ) else if "!cuda_major!" == "13" (
         set "TORCH_CUDA_ARCH_LIST=7.5;8.0;8.6;9.0;10.0;12.0+PTX"
+        @REM win-arm64: win-64 list plus 12.1 - the NVIDIA N1X / GB10-class GPU
+        @REM that ships in Windows-on-ARM machines gets its own SASS; 12.0 SASS
+        @REM would also run on it, since the major version is the same.
+        if "%target_platform%" == "win-arm64" set "TORCH_CUDA_ARCH_LIST=7.5;8.0;8.6;9.0;10.0;12.0;12.1+PTX"
     ) else (
         echo [ERROR] No CUDA architecture list exists for CUDA v%cuda_compiler_version%
         echo Use https://en.wikipedia.org/wiki/CUDA#GPUs_supported to make one.
@@ -214,9 +245,12 @@ if "%PKG_NAME%" == "libtorch" (
         rmdir /s /q %SP_DIR%\torch\include\%%f
     )
 
-    @REM Copy Python-specific libs back for torch's internal import machinery
+    @REM Copy Python-specific libs back for torch's internal import machinery.
+    @REM Copy, not move: cpp_extension links against TORCH_LIB_PATH, which
+    @REM patch 0015 points at Library\lib, so torch_python.lib must stay there
+    @REM too (test_autograd test_multi_grad_all_hooks failed LNK1181 without it).
     mkdir %SP_DIR%\torch\lib
-    robocopy /NP /NFL /NDL /NJH /E /MOV %LIBRARY_LIB%\ %SP_DIR%\torch\lib\ torch_python.lib _C.lib
+    robocopy /NP /NFL /NDL /NJH /E %LIBRARY_LIB%\ %SP_DIR%\torch\lib\ torch_python.lib _C.lib
 )
 
 @REM Robocopy exit codes: 0=nothing copied, 1=files copied, 2=extras found,
