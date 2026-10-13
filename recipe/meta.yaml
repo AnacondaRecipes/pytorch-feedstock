@@ -1,7 +1,7 @@
-{% set version = "2.14.0" %}
+{% set version = "2.14.1" %}
 # Set the RC number to build release candidates. Set to None otherwise.
 {% set rc = None %}
-{% set build = 1 %}
+{% set build = 0 %}
 
 # Single source of truth: the commit SHA the v{{ version }} tag points at.
 # Drives BOTH the source git_rev AND the smoke_test fetches below — one SHA
@@ -9,7 +9,7 @@
 # To resolve for a future release:
 #   gh api repos/pytorch/pytorch/git/refs/tags/v<version> --jq '.object.sha'
 # (de-reference annotated tags via .object.type == "tag" → /git/tags/<sha>.)
-{% set git_rev_sha = "2b3ec34829036a65cd9d1398ea72a0167dc37470" %}   # v2.14.0
+{% set git_rev_sha = "5c4886908584029761b579af026dcfb627c84070" %}   # v2.14.1
 {% set smoke_test_commit = git_rev_sha %}
 
 # see https://github.com/pytorch/pytorch/blame/v{{ version }}/.ci/docker/ci_commit_pins/triton.txt
@@ -38,7 +38,7 @@ package:
   version: {{ version }}
 
 source:
-  # Content-addressable source pinned to the exact commit v2.14.0 points at.
+  # Content-addressable source pinned to the exact commit v{{ version }} points at.
   # Tags are mutable on GitHub — a retag would silently change our source —
   # so we pin the SHA, not the tag. This also sidesteps the release-tarball
   # regeneration that broke sha256-pinned fetches (asset re-generated several
@@ -47,7 +47,7 @@ source:
   - git_url: https://github.com/pytorch/pytorch.git
     git_rev: {{ git_rev_sha }}   # v{{ version }} — see top-of-file derivation
     # NOTE: no git_depth pin. `git_depth: 1` makes conda-build do a shallow
-    # `git clone --depth 1` (defaults to HEAD), then `git checkout v2.14.0`
+    # `git clone --depth 1` (defaults to HEAD), then `git checkout v{{ version }}`
     # fails because the tag isn't reachable in the shallow history. Full
     # clone (~430 MB) is fine — happens once per worker via src_cache.
     patches:
@@ -213,9 +213,6 @@ requirements:
     - wheel
     # 2.14 migrated the build backend from setuptools to scikit-build-core
     # (pyproject.toml [build-system]). Provide it so pip's PEP-517 build uses it.
-    # RE-POLISH (after GA): build.sh:13 removes pyproject.toml — that step must be
-    # reworked, since scikit-build-core's build config lives in pyproject.toml
-    # ([tool.scikit-build]). Validate the full build flow against final v2.14.0.
     - scikit-build-core >=1.0
     - pyyaml
     - requests
@@ -248,11 +245,12 @@ requirements:
     - sleef 3.9.0 *libgomp*       # [linux and blas_impl != "mkl"]
     - sleef 3.9.0 *llvm_openmp*   # [osx]
     - sleef 3.9.0 *no_openmp*     # [win or blas_impl == "mkl"]
-    - libuv
+    - libuv {{ libuv }}
     - pkg-config  # [unix]
     # upstream requirements-build.txt: typing-extensions>=4.15.0
     - typing_extensions >=4.15.0
-    - packaging
+    # upstream pyproject [build-system] requires: packaging>=24.2
+    - packaging >=24.2
     # upstream pytorch 2.13 vendors pybind11 3.0.4 (third_party submodule).
     # ABI-compatible up to 3.0.x; cap at 4.0 for future safety. pybind11-abi
     # explicitly included to pin the ABI version (PKG-13552; mamba-feedstock pattern).
@@ -340,6 +338,7 @@ outputs:
       string: cpu_{{ blas_impl }}_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
       entry_points:
         - torchrun = torch.distributed.run:main
+        - torchfrtrace = torch.distributed.flight_recorder.fr_trace:main
       ignore_run_exports:             # [osx]
         - libuv                       # [osx]
       missing_dso_whitelist:
@@ -470,17 +469,18 @@ outputs:
         # llvm-openmp (libomp.dll); vcomp140 / libomp140 are not provided by any
         # conda package (anaconda-issues#13513). See bld.bat.
         - llvm-openmp                 # [win and blas_impl == "openblas"]
-        - libabseil
+        - libabseil {{ libabseil }}
         - libprotobuf {{ libprotobuf }}
         # sleef: see libtorch host above for the 3.9.0 variant-matching rationale.
         - sleef 3.9.0 *libgomp*       # [linux and blas_impl != "mkl"]
         - sleef 3.9.0 *llvm_openmp*   # [osx]
         - sleef 3.9.0 *no_openmp*     # [win or blas_impl == "mkl"]
-        - libuv
+        - libuv {{ libuv }}
         - pkg-config  # [unix]
         # upstream requirements-build.txt: typing-extensions>=4.15.0
         - typing_extensions >=4.15.0
-        - packaging
+        # upstream pyproject [build-system] requires: packaging>=24.2
+        - packaging >=24.2
         - {{ pin_subpackage('libtorch', exact=True) }}
         # upstream pytorch 2.13 vendors pybind11 3.0.4; ABI-compatible up to 3.0.x.
         # pybind11-abi explicit (PKG-13552, mamba pattern).
@@ -511,18 +511,21 @@ outputs:
         - sympy>=1.13.3
         - filelock
         - jinja2
-        - networkx
+        - networkx >=2.5.1
         - optree >=0.13.0
         - nomkl                 # [blas_impl != "mkl"]
-        - fsspec
+        - fsspec >=0.8.5
         # Required to support torch.compile. This is tested in smoke_test.py, which is required to pass
         - triton =={{ triton }}       # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
         - {{ pin_subpackage('libtorch', exact=True) }}
-        # upstream requirements-build.txt: setuptools>=77.0.0,<82
-        - setuptools >=77.0.0,<82
+        # upstream tools/metadata/dependencies.py runtime floor: setuptools>=77.0.3
+        # (keep the <82 cap from requirements-build.txt)
+        - setuptools >=77.0.3,<82
       run_constrained:
         # current intel-openmp builds are incompatible with llvm-openmp on osx-64
-        - llvm-openmp <0a0                # [(blas_impl == "mkl") and (osx and x86_64)]  
+        - llvm-openmp <0a0                # [(blas_impl == "mkl") and (osx and x86_64)]
+        # upstream optional extra [project.optional-dependencies]: opt-einsum>=3.3
+        - opt_einsum >=3.3
 
     test:
       requires:
@@ -768,6 +771,8 @@ about:
 
 extra:
   skip-lints:
+    # libtorch + wrapper outputs ship file/CMake + import checks, not a pytest
+    # suite; the heavy pytest suites live in the pytorch-tests output (PKG-15465).
     - missing_tests
   recipe-maintainers:
     - hmaarrfk
