@@ -354,6 +354,15 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
         *)       _cuda_arch="$(uname -m)-linux" ;;
     esac
     export CUDA_INC_PATH="${PREFIX}/targets/${_cuda_arch}/include/"
+    # Patches 0009/0014 point Inductor and cpp_extension at
+    # $PREFIX/targets/@CUDA_TARGET@/include; fill in the real target dir.
+    # Idempotent (build.sh runs for libtorch and again for pytorch).
+    sed -i -e "s,@CUDA_TARGET@,${_cuda_arch}," torch/_inductor/cpp_builder.py torch/utils/cpp_extension.py
+    if grep -q "@CUDA_TARGET@" torch/_inductor/cpp_builder.py torch/utils/cpp_extension.py \
+        || ! grep -q "targets/${_cuda_arch}/include" torch/_inductor/cpp_builder.py \
+        || ! grep -q "\"targets\", \"${_cuda_arch}\", \"include\"" torch/utils/cpp_extension.py; then
+        echo "ERROR: @CUDA_TARGET@ substitution did not apply"; exit 1
+    fi
     # pytorch 2.12 + CMake 4.x: cmake/public/cuda.cmake creates an INTERFACE
     # target caffe2::cuda → CUDA::cuda_driver, validated eagerly at generate.
     # The driver stub from cuda-driver-dev lives under targets/<arch>/lib/stubs/
