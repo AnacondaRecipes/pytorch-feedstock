@@ -9,29 +9,17 @@
 # To resolve for a future release:
 #   gh api repos/pytorch/pytorch/git/refs/tags/v<version> --jq '.object.sha'
 # (de-reference annotated tags via .object.type == "tag" → /git/tags/<sha>.)
-{% set git_rev_sha = "5c4886908584029761b579af026dcfb627c84070" %}   # v2.14.1
+{% set git_rev_sha = "5c4886908584029761b579af026dcfb627c84070" %}
 {% set smoke_test_commit = git_rev_sha %}
 
 # see https://github.com/pytorch/pytorch/blame/v{{ version }}/.ci/docker/ci_commit_pins/triton.txt
-# 2.14 pins triton to commit 675c5987 (triton 3.8.0).
+# 2.14 pins triton commit 675c5987 (10 commits before the v3.8.0 tag); we use released 3.8.0.
 {% set triton = "3.8.0" %}
 
-# Use a higher build number for the CUDA variant, to ensure that it's
-# preferred by conda's solver, and it's preferentially
-# installed where the platform supports it.
-{% if gpu_variant != "cpu" %}
-{% set build = build + 200 %}
-{% endif %}
-
-{% if blas_impl == "mkl" %}
-{% set build = build + 100 %}
-{% endif %}
-
-{% if not (gpu_variant or "").startswith("cuda") %}
-{% set cuda_major = 0 %}
-{% else %}
-{% set cuda_major = environ.get("cuda_compiler_version", "11.8").split(".")[0] | int %}
-{% endif %}
+# GPU variants get +200 so the solver prefers them where the platform supports
+# them; mkl gets +100 over openblas.
+{% set build = build + (200 if gpu_variant != "cpu" else 0) + (100 if blas_impl == "mkl" else 0) %}
+{% set cuda_major = (environ.get("cuda_compiler_version", "11.8").split(".")[0] | int) if (gpu_variant or "").startswith("cuda") else 0 %}
 
 package:
   name: libtorch
@@ -87,14 +75,11 @@ source:
 
 build:
   number: {{ build }}
-  # 2.14.0 split PRs — CPU / cuda12.9 / cuda13.x — share this exact recipe and
-  # differ ONLY in the skip line below. cuda13.x covers x86 CUDA 13.0 and
-  # win-arm64 CUDA 13.4 (standard PR CI ignores win-arm64; it is built off-CI):
+  # Split PRs (CPU+metal / cuda12.9 / cuda13.x) share this recipe and differ only
+  # in this skip line (win-arm64 CUDA 13.4 is built off-CI):
   #   CPU:       skip: true  # [gpu_variant == "cuda"]
   #   cuda12.9:  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version != "12.9"]
   #   cuda13.x:  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version not in ("13.0", "13.4")]
-  # osx-arm64 metal: re-enabled after SIR-3273 root cause fix in build.sh
-  # (export SDKROOT + CMAKE_ARGS sed for 12.1 → MACOSX_SDK_VERSION).
   skip: true  # [gpu_variant != "cuda" or cuda_compiler_version != "12.9"]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
@@ -177,7 +162,7 @@ requirements:
     - nccl 2.29.3.1                            # [(gpu_variant or "").startswith("cuda") and linux]
     {% else %}
     - cudnn                  # [(gpu_variant or "").startswith("cuda")]
-    - nccl                   # [(gpu_variant or "").startswith("cuda") and linux]
+    - nccl {{ nccl }}           # [(gpu_variant or "").startswith("cuda") and linux]
     {% endif %}
     # libtorch compiles the CUDA linear-algebra code (BatchLinearAlgebra.cpp),
     # so magma must be in THIS host env. It was dropped here in 7a8c95e, and
@@ -418,7 +403,7 @@ outputs:
         - nccl 2.29.3.1                   # [(gpu_variant or "").startswith("cuda") and linux]
         {% else %}
         - cudnn                           # [(gpu_variant or "").startswith("cuda")]
-        - nccl                            # [(gpu_variant or "").startswith("cuda") and linux]
+        - nccl {{ nccl }}                    # [(gpu_variant or "").startswith("cuda") and linux]
         {% endif %}
         # No `<2.10` cap: pytorch 2.12's AT_MAGMA_VERSION packed minor*10 and
         # #errored on magma 2.10; 2.14 packs minor*100 and only errors at >=100
@@ -508,19 +493,23 @@ outputs:
         - {{ pin_compatible('magma') }}                       # [(gpu_variant or "").startswith("cuda")]
         # skip to 1.13.3 to avoid test failures on Windows and mac - align with 2.7.0 release requirement
         # https://github.com/pytorch/pytorch/pull/133235
-        - sympy>=1.13.3
+        - sympy >=1.13.3
         - filelock
         - jinja2
         - networkx >=2.5.1
         - optree >=0.13.0
         - nomkl                 # [blas_impl != "mkl"]
         - fsspec >=0.8.5
-        # Required to support torch.compile. This is tested in smoke_test.py, which is required to pass
+        # torch.compile's GPU backend; exercised by the inductor tests in pytorch-tests.
         - triton =={{ triton }}       # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
+        # upstream Linux CUDA wheels require cuda-bindings (.github/scripts/generate_binary_build_matrix.py);
+        # needed for GreenContext, CUDA-graph annotations and managed memory.
+        - cuda-bindings >=12.9.4,<13  # [linux and py<315 and (gpu_variant or "").startswith("cuda") and cuda_compiler_version.startswith("12.")]
+        - cuda-bindings >=13.0.3,<14  # [linux and py<315 and (gpu_variant or "").startswith("cuda") and cuda_compiler_version.startswith("13.")]
         - {{ pin_subpackage('libtorch', exact=True) }}
         # upstream tools/metadata/dependencies.py runtime floor: setuptools>=77.0.3
-        # (keep the <82 cap from requirements-build.txt)
-        - setuptools >=77.0.3,<82
+        # (requirements-build.txt's <82 cap is build-time only; kept in host)
+        - setuptools >=77.0.3
       run_constrained:
         # current intel-openmp builds are incompatible with llvm-openmp on osx-64
         - llvm-openmp <0a0                # [(blas_impl == "mkl") and (osx and x86_64)]
@@ -601,22 +590,16 @@ outputs:
         - python -c "import torch; assert torch.backends.mps.is_built()"           # [(gpu_variant == "metal")]
         - python -c "import torch; torch.tensor(1).to('cpu').numpy(); print('numpy support enabled!!!')"
         - test -f $PREFIX/lib/libtorch_python${SHLIB_EXT}     # [unix]
+        - torchrun --help
+        - torchfrtrace --help
 
-  # PKG-15465: separate output that carries the heavy pytest suite (run_test.py
-  # --core / inductor / MPS) and its deps (boto3, hypothesis, pytest-* etc.).
-  # Users installing the base `pytorch` output no longer pull in either. The
-  # Windows 260-char path-length issue that motivated the split is addressed
-  # by not fetching `test/compiled_autograd_skips/…` into the base test env.
-  # Modeled after conda-forge pytorch-cpu-feedstock's pytorch-tests output.
+  # PKG-15465: the heavy pytest suites and their deps live in this output (modeled on
+  # conda-forge's pytorch-tests), keeping the base pytorch test env lean and under the
+  # Windows 260-char path limit.
   - name: pytorch-tests
     build:
-      # blas_impl embedded in the CUDA string so it becomes a tracked variant
-      # var for this output — without it, mkl+openblas CUDA builds collapse
-      # to the same PKG_HASH → PBP graph-submitter rejects duplicate task
-      # names. Matches conda-forge/pytorch-cpu-feedstock's pytorch-tests
-      # convention. (The base pytorch output doesn't need this because its
-      # requirements section already references blas_impl via mkl-devel /
-      # openblas-devel host deps; pytorch-tests has no such reference.)
+      # blas_impl in the CUDA string makes it a tracked variant var here; without it
+      # mkl/openblas CUDA builds share a PKG_HASH and PBP rejects the duplicate tasks.
       string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_{{ blas_impl }}_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
       string: gpu_mps_py{{ CONDA_PY }}h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                                   # [gpu_variant == "metal"]
       string: cpu_{{ blas_impl }}_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                                     # [gpu_variant == "cpu"]
@@ -681,26 +664,37 @@ outputs:
         # See files needed: https://github.com/pytorch/pytorch/blob/main/test/test_ops.py#350-L351
         - aten/src/ATen/native
       commands:
-        # Flaky complex linear-algebra cases (see run_test_core_k); https://github.com/pytorch/pytorch/issues/150918
-        {% set run_test_core_k = "not (complex and (linalg_vecdot or dot or vdot))" %}
-        # py3.10: scipy 1.17 dropped py3.10 → scipy missing from test env → test_numpy_ref_*
-        # tests fail with `name 'scipy' is not defined`. Exclude them on py3.10 only.
-        {% set run_test_core_k_py310 = run_test_core_k ~ " and not test_numpy_ref" %}
-        # linux-aarch64 CUDA packages are built with TORCH_CUDA_ARCH_LIST starting at sm_80 (see recipe/build.sh;
-        # upstream aarch wheels omit <8.0 and 8.6). CI GPUs below sm_80 (e.g. some Jetson) hit
-        # cudaErrorNoKernelImageForDevice loading kernels. TestBwdGradientsCUDA / test_inplace_gradgrad* fail from that
-        # mismatch, not from functional PyTorch bugs on supported datacenter GPUs; exclude them only on this matrix.
-        {% set run_test_core_k_aarch64_cuda = run_test_core_k ~ " and not inplace_gradgrad" %}
-        {% set run_test_core_k_aarch64_cuda_py310 = run_test_core_k_aarch64_cuda ~ " and not test_numpy_ref" %}
-        - python ./test/run_test.py --core --continue-through-error -k "{{ run_test_core_k }}" || true # [not win and not (linux and aarch64 and (gpu_variant or "").startswith("cuda")) and py != 310]
-        - python ./test/run_test.py --core --continue-through-error -k "{{ run_test_core_k_py310 }}" || true # [not win and not (linux and aarch64 and (gpu_variant or "").startswith("cuda")) and py == 310]
-        - python ./test/run_test.py --core --continue-through-error -k "{{ run_test_core_k_aarch64_cuda }}" || true # [linux and aarch64 and (gpu_variant or "").startswith("cuda") and py != 310]
-        - python ./test/run_test.py --core --continue-through-error -k "{{ run_test_core_k_aarch64_cuda_py310 }}" || true # [linux and aarch64 and (gpu_variant or "").startswith("cuda") and py == 310]
-        # lgamma or mvlgamma or multigammaln or gammaln all have these issues on a combination of Intel Xeon processors and Windows Server differences.
-        # enabling these tests on windows will cause numerical differences in the test suite.
-        # This is a non-deterministic issue where between 80-110 tests fail. This has been observed between Pytorch 2.5 and above.
-        - python ./test/run_test.py --core --continue-through-error -k "not ((complex and (linalg_vecdot or dot or vdot)) or lgamma or mvlgamma or multigammaln or gammaln)" || exit 0 # [win and py != 310]
-        - python ./test/run_test.py --core --continue-through-error -k "not ((complex and (linalg_vecdot or dot or vdot)) or lgamma or mvlgamma or multigammaln or gammaln or test_numpy_ref)" || exit 0 # [win and py == 310]
+        # Required (not masked): CUDA C++ compilation against the conda CUDA headers
+        # (patches 0009/0014 + build.sh @CUDA_TARGET@ substitution).
+        - python -c "import torch.utils.cpp_extension as e; p = e.include_paths('cuda'); print(p); assert any('targets' in x for x in p), p"   # [linux and (gpu_variant or "").startswith("cuda")]
+        - python -c "from torch.utils.cpp_extension import load_inline; m = load_inline(name='cuda_hdr_smoke', cpp_sources=chr(35) + 'include <cuda_runtime_api.h>\nint ndev() { int n = 0; cudaGetDeviceCount(&n); return n; }', functions=['ndev'], with_cuda=True, verbose=True); print('cuda devices:', m.ndev())"   # [linux and (gpu_variant or "").startswith("cuda")]
+        - python test/run_test.py -i inductor/test_torchinductor.py -k "test_cpu_scalar_with_gpu_tensor_cpp or test_alignment_copy_not_emitted_for_cpp_wrapper"   # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
+        # Core suites: test_torch + test_autograd are required on every variant (linux-aarch64
+        # CUDA runs their CPU paths, see below); the rest of --core is informational (`|| true` / `|| exit 0`) because it
+        # carries known upstream / CI-worker failures. Exclusions:
+        # - complex linalg dot cases are flaky: https://github.com/pytorch/pytorch/issues/150918
+        # - test_ctc_loss_cudnn_tensor*: cuDNN's CTC kernel raises a device-side assert
+        #   ("CTC target label out of range"), which poisons the CUDA context for the rest of test_nn.
+        # - py3.10: scipy 1.17 dropped py3.10, so test_numpy_ref_* cannot run there.
+        {% set k_py310 = " and not test_numpy_ref" if CONDA_PY|int == 310 else "" %}
+        {% set run_test_core_k = "not (complex and (linalg_vecdot or dot or vdot)) and not test_ctc_loss_cudnn_tensor" ~ k_py310 %}
+        # linux-aarch64 CUDA: the CI GPU is an NVIDIA T4G (sm_75, g5g.8xlarge), below this
+        # build's sm_80 floor (build.sh), so CUDA kernels cannot run there: the core suites run
+        # with the GPU hidden. test_fb_fc_packed and the igamma tests crash that worker's
+        # Graviton2 CPU with SIGILL (aborting the whole suite); deselected here, crash under investigation.
+        {% set run_test_core_k_aarch64_cuda = run_test_core_k ~ " and not test_fb_fc_packed and not _igamma" %}
+        # Windows: lgamma / mvlgamma / multigammaln / gammaln give non-deterministic numerical
+        # differences (80-110 failures) on Intel Xeon + Windows Server since PyTorch 2.5.
+        {% set run_test_core_k_win = "not ((complex and (linalg_vecdot or dot or vdot)) or lgamma or mvlgamma or multigammaln or gammaln or test_ctc_loss_cudnn_tensor)" ~ k_py310 %}
+        {% set core_required = "-i test_torch test_autograd" %}
+        # Explicit list: run_test.py -x is prefix-matching, so "-x test_autograd" would drop test_autograd_fallback too.
+        {% set core_rest = "--core -i test_autograd_fallback test_modules test_nn test_ops test_ops_gradients test_ops_fwd_gradients test_ops_jit" %}
+        - python ./test/run_test.py {{ core_required }} --continue-through-error -k "{{ run_test_core_k }}"   # [not win and not (linux and aarch64 and (gpu_variant or "").startswith("cuda"))]
+        - python ./test/run_test.py {{ core_rest }} --continue-through-error -k "{{ run_test_core_k }}" || true   # [not win and not (linux and aarch64 and (gpu_variant or "").startswith("cuda"))]
+        - CUDA_VISIBLE_DEVICES="" python ./test/run_test.py {{ core_required }} --continue-through-error -k "{{ run_test_core_k_aarch64_cuda }}"   # [linux and aarch64 and (gpu_variant or "").startswith("cuda")]
+        - CUDA_VISIBLE_DEVICES="" python ./test/run_test.py {{ core_rest }} --continue-through-error -k "{{ run_test_core_k_aarch64_cuda }}" || true   # [linux and aarch64 and (gpu_variant or "").startswith("cuda")]
+        - python ./test/run_test.py {{ core_required }} --continue-through-error -k "{{ run_test_core_k_win }}"   # [win]
+        - python ./test/run_test.py {{ core_rest }} --continue-through-error -k "{{ run_test_core_k_win }}" || exit 0   # [win]
         # The inductor tests test the torch.compile backend. Using the options below avoids running distributed tests,
         # which would be run if we used the --inductor option. (Distributed tests would only be correctly run on a multi-gpu test platform,
         # which we don't have.)
@@ -711,21 +705,17 @@ outputs:
         {% set inductor_skips = inductor_skips ~ " or test_sdpa_inference_mode_aot_compile" %}
         # "Attempt to trace generator" - upstream Dynamo bug
         {% set inductor_skips = inductor_skips ~ " or test_lite_regional_compile_flex_attention_cuda" %}
+        # needs the Kineto profiler ("Legacy CUDA profiling requires use_cpu=True"); build.sh sets USE_KINETO=OFF
+        {% set inductor_skips = inductor_skips ~ " or test_copy_non_blocking_is_pinned" %}
         - python test/run_test.py -i inductor/test_torchinductor.py --continue-through-error -k "not ({{ inductor_skips }})" || true   # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
+        # The PBP osx-arm64 worker has no MPS device (torch.backends.mps.is_available() is False, so
+        # test_mps.py fails at import); this stays informational until an MPS-capable worker exists.
+        - python -c "import torch; print('MPS is_available:', torch.backends.mps.is_available())"   # [(gpu_variant == "metal")]
         - python ./test/run_test.py --mps --continue-through-error || true                                           # [(gpu_variant == "metal")]
 
-  # Two static-name wrapper outputs (formerly a single dynamic-name output).
-  # Splitting fixes two issues at once:
-  #   1. PBP graph-submitter rejected the single-output form as duplicate test
-  #      tasks on x86 platforms — the wrapper's build.string had no blas_impl,
-  #      so mkl and openblas variants rendered identical PKG_HASH.
-  #   2. The `skip: [blas_impl == "mkl"]` half-fix caused conda-build to
-  #      hash the wrapper on blas_impl only (dropping gpu_variant from tracked
-  #      vars), which then emitted BOTH pytorch-cpu and pytorch-gpu wrappers
-  #      from the same variant — and the pytorch-gpu wrapper's test env then
-  #      couldn't resolve `pytorch =...=gpu*` (osx-arm64 metal wrapper failure).
-  # Static names + selector-gated skip on gpu_variant keeps conda-build's
-  # variant tracking honest: one wrapper per (gpu_variant, blas=openblas) pair.
+  # Static-name wrappers, one per (gpu_variant, openblas) pair. A single dynamic-name
+  # output produced duplicate PBP test tasks (no blas_impl in its hash) and, with a
+  # blas-only skip, emitted both wrappers from one variant (osx-arm64 metal failure).
   - name: pytorch-cpu
     build:
       skip: true  # [gpu_variant != "cpu" or blas_impl == "mkl"]
@@ -767,7 +757,7 @@ about:
       - Tensor computation (like NumPy) with strong GPU acceleration
       - Deep neural networks built on a tape-based autograd system
     You can reuse your favorite Python packages such as NumPy, SciPy, and Cython to extend PyTorch when needed.
-  doc_url: https://pytorch.org/docs/
+  doc_url: https://docs.pytorch.org/docs/
 
 extra:
   skip-lints:
