@@ -1,17 +1,16 @@
-From 1dda1f06f681c0127d64bec43c348847a5233391 Mon Sep 17 00:00:00 2001
-From: Xianglong Kong <xkong@anaconda.com>
-Date: Wed, 14 Oct 2026 18:00:42 -0500
-Subject: [PATCH] Swap OpenMP search precedence to prefer Intel over GNU
-
+From ac186a7b629043009abde727666c5bb307e7a76a Mon Sep 17 00:00:00 2001
+From: conda-forge <conda-forge@users.noreply.github.com>
+Date: Mon, 6 Nov 2023 13:46:00 -0500
+Subject: [PATCH 02/13] Swap OpenMP search precedence to prefer Intel over GNU
 ---
  cmake/Modules/FindMKL.cmake | 4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/cmake/Modules/FindMKL.cmake b/cmake/Modules/FindMKL.cmake
-index 1539e43..dfe0815 100644
---- a/cmake/Modules/FindMKL.cmake
-+++ b/cmake/Modules/FindMKL.cmake
-@@ -139,8 +139,8 @@ ELSE(WIN32)
+Index: pytorch-2.12.0/cmake/Modules/FindMKL.cmake
+===================================================================
+--- pytorch-2.12.0.orig/cmake/Modules/FindMKL.cmake
++++ pytorch-2.12.0/cmake/Modules/FindMKL.cmake
+@@ -113,8 +113,8 @@ ELSE(WIN32)
        SET(mklthreads "mkl_tbb_thread")
        SET(mklrtls "tbb")
      ELSE()
