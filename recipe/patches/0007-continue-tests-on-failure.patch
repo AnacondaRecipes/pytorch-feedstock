@@ -1,17 +1,16 @@
-From c895a2a6bbe4373b90a5871131fc7c55e1d9dbbd Mon Sep 17 00:00:00 2001
-From: Xianglong Kong <xkong@anaconda.com>
-Date: Wed, 14 Oct 2026 18:00:42 -0500
-Subject: [PATCH] Continue tests on failure
-
+From 1d5c48bc7f8ca8107b13420711174944991e7478 Mon Sep 17 00:00:00 2001
+From: conda-forge <conda-forge@users.noreply.github.com>
+Date: Mon, 6 Nov 2023 13:47:00 -0500
+Subject: [PATCH 04/13] Continue tests on failure
 ---
  test/run_test.py | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/test/run_test.py b/test/run_test.py
-index 57f6c50..406b180 100644
---- a/test/run_test.py
-+++ b/test/run_test.py
-@@ -1343,7 +1343,7 @@ def get_pytest_args(options, is_cpp_test=False, is_distributed_test=False):
+Index: pytorch-2.12.0/test/run_test.py
+===================================================================
+--- pytorch-2.12.0.orig/test/run_test.py
++++ pytorch-2.12.0/test/run_test.py
+@@ -1271,7 +1271,7 @@ def get_pytest_args(options, is_cpp_test
      else:
          # When under the normal mode, retry a failed test NUM_PYTEST_RERUNS more times.
          # -x means stop at the first failure. Set PYTORCH_NUM_PYTEST_RERUNS=0 to disable.
