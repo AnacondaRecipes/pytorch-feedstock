@@ -1,6 +1,6 @@
-From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From e913eb72c4de63f1c2984503dd031de9ec953c66 Mon Sep 17 00:00:00 2001
 From: Xianglong Kong <xkong@anaconda.com>
-Date: Mon, 14 Jul 2026 12:00:00 -0400
+Date: Tue, 14 Jul 2026 12:00:00 -0400
 Subject: [PATCH] Extend gcc SVE ICE workaround to gcc 15
 
 Upstream commit 8fd50939 added __attribute__((optimize("no-tree-vectorize")))
@@ -22,8 +22,11 @@ __GNUC__ == 14 to __GNUC__ >= 14 so it also applies to gcc 15.
 Once upstream widens the gate, or gcc 15.3+ ships the RTL fix, this
 patch can be dropped.
 ---
+ aten/src/ATen/native/cpu/Unfold2d.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
 diff --git a/aten/src/ATen/native/cpu/Unfold2d.cpp b/aten/src/ATen/native/cpu/Unfold2d.cpp
-index 9ae1391e2..49ba11af2 100644
+index 9ae1391..49ba11a 100644
 --- a/aten/src/ATen/native/cpu/Unfold2d.cpp
 +++ b/aten/src/ATen/native/cpu/Unfold2d.cpp
 @@ -169,7 +169,7 @@ void unfolded2d_acc_channels_last(
@@ -35,6 +38,3 @@ index 9ae1391e2..49ba11af2 100644
  // Workaround for gcc-14.2.0 ICE during RTL pass: vregs when compiling for SVE
  // NS: With or without BF16, see https://github.com/pytorch/pytorch/issues/172630
  __attribute__((optimize("no-tree-vectorize")))
--- 
-2.42.0
-
