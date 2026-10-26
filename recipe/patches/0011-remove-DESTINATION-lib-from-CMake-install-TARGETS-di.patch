@@ -1,4 +1,4 @@
-From 942b90029508ee1b7c8c6c83fa78d78e0c5216d6 Mon Sep 17 00:00:00 2001
+From a1a748f7fde1abd2ec4c8a03b6bcc573cc03656b Mon Sep 17 00:00:00 2001
 From: "H. Vetinari" <h.vetinari@gmx.com>
 Date: Tue, 28 Jan 2025 10:58:29 +1100
 Subject: [PATCH] remove `DESTINATION lib` from CMake `install(TARGETS`
@@ -6,14 +6,23 @@ Subject: [PATCH] remove `DESTINATION lib` from CMake `install(TARGETS`
 
 Suggested-By: Silvio Traversaro <silvio@traversaro.it>
 
-Regenerated against pytorch v2.13.0 (git am -3 failed on 2.12.0-based
-line offsets — patch(1) tolerated fuzz but git am doesn't).
+Regenerated against pytorch v2.15.0-rc8 (caffe2/ and torch/CMakeLists.txt
+context drift; same install(TARGETS) set as before).
 ---
+ c10/CMakeLists.txt                      |  2 +-
+ c10/cuda/CMakeLists.txt                 |  2 +-
+ c10/hip/CMakeLists.txt                  |  2 +-
+ c10/xpu/CMakeLists.txt                  |  2 +-
+ caffe2/CMakeLists.txt                   | 20 ++++++++++----------
+ torch/CMakeLists.txt                    |  2 +-
+ torch/lib/libshm_windows/CMakeLists.txt |  2 +-
+ 7 files changed, 16 insertions(+), 16 deletions(-)
+
 diff --git a/c10/CMakeLists.txt b/c10/CMakeLists.txt
-index bd138d220..b11fb7975 100644
+index 64820d127a..85123cb10f 100644
 --- a/c10/CMakeLists.txt
 +++ b/c10/CMakeLists.txt
-@@ -162,7 +162,7 @@ if(NOT BUILD_LIBTORCHLESS)
+@@ -206,7 +206,7 @@ if(NOT BUILD_LIBTORCHLESS)
    # Note: for now, we will put all export path into one single Caffe2Targets group
    # to deal with the cmake deployment need. Inside the Caffe2Targets set, the
    # individual libraries like libc10.so and libcaffe2.so are still self-contained.
@@ -23,10 +32,10 @@ index bd138d220..b11fb7975 100644
  
  install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
 diff --git a/c10/cuda/CMakeLists.txt b/c10/cuda/CMakeLists.txt
-index a3376140c..4979ecc54 100644
+index 59adc12b4b..a2f2708283 100644
 --- a/c10/cuda/CMakeLists.txt
 +++ b/c10/cuda/CMakeLists.txt
-@@ -86,7 +86,7 @@ if(NOT BUILD_LIBTORCHLESS)
+@@ -89,7 +89,7 @@ if(NOT BUILD_LIBTORCHLESS)
  # Note: for now, we will put all export path into one single Caffe2Targets group
  # to deal with the cmake deployment need. Inside the Caffe2Targets set, the
  # individual libraries like libc10.so and libcaffe2.so are still self-contained.
@@ -36,10 +45,10 @@ index a3376140c..4979ecc54 100644
  endif()
  
 diff --git a/c10/hip/CMakeLists.txt b/c10/hip/CMakeLists.txt
-index 0f86f03ca..ac5030b61 100644
+index 08d06af86b..fe449b71d0 100644
 --- a/c10/hip/CMakeLists.txt
 +++ b/c10/hip/CMakeLists.txt
-@@ -52,7 +52,7 @@ if(NOT BUILD_LIBTORCHLESS)
+@@ -56,7 +56,7 @@ if(NOT BUILD_LIBTORCHLESS)
        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../..>
        $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
        $<INSTALL_INTERFACE:include>)
@@ -49,7 +58,7 @@ index 0f86f03ca..ac5030b61 100644
  endif()
  
 diff --git a/c10/xpu/CMakeLists.txt b/c10/xpu/CMakeLists.txt
-index 349b209ae..9b1c27ada 100644
+index 4d0478f778..db5f9d8308 100644
 --- a/c10/xpu/CMakeLists.txt
 +++ b/c10/xpu/CMakeLists.txt
 @@ -49,7 +49,7 @@ if(NOT BUILD_LIBTORCHLESS)
@@ -62,10 +71,10 @@ index 349b209ae..9b1c27ada 100644
    add_subdirectory(test)
  endif()
 diff --git a/caffe2/CMakeLists.txt b/caffe2/CMakeLists.txt
-index e4a0454ec..e5628f907 100644
+index d75d3cc2f1..688a9469f5 100644
 --- a/caffe2/CMakeLists.txt
 +++ b/caffe2/CMakeLists.txt
-@@ -561,7 +561,7 @@ if(USE_CUDA)
+@@ -619,7 +619,7 @@ if(USE_CUDA)
    endif()
  
    target_link_libraries(caffe2_nvrtc PRIVATE caffe2::nvrtc ${DELAY_LOAD_FLAGS})
@@ -74,7 +83,7 @@ index e4a0454ec..e5628f907 100644
    if(USE_NCCL)
      list(APPEND Caffe2_GPU_SRCS
        ${TORCH_SRC_DIR}/csrc/cuda/nccl.cpp)
-@@ -645,7 +645,7 @@ if(USE_ROCM)
+@@ -699,7 +699,7 @@ if(USE_ROCM)
    target_link_libraries(caffe2_nvrtc hip::amdhip64 hiprtc::hiprtc)
    target_include_directories(caffe2_nvrtc PRIVATE ${CMAKE_BINARY_DIR})
    target_compile_definitions(caffe2_nvrtc PRIVATE USE_ROCM __HIP_PLATFORM_AMD__)
@@ -83,7 +92,7 @@ index e4a0454ec..e5628f907 100644
  endif()
  
  if(NOT NO_API AND NOT BUILD_LITE_INTERPRETER)
-@@ -1065,7 +1065,7 @@ elseif(USE_CUDA)
+@@ -1130,7 +1130,7 @@ elseif(USE_CUDA)
      target_compile_definitions(torch_cuda PUBLIC USE_NVSHMEM)
      target_compile_definitions(torch_nvshmem PUBLIC USE_NVSHMEM)
      target_link_libraries(torch_cuda PRIVATE torch_nvshmem)
@@ -92,16 +101,16 @@ index e4a0454ec..e5628f907 100644
    else()
      message(STATUS "NVSHMEM not found, not building with NVSHMEM support.")
    endif()
-@@ -1128,7 +1128,7 @@ elseif(USE_CUDA)
+@@ -1193,7 +1193,7 @@ elseif(USE_CUDA)
            CUDA::culibos ${CMAKE_DL_LIBS})
      endif()
-     set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/../aten/src/ATen/native/cuda/LinearAlgebraStubs.cpp PROPERTIES COMPILE_FLAGS "-DBUILD_LAZY_CUDA_LINALG")
+     set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/../aten/src/ATen/native/cuda/LinearAlgebraStubs.cpp PROPERTIES COMPILE_DEFINITIONS "BUILD_LAZY_CUDA_LINALG")
 -    install(TARGETS torch_cuda_linalg DESTINATION "${TORCH_INSTALL_LIB_DIR}")
 +    install(TARGETS torch_cuda_linalg)
    endif()
  
    if(USE_PRECOMPILED_HEADERS)
-@@ -1673,17 +1673,17 @@ endif()
+@@ -1801,17 +1801,17 @@ endif()
  
  caffe2_interface_library(torch torch_library)
  
@@ -124,7 +133,7 @@ index e4a0454ec..e5628f907 100644
  
  target_link_libraries(torch PUBLIC torch_cpu_library)
  
-@@ -1826,7 +1826,7 @@ if(BUILD_SHARED_LIBS)
+@@ -1959,7 +1959,7 @@ if(BUILD_SHARED_LIBS)
        target_link_libraries(torch_global_deps torch::nvtoolsext)
      endif()
    endif()
@@ -134,11 +143,11 @@ index e4a0454ec..e5628f907 100644
  
  # ---[ Caffe2 HIP sources.
 diff --git a/torch/CMakeLists.txt b/torch/CMakeLists.txt
-index 23aa88ddc..7756b7ce8 100644
+index 7242a53162..b0ad34ce47 100644
 --- a/torch/CMakeLists.txt
 +++ b/torch/CMakeLists.txt
-@@ -439,7 +439,7 @@ if(NOT TORCH_PYTHON_LINK_FLAGS STREQUAL "")
-     set_target_properties(torch_python PROPERTIES LINK_FLAGS "${TORCH_PYTHON_LINK_FLAGS}")
+@@ -453,7 +453,7 @@ if(TORCH_PYTHON_LINK_OPTIONS)
+     target_link_options(torch_python PRIVATE ${TORCH_PYTHON_LINK_OPTIONS})
  endif()
  
 -install(TARGETS torch_python DESTINATION "${TORCH_INSTALL_LIB_DIR}")
@@ -147,7 +156,7 @@ index 23aa88ddc..7756b7ce8 100644
  # Build the torch._C Python extension module from the thin stub that
  # forwards to torch_python.  This was historically built by setuptools;
 diff --git a/torch/lib/libshm_windows/CMakeLists.txt b/torch/lib/libshm_windows/CMakeLists.txt
-index df2a10649..5fa15e6be 100644
+index df2a106493..5fa15e6be3 100644
 --- a/torch/lib/libshm_windows/CMakeLists.txt
 +++ b/torch/lib/libshm_windows/CMakeLists.txt
 @@ -19,7 +19,7 @@ target_include_directories(shm PRIVATE
@@ -159,6 +168,3 @@ index df2a10649..5fa15e6be 100644
  install(FILES libshm.h DESTINATION "include")
  
  if(MSVC AND BUILD_SHARED_LIBS)
--- 
-2.42.0
-

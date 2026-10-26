@@ -5,5 +5,10 @@ extra_labels_for_os:
 
 task_timeout: 72000
 
+# TEMPORARY, remove before merge: triton 3.9.0 from triton-feedstock#19
+# (head 6ebb0d2) until it is released to pkgs/main.
+channels:
+  - https://package-build.internal.anaconda.com/pkg-orchestrator/v1/channels/graphs/c8d90b5b-274e-4714-ab55-cf8b56a60301
+
 # build_parameters:
 #  - "--no-test"

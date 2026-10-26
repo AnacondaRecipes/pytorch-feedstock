@@ -1,4 +1,4 @@
-{% set version = "2.14.1" %}
+{% set version = "2.15.0" %}
 # Set the RC number to build release candidates. Set to None otherwise.
 {% set rc = None %}
 {% set build = 0 %}
@@ -9,12 +9,14 @@
 # To resolve for a future release:
 #   gh api repos/pytorch/pytorch/git/refs/tags/v<version> --jq '.object.sha'
 # (de-reference annotated tags via .object.type == "tag" → /git/tags/<sha>.)
-{% set git_rev_sha = "5c4886908584029761b579af026dcfb627c84070" %}
+# PRE-RELEASE: v2.15.0 is not tagged yet; this is v2.15.0-rc8 (release/2.15 head).
+# Swap to the v2.15.0 tag commit before merge.
+{% set git_rev_sha = "4893744ac55687374648b56b653e2fa472757bea" %}
 {% set smoke_test_commit = git_rev_sha %}
 
 # see https://github.com/pytorch/pytorch/blame/v{{ version }}/.ci/docker/ci_commit_pins/triton.txt
-# 2.14 pins triton commit 675c5987 (10 commits before the v3.8.0 tag); we use released 3.8.0.
-{% set triton = "3.8.0" %}
+# 2.15 pins triton commit aad2a60d (release/3.9.x, pre-v3.9.0 tag).
+{% set triton = "3.9.0" %}
 
 # GPU variants get +200 so the solver prefers them where the platform supports
 # them; mkl gets +100 over openblas.
@@ -60,7 +62,7 @@ source:
   # busy graphs (observed on win-64 py3.11/py3.14 in graph 2dd074ea).
   - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.ci/pytorch/smoke_test/smoke_test.py
     folder: smoke_test
-    sha256: ee18c7cbbdabee3bdea339fe556ee1256a76bad5efcd4537c1a9d196bf69e26d
+    sha256: 707b1180e6d7b48cae745623f69d684db18a9b4b5b65c84731cfb04e63339009
   # check_wheel_tags.py is a sibling helper imported by smoke_test.py since the
   # 2.12 release (smoke_test.py:13 `from check_wheel_tags import …`). Without
   # this file the win-64 pytorch test command `python ./smoke_test/smoke_test.py
@@ -80,7 +82,8 @@ build:
   #   CPU:       skip: true  # [gpu_variant == "cuda"]
   #   cuda12.9:  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version != "12.9"]
   #   cuda13.x:  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version not in ("13.0", "13.4")]
-  skip: true  # [gpu_variant == "cuda"]
+  # Stage 1 (temporary): CPU PR narrowed to py3.13; drop `or py != 313` to widen.
+  skip: true  # [gpu_variant == "cuda" or py != 313]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
@@ -487,7 +490,8 @@ outputs:
         # other requirements
         - python
         - numpy >=1.24.0,<3.0.0
-        - typing_extensions >=4.10.0
+        # upstream tools/metadata/dependencies.py BASE_DEPENDENCIES
+        - typing_extensions >=4.13.0
         # To stop the compiler pulling in an openmp implementation itself (although I'm not sure this mutex works anyway)
         - _openmp_mutex                                       # [linux]
         - {{ pin_compatible('magma') }}                       # [(gpu_variant or "").startswith("cuda")]
