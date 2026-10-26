@@ -1,25 +1,17 @@
-# pytorch 2.13.0 unified CBC — shared byte-identical across all 3 split PRs:
-#   PKG-12886 cpu     (this PR)  — skip: gpu_variant == "cuda"
-#   PKG-12885 cuda129 (sibling)  — skip: gpu_variant != "cuda" or cuda_compiler_version != "12.9"
-#   PKG-12885/12884/12888 cuda130 (sibling) — skip: gpu_variant != "cuda" or cuda_compiler_version != "13.0"
-#
-# All 3 PRs have identical `recipe/` — meta.yaml differs only in the top-level
-# `build.skip` line, same convention 2.12 used (#97/#101/#102 differed only in
-# the py-bucket skip). Python is now widened to inherit the aggregate
-# [3.10..3.14] matrix (was locally pinned to [3.12] during fast iteration).
+# pytorch unified CBC — shared byte-identical across the 3 split PRs (CPU+metal,
+# CUDA 12.9, CUDA 13.x); meta.yaml differs only in the top-level `build.skip`
+# line, which picks each PR's variant subset. Python inherits the aggregate matrix.
 #
 # CBC layout notes:
 #   - gpu_variant is zipped with cuda_compiler_version on win/linux (so the CPU
 #     variant doesn't duplicate across CUDA versions) and zipped with MACOSX_SDK
 #     / CONDA_BUILD_SYSROOT on osx-arm64 (so CPU and Metal builds get separate
 #     SDKs). Build strings key off the literal cpu/metal/cuda values.
-#   - The two `cuda` entries in gpu_variant are intentional (NOT a typo). They
-#     pair row-wise with cuda_compiler_version [none, none, 12.9, 13.0] via the
-#     zip_keys block at the bottom:
-#       entry 3 (selector: win or linux-x86_64) pairs with cuda 12.9
-#       entry 4 (selector: win or linux)        pairs with cuda 13.0
-#     linux-aarch64 only matches entry 4, so it builds cuda 13.0 only (CUDA 12.x
-#     requires gcc <15 but aarch64 needs gcc 15.2.0).
+#   - The repeated `cuda` entries in gpu_variant are intentional (NOT a typo).
+#     They pair row-wise with cuda_compiler_version via the zip_keys block at
+#     the bottom; each row's selector picks the platforms that build that CUDA
+#     version (linux-aarch64 builds 13.x only: CUDA 12.x requires gcc <15 but
+#     aarch64 needs gcc 15.2.0).
 
 gpu_variant:
   - cpu                              # all platforms
