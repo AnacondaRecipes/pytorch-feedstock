@@ -1,7 +1,7 @@
 {% set version = "2.14.1" %}
 # Set the RC number to build release candidates. Set to None otherwise.
 {% set rc = None %}
-{% set build = 0 %}
+{% set build = 50 %}  # SDK PROBE: build number not on pkgs/main, so --skip-existing does not skip the build
 
 # Single source of truth: the commit SHA the v{{ version }} tag points at.
 # Drives BOTH the source git_rev AND the smoke_test fetches below — one SHA
