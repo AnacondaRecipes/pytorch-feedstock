@@ -146,6 +146,55 @@ else
     CMAKE_ARGS="${CMAKE_ARGS//-DCMAKE_OSX_DEPLOYMENT_TARGET=12.1/-DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET}}"
     export CMAKE_ARGS
 fi
+
+# SDK PROBE (DO NOT MERGE): which macOS SDKs does the worker have, and which of
+# them compile the macOS-15 APIs that PyTorch 2.15 uses without the old shim?
+if [[ "$target_platform" == osx-* ]]; then
+    set +e
+    echo "=== SDK-PROBE: worker"
+    sw_vers
+    xcode-select -p
+    pkgutil --pkg-info=com.apple.pkg.CLTools_Executables
+    ls -d /Applications/Xcode*.app
+    echo "=== SDK-PROBE: SDK directories"
+    ls -la /Library/Developer/CommandLineTools/SDKs
+    ls -la /Applications/Xcode*.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs
+    find / -maxdepth 4 -name 'MacOSX*.sdk' -not -path '/System/*' -not -path '/Volumes/*' 2>/dev/null
+    xcrun --sdk macosx --show-sdk-version
+    xcrun --sdk macosx --show-sdk-path
+    xcrun -f metal
+    echo "MACOSX_SDK_VERSION=$MACOSX_SDK_VERSION MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET SDKROOT=$SDKROOT"
+    cat > "$SRC_DIR/sdk_probe.mm" <<'EOF'
+#include <MetalPerformanceShadersGraph/MetalPerformanceShadersGraph.h>
+void sdk_probe(id<MTLCommandBuffer> cb, MPSNDArray* a, MPSNDArrayDescriptor* d, MTLCompileOptions* o, MPSShape* s) {
+  MPSNDArrayIdentity* k = nil;
+  [k reshapeWithCommandBuffer:cb sourceArray:a shape:s destinationArray:nil];
+  d.preferPackedRows = YES;
+  [a arrayViewWithShape:s strides:s];
+  (void)[[MPSNDArray alloc] initWithBuffer:nil offset:0 descriptor:d];
+  o.mathMode = MTLMathModeFast;
+  o.mathFloatingPointFunctions = MTLMathFloatingPointFunctionsPrecise;
+  o.languageVersion = MTLLanguageVersion3_2;
+}
+EOF
+    for sdk in /Library/Developer/CommandLineTools/SDKs/MacOSX*.sdk \
+               /Applications/Xcode*.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX*.sdk; do
+        [[ -d "$sdk" && ! -L "$sdk" ]] || continue
+        ver=$(plutil -extract Version raw "$sdk/SDKSettings.plist")
+        for cxx in "$CXX" /usr/bin/clang++; do
+            if "$cxx" -fsyntax-only -fobjc-arc -x objective-c++ -isysroot "$sdk" \
+                   -mmacosx-version-min=14.0 "$SRC_DIR/sdk_probe.mm" > "$SRC_DIR/sdk_probe.log" 2>&1; then
+                result=PASS
+            else
+                result=FAIL
+            fi
+            echo "=== SDK-PROBE: $sdk (Version $ver) with $cxx: $result"
+            head -20 "$SRC_DIR/sdk_probe.log"
+        done
+    done
+    echo "=== SDK-PROBE: done, stopping the build on purpose"
+    exit 1
+fi
 #export TH_BINARY_BUILD=1
 # Use our build version and number for inserting into binaries
 export PYTORCH_BUILD_VERSION=$PKG_VERSION

@@ -80,7 +80,10 @@ build:
   #   CPU:       skip: true  # [gpu_variant == "cuda"]
   #   cuda12.9:  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version != "12.9"]
   #   cuda13.x:  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version not in ("13.0", "13.4")]
-  skip: true  # [gpu_variant == "cuda"]
+  # SDK PROBE (DO NOT MERGE): build ONLY osx-arm64 metal py3.14. build.sh reports
+  # the worker's macOS SDKs and compiles the macOS-15 APIs PyTorch 2.15 uses
+  # unguarded (pytorch #199261), then stops the build on purpose.
+  skip: true  # [not (osx and arm64 and gpu_variant == "metal") or py != 314]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
