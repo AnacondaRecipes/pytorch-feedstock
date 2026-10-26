@@ -1,4 +1,4 @@
-{% set version = "2.14.1" %}
+{% set version = "2.15.0" %}
 # Set the RC number to build release candidates. Set to None otherwise.
 {% set rc = None %}
 {% set build = 0 %}
@@ -9,12 +9,14 @@
 # To resolve for a future release:
 #   gh api repos/pytorch/pytorch/git/refs/tags/v<version> --jq '.object.sha'
 # (de-reference annotated tags via .object.type == "tag" → /git/tags/<sha>.)
-{% set git_rev_sha = "5c4886908584029761b579af026dcfb627c84070" %}
+# PRE-RELEASE: v2.15.0 is not tagged yet; this is v2.15.0-rc8 (release/2.15 head).
+# Swap to the v2.15.0 tag commit before merge.
+{% set git_rev_sha = "4893744ac55687374648b56b653e2fa472757bea" %}
 {% set smoke_test_commit = git_rev_sha %}
 
 # see https://github.com/pytorch/pytorch/blame/v{{ version }}/.ci/docker/ci_commit_pins/triton.txt
-# 2.14 pins triton commit 675c5987 (10 commits before the v3.8.0 tag); we use released 3.8.0.
-{% set triton = "3.8.0" %}
+# 2.15 pins triton commit aad2a60d (release/3.9.x, pre-v3.9.0 tag).
+{% set triton = "3.9.0" %}
 
 # GPU variants get +200 so the solver prefers them where the platform supports
 # them; mkl gets +100 over openblas.
@@ -55,12 +57,15 @@ source:
       # Opt-in ninja pool for torch_python (safety margin for the generated
       # binding TUs) so the rest of the build runs at full parallelism.
       - patches/0026-win-arm64-torch_python-job-pool.patch                         # [win and arm64]
+      # 2.15's #200290 dropped the macOS-14 device probe but never added its macOS 15 gate,
+      # so MPS reported available on macOS 13/14 and hit unguarded macOS 15 APIs.
+      - patches/0027-mps-require-macOS-15-before-creating-the-MPS-device.patch   # [gpu_variant == "metal"]
   # sha256 required — without it conda-build bypasses the pbp src_cache and
   # re-downloads every run, which hits GitHub raw's HTTP 429 rate limit on
   # busy graphs (observed on win-64 py3.11/py3.14 in graph 2dd074ea).
   - url: https://raw.githubusercontent.com/pytorch/pytorch/{{ smoke_test_commit }}/.ci/pytorch/smoke_test/smoke_test.py
     folder: smoke_test
-    sha256: ee18c7cbbdabee3bdea339fe556ee1256a76bad5efcd4537c1a9d196bf69e26d
+    sha256: 707b1180e6d7b48cae745623f69d684db18a9b4b5b65c84731cfb04e63339009
   # check_wheel_tags.py is a sibling helper imported by smoke_test.py since the
   # 2.12 release (smoke_test.py:13 `from check_wheel_tags import …`). Without
   # this file the win-64 pytorch test command `python ./smoke_test/smoke_test.py
@@ -80,7 +85,8 @@ build:
   #   CPU:       skip: true  # [gpu_variant == "cuda"]
   #   cuda12.9:  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version != "12.9"]
   #   cuda13.x:  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version not in ("13.0", "13.4")]
-  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version != "12.9"]
+  # Stage 1 (temporary): CPU PR narrowed to py3.13; drop `or py != 313` to widen.
+  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version != "12.9" or py != 313]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
@@ -236,9 +242,9 @@ requirements:
     - typing_extensions >=4.15.0
     # upstream pyproject [build-system] requires: packaging>=24.2
     - packaging >=24.2
-    # upstream pytorch 2.13 vendors pybind11 3.0.4 (third_party submodule).
-    # ABI-compatible up to 3.0.x; cap at 4.0 for future safety. pybind11-abi
-    # explicitly included to pin the ABI version (PKG-13552; mamba-feedstock pattern).
+    # upstream vendors pybind11 3.1.0 (third_party submodule); we build against
+    # the system pybind11, which pybind11-abi ==11 resolves to 3.0.4. Cap at 4.0
+    # for future safety. pybind11-abi pins the ABI (PKG-13552; mamba pattern).
     - pybind11 >=3.0.4,<4
     - pybind11-abi ==11     # strict — survives partial rebuilds
     - eigen {{ eigen }}
@@ -467,8 +473,7 @@ outputs:
         # upstream pyproject [build-system] requires: packaging>=24.2
         - packaging >=24.2
         - {{ pin_subpackage('libtorch', exact=True) }}
-        # upstream pytorch 2.13 vendors pybind11 3.0.4; ABI-compatible up to 3.0.x.
-        # pybind11-abi explicit (PKG-13552, mamba pattern).
+        # system pybind11 (pybind11-abi ==11 → 3.0.4); see the libtorch host above.
         - pybind11 >=3.0.4,<4
         - pybind11-abi ==11     # strict — survives partial rebuilds
         - eigen {{ eigen }}
@@ -487,7 +492,8 @@ outputs:
         # other requirements
         - python
         - numpy >=1.24.0,<3.0.0
-        - typing_extensions >=4.10.0
+        # upstream tools/metadata/dependencies.py BASE_DEPENDENCIES
+        - typing_extensions >=4.13.0
         # To stop the compiler pulling in an openmp implementation itself (although I'm not sure this mutex works anyway)
         - _openmp_mutex                                       # [linux]
         - {{ pin_compatible('magma') }}                       # [(gpu_variant or "").startswith("cuda")]
@@ -746,11 +752,74 @@ outputs:
 about:
   home: https://pytorch.org/
   dev_url: https://github.com/pytorch/pytorch
-  license: BSD-3-Clause
-  license_family: BSD
+  # Upstream's installed-package SPDX expression and explicit license-files list
+  # (pyproject.toml [project] license / license-files): the main project is
+  # BSD-3-Clause; the rest covers the bundled third_party code.
+  license: Apache-2.0 AND Apache-2.0 WITH LLVM-exception AND BSD-2-Clause AND BSD-3-Clause AND BSL-1.0 AND ISC AND MIT AND Zlib
+  license_family: Other
   license_file:
     - LICENSE
     - NOTICE
+    - third_party/FP16/LICENSE
+    - third_party/FXdiv/LICENSE
+    - third_party/NNPACK/LICENSE
+    - third_party/NVTX/LICENSE.txt
+    - third_party/VulkanMemoryAllocator/LICENSE.txt
+    - third_party/XNNPACK/LICENSE
+    - third_party/aiter/3rdparty/composable_kernel/LICENSE
+    - third_party/aiter/LICENSE
+    - third_party/composable_kernel/LICENSE
+    - third_party/concurrentqueue/moodycamel/LICENSE.md
+    - third_party/cpp-httplib/LICENSE
+    - third_party/cpuinfo/LICENSE
+    - third_party/cpuinfo/deps/clog/LICENSE
+    - third_party/cudnn_frontend/LICENSE-MIT.txt
+    - third_party/cudnn_frontend/LICENSE.txt
+    - third_party/cudnn_frontend/python/cudnn/moe_ep/_megamoe_backend/cutedsl_src/LICENSE.Apache-2.0
+    - third_party/cutlass/LICENSE.txt
+    - third_party/fbgemm/LICENSE
+    - third_party/fbgemm/external/asmjit/LICENSE.md
+    - third_party/fbgemm/external/composable_kernel/LICENSE
+    - third_party/fbgemm/external/cpuinfo/LICENSE
+    - third_party/fbgemm/external/cpuinfo/deps/clog/LICENSE
+    - third_party/fbgemm/external/cutlass/LICENSE.txt
+    - third_party/flash-attention/LICENSE
+    - third_party/flash-attention/csrc/composable_kernel/LICENSE
+    - third_party/flash-attention/csrc/cutlass/LICENSE.txt
+    - third_party/flash-attention/flash_attn/cute/LICENSE
+    - third_party/flash-attention/third_party/aiter/3rdparty/composable_kernel/LICENSE
+    - third_party/flash-attention/third_party/aiter/LICENSE
+    - third_party/flatbuffers/LICENSE
+    - third_party/fmt/LICENSE
+    - third_party/gemmlowp/gemmlowp/LICENSE
+    - third_party/gloo/LICENSE
+    - third_party/gloo/gloo/transport/uv/LICENSE.uvw
+    - third_party/ideep/LICENSE
+    - third_party/ideep/mkl-dnn/LICENSE
+    - third_party/ideep/mkl-dnn/third_party/ittnotify/LICENSE.BSD
+    - third_party/ideep/mkl-dnn/third_party/opencl/LICENSE
+    - third_party/kineto/LICENSE
+    - third_party/kineto/libkineto/third_party/dynolog_headers/LICENSE
+    - third_party/llvm-openmp/LICENSE.txt
+    - third_party/mimalloc/LICENSE
+    - third_party/miniz-3.0.2/LICENSE
+    - third_party/mslk/LICENSE
+    - third_party/mslk/external/composable_kernel/LICENSE
+    - third_party/mslk/external/cutlass/LICENSE.txt
+    - third_party/mslk/mslk/attention/flash_attn/LICENSE
+    - third_party/nlohmann/LICENSE.MIT
+    - third_party/onnx/LICENSE
+    - third_party/perfetto/LICENSE
+    - third_party/protobuf/LICENSE
+    - third_party/psimd/LICENSE
+    - third_party/pthreadpool/LICENSE
+    - third_party/pybind11/LICENSE
+    - third_party/pocketfft/LICENSE.md
+    - third_party/sleef/LICENSE.txt
+    - third_party/tensorpipe/LICENSE.txt
+    - third_party/tensorpipe/third_party/libnop/LICENSE
+    - third_party/tensorpipe/third_party/libuv/LICENSE
+    - third_party/tensorpipe/third_party/libuv/LICENSE-extra
   summary: PyTorch is an optimized tensor library for deep learning using GPUs and CPUs.
   description: |
     PyTorch is a Python package that provides two high-level features:
