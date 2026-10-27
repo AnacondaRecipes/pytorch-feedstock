@@ -594,6 +594,13 @@ outputs:
         - python -c "import torch; print('cuDNN enabled:', torch.backends.cudnn.enabled); assert torch.backends.cudnn.enabled"                    # [(gpu_variant or "").startswith("cuda")]
         # MAGMA is a build-time flag (at::hasMAGMA); CMake silently drops it if discovery fails (PKG-18413).
         - python -c "import torch; print('MAGMA built:', torch.cuda.has_magma); assert torch.cuda.has_magma"                    # [(gpu_variant or "").startswith("cuda")]
+        # Log device eligibility separately from kernel execution.
+        - python -c "import torch; print('CUDA build', torch.version.cuda, 'compiled arches', torch.cuda.get_arch_list()); print([(torch.cuda.get_device_name(i), torch.cuda.get_device_capability(i)) for i in range(torch.cuda.device_count())]); print('native BF16', torch.cuda.is_bf16_supported(including_emulation=False))"  # [gpu_variant == "cuda"]
+        # rc8 SegmentReduce.cu:23 compiles out every CUDA stub on Windows CUDA 12.9
+        # (pytorch#156181); its failing core tests stay selected. aarch64 PBP GPUs are
+        # below the compiled arch floor (see the core commands in pytorch-tests).
+        - python -c "import torch; x=torch.tensor([1.,2.,3.], device='cuda', requires_grad=True); y=torch.segment_reduce(x, 'sum', lengths=torch.tensor([2,1], device='cuda')); torch.testing.assert_close(y, torch.tensor([3.,3.], device='cuda')); y.sum().backward(); torch.testing.assert_close(x.grad, torch.ones_like(x))"  # [gpu_variant == "cuda" and x86_64 and (linux or (win and cuda_compiler_version != "12.9"))]
+        - python -c "import torch; x=torch.tensor([1.,2.,3.], device='cuda', requires_grad=True); y=torch.segment_reduce(x, 'sum', offsets=torch.tensor([0,2,3], device='cuda')); torch.testing.assert_close(y, torch.tensor([3.,3.], device='cuda')); y.sum().backward(); torch.testing.assert_close(x.grad, torch.ones_like(x))"  # [gpu_variant == "cuda" and x86_64 and (linux or (win and cuda_compiler_version != "12.9"))]
         - python -c "import torch; assert torch.backends.mps.is_built()"           # [(gpu_variant == "metal")]
         - python -c "import torch; torch.tensor(1).to('cpu').numpy(); print('numpy support enabled!!!')"
         - test -f $PREFIX/lib/libtorch_python${SHLIB_EXT}     # [unix]
@@ -633,9 +640,12 @@ outputs:
         # scipy needed by test_ops.py::test_numpy_ref_* on all platforms.
         # scipy 1.17 dropped py3.10, so skip on py3.10 - paired with the
         # `not test_numpy_ref` filter below.
-        - scipy           # [py != 310]
+        # Temporary: restore Windows py3.15 scipy coverage when scipy py3.15 Windows builds land.
+        - scipy           # [py != 310 and not (win and py >= 315)]
         - tabulate
-        - pydot
+        # Temporary: restore py3.15 graph-drawing coverage after pyparsing (pyparsing-feedstock#17)
+        # and pydot py3.15 builds land; pydot is optional upstream (torch/fx/passes/graph_drawer.py HAS_PYDOT).
+        - pydot           # [py<315]
         - mock  # [linux]
         - pip
         - expecttest
@@ -671,14 +681,20 @@ outputs:
         # See files needed: https://github.com/pytorch/pytorch/blob/main/test/test_ops.py#350-L351
         - aten/src/ATen/native
       commands:
+        # Fail explicitly on a missing hard test dependency (pydot and scipy are optional upstream).
+        - python -c "import sys, sympy, pybind11; from torch.utils.cpp_extension import verify_ninja_availability; print(sys.version); verify_ninja_availability()"
+        - set PYTHONFAULTHANDLER=1  # [win]
         # Required (not masked): CUDA C++ compilation against the conda CUDA headers
         # (patches 0009/0014 + build.sh @CUDA_TARGET@ substitution).
         - python -c "import torch.utils.cpp_extension as e; p = e.include_paths('cuda'); print(p); assert any('targets' in x for x in p), p"   # [linux and (gpu_variant or "").startswith("cuda")]
         - python -c "from torch.utils.cpp_extension import load_inline; m = load_inline(name='cuda_hdr_smoke', cpp_sources=chr(35) + 'include <cuda_runtime_api.h>\nint ndev() { int n = 0; cudaGetDeviceCount(&n); return n; }', functions=['ndev'], with_cuda=True, verbose=True); print('cuda devices:', m.ndev())"   # [linux and (gpu_variant or "").startswith("cuda")]
         - python test/run_test.py -i inductor/test_torchinductor.py -k "test_cpu_scalar_with_gpu_tensor_cpp or test_alignment_copy_not_emitted_for_cpp_wrapper"   # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
         # Core suites: test_torch + test_autograd are required on every variant (linux-aarch64
-        # CUDA runs their CPU paths, see below); the rest of --core is informational (`|| true` / `|| exit 0`) because it
-        # carries known upstream / CI-worker failures. Exclusions:
+        # CUDA runs their CPU paths, see below); the rest of --core is informational (`|| true` / `|| exit 0`). Its known
+        # failures, none deselected and none resolved: Windows CUDA 12.9 segment_reduce (compiled out upstream, see the
+        # pytorch probes); Windows native exit 0xC0000409 after test_nn passes (cause unknown); aarch64 oneDNN fp16 /
+        # complex32 / conv-dtype failures (lead: USE_MKLDNN_ACL OFF + bundled oneDNN, patch 0022); interpolate-linear
+        # nondeterminism; T4 (sm_75) has no native BF16. Exclusions:
         # - complex linalg dot cases are flaky: https://github.com/pytorch/pytorch/issues/150918
         # - test_ctc_loss_cudnn_tensor*: cuDNN's CTC kernel raises a device-side assert
         #   ("CTC target label out of range"), which poisons the CUDA context for the rest of test_nn.
@@ -701,12 +717,14 @@ outputs:
         - CUDA_VISIBLE_DEVICES="" python ./test/run_test.py {{ core_required }} --continue-through-error -k "{{ run_test_core_k_aarch64_cuda }}"   # [linux and aarch64 and (gpu_variant or "").startswith("cuda")]
         - CUDA_VISIBLE_DEVICES="" python ./test/run_test.py {{ core_rest }} --continue-through-error -k "{{ run_test_core_k_aarch64_cuda }}" || true   # [linux and aarch64 and (gpu_variant or "").startswith("cuda")]
         - python ./test/run_test.py {{ core_required }} --continue-through-error -k "{{ run_test_core_k_win }}"   # [win]
+        # Must remain the last Windows test command: `|| exit 0` ends the test script.
         - python ./test/run_test.py {{ core_rest }} --continue-through-error -k "{{ run_test_core_k_win }}" || exit 0   # [win]
         # The inductor tests test the torch.compile backend. Using the options below avoids running distributed tests,
         # which would be run if we used the --inductor option. (Distributed tests would only be correctly run on a multi-gpu test platform,
         # which we don't have.)
-        # These following tests have been disbaled due to GPU architecture needing to be very new on CI. And the others are disbled due to https://github.com/conda-forge/pytorch-cpu-feedstock/issues/380
-        # this also aligns with their meta.yaml testing strategy
+        # The CI GPU is a T4 (sm_75) with no native BF16 (rc8 torch/_inductor/compile_fx.py:3626, torch/cuda/__init__.py:257),
+        # so BF16 cases fail here; they stay visible (informational). Some skips below follow
+        # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/380, aligned with conda-forge's testing strategy.
         {% set inductor_skips = "test_isinf_cuda" %}
         {% set inductor_skips = inductor_skips ~ " or test_donated_buffer_inplace_gpt" %}
         {% set inductor_skips = inductor_skips ~ " or test_sdpa_inference_mode_aot_compile" %}
@@ -715,10 +733,11 @@ outputs:
         # needs the Kineto profiler ("Legacy CUDA profiling requires use_cpu=True"); build.sh sets USE_KINETO=OFF
         {% set inductor_skips = inductor_skips ~ " or test_copy_non_blocking_is_pinned" %}
         - python test/run_test.py -i inductor/test_torchinductor.py --continue-through-error -k "not ({{ inductor_skips }})" || true   # [(gpu_variant or "").startswith("cuda") and (linux and x86_64)]
-        # The PBP osx-arm64 worker has no MPS device (torch.backends.mps.is_available() is False, so
-        # test_mps.py fails at import); this stays informational until an MPS-capable worker exists.
-        - python -c "import torch; print('MPS is_available:', torch.backends.mps.is_available())"   # [(gpu_variant == "metal")]
-        - python ./test/run_test.py --mps --continue-through-error || true                                           # [(gpu_variant == "metal")]
+        # macOS <15 (the PBP Ventura worker): patch 0027 disables MPS, so test_mps.py collects no tests; --mps still
+        # runs host/CPU tests (AOTInductor CPU, dynamic shapes CPU), informational there.
+        # macOS >=15: MPS must be available and the suite must pass.
+        - python -c "import platform, torch; os_version=platform.mac_ver()[0]; supported=int(os_version.split('.')[0]) >= 15; built=torch.backends.mps.is_built(); available=torch.backends.mps.is_available(); print('macOS', os_version, 'MPS built', built, 'MPS available', available, flush=True); assert built; assert available == supported; print('MPS GPU execution REQUIRED' if supported else 'MPS GPU execution UNAVAILABLE (macOS <15); retaining host and CPU tests', flush=True)"  # [gpu_variant == "metal"]
+        - python -c "import platform, subprocess, sys; supported=int(platform.mac_ver()[0].split('.')[0]) >= 15; rc=subprocess.call([sys.executable, './test/run_test.py', '--mps', '--continue-through-error']); print('MPS-selected suite exit_code='+str(rc), flush=True); sys.exit(rc if supported else 0)"  # [gpu_variant == "metal"]
 
   # Static-name wrappers, one per (gpu_variant, openblas) pair. A single dynamic-name
   # output produced duplicate PBP test tasks (no blas_impl in its hash) and, with a
