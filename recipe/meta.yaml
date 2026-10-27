@@ -9,9 +9,9 @@
 # To resolve for a future release:
 #   gh api repos/pytorch/pytorch/git/refs/tags/v<version> --jq '.object.sha'
 # (de-reference annotated tags via .object.type == "tag" → /git/tags/<sha>.)
-# PRE-RELEASE: v2.15.0 is not tagged yet; this is v2.15.0-rc8 (release/2.15 head).
+# PRE-RELEASE: v2.15.0 is not tagged yet; this is v2.15.0-rc10 (release/2.15 head).
 # Swap to the v2.15.0 tag commit before merge.
-{% set git_rev_sha = "4893744ac55687374648b56b653e2fa472757bea" %}
+{% set git_rev_sha = "d0f2af8b66b20da4baa50644c0cd3f887a2eae2e" %}
 {% set smoke_test_commit = git_rev_sha %}
 
 # see https://github.com/pytorch/pytorch/blame/v{{ version }}/.ci/docker/ci_commit_pins/triton.txt
@@ -596,7 +596,7 @@ outputs:
         - python -c "import torch; print('MAGMA built:', torch.cuda.has_magma); assert torch.cuda.has_magma"                    # [(gpu_variant or "").startswith("cuda")]
         # Log device eligibility separately from kernel execution.
         - python -c "import torch; print('CUDA build', torch.version.cuda, 'compiled arches', torch.cuda.get_arch_list()); print([(torch.cuda.get_device_name(i), torch.cuda.get_device_capability(i)) for i in range(torch.cuda.device_count())]); print('native BF16', torch.cuda.is_bf16_supported(including_emulation=False))"  # [gpu_variant == "cuda"]
-        # rc8 SegmentReduce.cu:23 compiles out every CUDA stub on Windows CUDA 12.9
+        # rc10 SegmentReduce.cu:23 compiles out every CUDA stub on Windows CUDA 12.9
         # (pytorch#156181); its failing core tests stay selected. aarch64 PBP GPUs are
         # below the compiled arch floor (see the core commands in pytorch-tests).
         - python -c "import torch; x=torch.tensor([1.,2.,3.], device='cuda', requires_grad=True); y=torch.segment_reduce(x, 'sum', lengths=torch.tensor([2,1], device='cuda')); torch.testing.assert_close(y, torch.tensor([3.,3.], device='cuda')); y.sum().backward(); torch.testing.assert_close(x.grad, torch.ones_like(x))"  # [gpu_variant == "cuda" and x86_64 and (linux or (win and cuda_compiler_version != "12.9"))]
@@ -722,7 +722,7 @@ outputs:
         # The inductor tests test the torch.compile backend. Using the options below avoids running distributed tests,
         # which would be run if we used the --inductor option. (Distributed tests would only be correctly run on a multi-gpu test platform,
         # which we don't have.)
-        # The CI GPU is a T4 (sm_75) with no native BF16 (rc8 torch/_inductor/compile_fx.py:3626, torch/cuda/__init__.py:257),
+        # The CI GPU is a T4 (sm_75) with no native BF16 (rc10 torch/_inductor/compile_fx.py:3626, torch/cuda/__init__.py:257),
         # so BF16 cases fail here; they stay visible (informational). Some skips below follow
         # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/380, aligned with conda-forge's testing strategy.
         {% set inductor_skips = "test_isinf_cuda" %}
