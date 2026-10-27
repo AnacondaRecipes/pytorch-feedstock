@@ -82,11 +82,11 @@ build:
   number: {{ build }}
   # Split PRs (CPU+metal / cuda12.9 / cuda13.x) share this recipe and differ only
   # in this skip line (win-arm64 CUDA 13.4 is built off-CI):
-  #   CPU:       skip: true  # [gpu_variant == "cuda"]
-  #   cuda12.9:  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version != "12.9"]
-  #   cuda13.x:  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version not in ("13.0", "13.4")]
-  # Stage 1 (temporary): CPU PR narrowed to py3.13; drop `or py != 313` to widen.
-  skip: true  # [gpu_variant == "cuda" or py != 313]
+  #   CPU:       skip: true  # [gpu_variant == "cuda" or py<311]
+  #   cuda12.9:  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version != "12.9" or py<311]
+  #   cuda13.x:  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version not in ("13.0", "13.4") or py<311]
+  # py3.10 dropped: triton 3.9 requires python >=3.11, and upstream ships no py3.10 2.15 wheels.
+  skip: true  # [gpu_variant == "cuda" or py<311]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
