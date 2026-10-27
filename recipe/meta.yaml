@@ -86,7 +86,8 @@ build:
   #   cuda12.9:  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version != "12.9" or py<311]
   #   cuda13.x:  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version not in ("13.0", "13.4") or py<311]
   # py3.10 dropped: triton 3.9 requires python >=3.11, and upstream ships no py3.10 2.15 wheels.
-  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version != "12.9" or py<311]
+  # Temporary: CI builds only the bounds py3.11 and py3.15; drop `or py in (312, 313, 314)` before merge.
+  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version != "12.9" or py<311 or py in (312, 313, 314)]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
