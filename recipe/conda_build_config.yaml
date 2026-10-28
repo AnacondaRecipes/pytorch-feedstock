@@ -23,10 +23,12 @@ gpu_variant:
   - cuda                             # [(win and x86_64) or linux]
   - cuda                             # [win and arm64]
 
-# Upstream PyTorch v2.13.0 supports CUDA 12.6/12.8/12.9/13.0/13.2 in
-# .ci/manywheel/build.sh; pkgs/main currently ships cuda-nvcc 12.9 and 13.0
-# (no 13.2 yet). aarch64 only supports CUDA 13.x (CUDA 12.x requires gcc <15,
-# but aarch64 needs gcc 15.2.0). "none" pairs with gpu_variant=cpu/metal under
+# Upstream PyTorch 2.15 releases CUDA 13.0/13.2/13.4 wheels (CUDA_ARCHES in
+# .github/scripts/generate_binary_build_matrix.py; 12.x left the release matrix).
+# This recipe builds 12.9 and 13.0 on x86_64, 13.0 on linux-aarch64 and 13.4 on
+# win-arm64. pkgs/main also has cuda-nvcc 13.1-13.4 for x86_64; moving to one of
+# them is a separate change. aarch64 only supports CUDA 13.x (CUDA 12.x requires
+# gcc <15, but aarch64 needs gcc 15.2.0). "none" pairs with gpu_variant=cpu/metal under
 # zip_keys; the recipe ignores cuda_compiler_version for non-CUDA variants but
 # the key must align lengthwise.
 cuda_compiler_version:
