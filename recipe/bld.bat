@@ -203,6 +203,10 @@ if "%PKG_NAME%" == "pytorch" (
 %PYTHON% -m pip %PIP_ACTION% . --no-build-isolation --no-deps %PIP_VERBOSITY% --no-clean
 if %ERRORLEVEL% neq 0 exit 1
 
+@REM %SP_DIR% still renders Lib\site-packages, but Python 3.15 on Windows installs to
+@REM lib\python\site-packages (the nt_conda scheme), so ask the host Python.
+for /f "usebackq delims=" %%i in (`%PYTHON% -c "import sysconfig; print(sysconfig.get_path('platlib'))"`) do set "SP_DIR=%%i"
+
 @REM ========================= PACKAGE SPLIT ====================================
 if "%PKG_NAME%" == "libtorch" (
     if not exist "%SRC_DIR%\dist" mkdir %SRC_DIR%\dist
@@ -234,6 +238,7 @@ if "%PKG_NAME%" == "libtorch" (
     popd
     popd
 ) else if "%PKG_NAME%" == "pytorch" (
+    if not exist "%SP_DIR%\torch\bin\torch_python.dll" exit 1
     @REM Move libtorch_python into LIBRARY and clean vendored copies
     robocopy /NP /NFL /NDL /NJH /E %SP_DIR%\torch\bin\ %LIBRARY_BIN%\ torch_python.dll
     robocopy /NP /NFL /NDL /NJH /E %SP_DIR%\torch\lib\ %LIBRARY_LIB%\ torch_python.lib
