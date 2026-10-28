@@ -8,12 +8,5 @@ task_timeout: 72000
 build_env_vars:
   ANACONDA_ROCKET_ENABLE_PY315 : yes
 
-# TEMPORARY, remove before merge: triton 3.9.0 from triton-feedstock#19
-# (v3.9.0 tag, head e8f0748, py3.11-3.15) and pybind11 3.0.4 build 1 (win-64 py3.15) from the
-# pybind11-feedstock#29 merge graph, until both are released to pkgs/main.
-channels:
-  - https://package-build.internal.anaconda.com/pkg-orchestrator/v1/channels/graphs/575a5ee3-6b1f-4a96-91cc-31bb9e8a942d
-  - https://package-build.internal.anaconda.com/pkg-orchestrator/v1/channels/graphs/c13b9006-d328-48ca-b9f4-906fcf2475d2
-
 # build_parameters:
 #  - "--no-test"
