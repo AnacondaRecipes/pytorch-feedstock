@@ -235,9 +235,9 @@ requirements:
     #   osx            → llvm_openmp (AR osx llvm-openmp)
     #   win or *+mkl   → no_openmp   (sleef uses parent runtime: intel-openmp
     #                                 on mkl, vcomp on win+openblas)
-    - sleef {{ sleef }} *libgomp*       # [linux and blas_impl != "mkl"]
-    - sleef {{ sleef }} *llvm_openmp*   # [osx]
-    - sleef {{ sleef }} *no_openmp*     # [win or blas_impl == "mkl"]
+    - sleef {{ sleef }}.* *libgomp*       # [linux and blas_impl != "mkl"]
+    - sleef {{ sleef }}.* *llvm_openmp*   # [osx]
+    - sleef {{ sleef }}.* *no_openmp*     # [win or blas_impl == "mkl"]
     - libuv {{ libuv }}
     - pkg-config  # [unix]
     # upstream requirements-build.txt: typing-extensions>=4.15.0
@@ -465,9 +465,9 @@ outputs:
         - libabseil {{ libabseil }}
         - libprotobuf {{ libprotobuf }}
         # sleef: see libtorch host above for the variant-matching rationale.
-        - sleef {{ sleef }} *libgomp*       # [linux and blas_impl != "mkl"]
-        - sleef {{ sleef }} *llvm_openmp*   # [osx]
-        - sleef {{ sleef }} *no_openmp*     # [win or blas_impl == "mkl"]
+        - sleef {{ sleef }}.* *libgomp*       # [linux and blas_impl != "mkl"]
+        - sleef {{ sleef }}.* *llvm_openmp*   # [osx]
+        - sleef {{ sleef }}.* *no_openmp*     # [win or blas_impl == "mkl"]
         - libuv {{ libuv }}
         - pkg-config  # [unix]
         # upstream requirements-build.txt: typing-extensions>=4.15.0
