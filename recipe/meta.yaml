@@ -9,9 +9,8 @@
 # To resolve for a future release:
 #   gh api repos/pytorch/pytorch/git/refs/tags/v<version> --jq '.object.sha'
 # (de-reference annotated tags via .object.type == "tag" → /git/tags/<sha>.)
-# PRE-RELEASE: v2.15.0 is not tagged yet; this is v2.15.0-rc10 (release/2.15 head).
-# Swap to the v2.15.0 tag commit before merge.
-{% set git_rev_sha = "d0f2af8b66b20da4baa50644c0cd3f887a2eae2e" %}
+# v2.15.0 = rc10 d0f2af8b + #202303, which only adds a ruff target-version to pyproject.toml.
+{% set git_rev_sha = "31a77fc9c0a7c6fff15a1ff58c743f53b1a9d457" %}
 {% set smoke_test_commit = git_rev_sha %}
 
 # see https://github.com/pytorch/pytorch/blame/v{{ version }}/.ci/docker/ci_commit_pins/triton.txt
@@ -89,8 +88,7 @@ build:
   #   cuda12.9:  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version != "12.9" or py<311]
   #   cuda13.x:  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version not in ("13.0", "13.4") or py<311]
   # py3.10 dropped: triton 3.9 requires python >=3.11, and upstream ships no py3.10 2.15 wheels.
-  # Temporary: CI builds only the bounds py3.11 and py3.15; drop `or py in (312, 313, 314)` before merge.
-  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version != "12.9" or py<311 or py in (312, 313, 314)]
+  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version != "12.9" or py<311]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
@@ -201,7 +199,7 @@ requirements:
     # other requirements
     - python {{megabuild_python}}  # [megabuild]
     - python       # [not megabuild]
-    - numpy >=1.26.0,<3.0.0
+    - numpy {{ numpy }}
     - pip
     # upstream requirements-build.txt: setuptools>=77.0.0,<82
     - setuptools >=77.0.0,<82
@@ -231,15 +229,15 @@ requirements:
     - llvm-openmp                 # [win and blas_impl == "openblas"]
     - libabseil {{ libabseil }}
     - libprotobuf {{ libprotobuf }}
-    # sleef 3.9.0 OpenMP-flavor variant must match parent env's runtime to
+    # sleef's OpenMP-flavor variant must match parent env's runtime to
     # avoid mismatched DT_NEEDED on torch_cpu:
     #   linux+openblas → libgomp     (AR libgcc *_gnu mutex)
     #   osx            → llvm_openmp (AR osx llvm-openmp)
     #   win or *+mkl   → no_openmp   (sleef uses parent runtime: intel-openmp
     #                                 on mkl, vcomp on win+openblas)
-    - sleef 3.9.0 *libgomp*       # [linux and blas_impl != "mkl"]
-    - sleef 3.9.0 *llvm_openmp*   # [osx]
-    - sleef 3.9.0 *no_openmp*     # [win or blas_impl == "mkl"]
+    - sleef {{ sleef }} *libgomp*       # [linux and blas_impl != "mkl"]
+    - sleef {{ sleef }} *llvm_openmp*   # [osx]
+    - sleef {{ sleef }} *no_openmp*     # [win or blas_impl == "mkl"]
     - libuv {{ libuv }}
     - pkg-config  # [unix]
     # upstream requirements-build.txt: typing-extensions>=4.15.0
@@ -442,7 +440,7 @@ outputs:
         {% endif %}
         # other requirements
         - python
-        - numpy >=1.26.0,<3.0.0
+        - numpy {{ numpy }}
         - pip
         # upstream requirements-build.txt: setuptools>=77.0.0,<82
         - setuptools >=77.0.0,<82
@@ -466,10 +464,10 @@ outputs:
         - llvm-openmp                 # [win and blas_impl == "openblas"]
         - libabseil {{ libabseil }}
         - libprotobuf {{ libprotobuf }}
-        # sleef: see libtorch host above for the 3.9.0 variant-matching rationale.
-        - sleef 3.9.0 *libgomp*       # [linux and blas_impl != "mkl"]
-        - sleef 3.9.0 *llvm_openmp*   # [osx]
-        - sleef 3.9.0 *no_openmp*     # [win or blas_impl == "mkl"]
+        # sleef: see libtorch host above for the variant-matching rationale.
+        - sleef {{ sleef }} *libgomp*       # [linux and blas_impl != "mkl"]
+        - sleef {{ sleef }} *llvm_openmp*   # [osx]
+        - sleef {{ sleef }} *no_openmp*     # [win or blas_impl == "mkl"]
         - libuv {{ libuv }}
         - pkg-config  # [unix]
         # upstream requirements-build.txt: typing-extensions>=4.15.0
@@ -641,14 +639,10 @@ outputs:
         - boto3
         - hypothesis
         # scipy needed by test_ops.py::test_numpy_ref_* on all platforms.
-        # scipy 1.17 dropped py3.10, so skip on py3.10 - paired with the
-        # `not test_numpy_ref` filter below.
         # Temporary: restore Windows py3.15 scipy coverage when scipy py3.15 Windows builds land.
-        - scipy           # [py != 310 and not (win and py >= 315)]
+        - scipy           # [not (win and py >= 315)]
         - tabulate
-        # Temporary: restore py3.15 graph-drawing coverage after pyparsing (pyparsing-feedstock#17)
-        # and pydot py3.15 builds land; pydot is optional upstream (torch/fx/passes/graph_drawer.py HAS_PYDOT).
-        - pydot           # [py<315]
+        - pydot
         - mock  # [linux]
         - pip
         - expecttest
@@ -701,9 +695,7 @@ outputs:
         # - complex linalg dot cases are flaky: https://github.com/pytorch/pytorch/issues/150918
         # - test_ctc_loss_cudnn_tensor*: cuDNN's CTC kernel raises a device-side assert
         #   ("CTC target label out of range"), which poisons the CUDA context for the rest of test_nn.
-        # - py3.10: scipy 1.17 dropped py3.10, so test_numpy_ref_* cannot run there.
-        {% set k_py310 = " and not test_numpy_ref" if CONDA_PY|int == 310 else "" %}
-        {% set run_test_core_k = "not (complex and (linalg_vecdot or dot or vdot)) and not test_ctc_loss_cudnn_tensor" ~ k_py310 %}
+        {% set run_test_core_k = "not (complex and (linalg_vecdot or dot or vdot)) and not test_ctc_loss_cudnn_tensor" %}
         # linux-aarch64 CUDA: the CI GPU is an NVIDIA T4G (sm_75, g5g.8xlarge), below this
         # build's sm_80 floor (build.sh), so CUDA kernels cannot run there: the core suites run
         # with the GPU hidden. test_fb_fc_packed and the igamma tests crash that worker's
@@ -711,7 +703,7 @@ outputs:
         {% set run_test_core_k_aarch64_cuda = run_test_core_k ~ " and not test_fb_fc_packed and not _igamma" %}
         # Windows: lgamma / mvlgamma / multigammaln / gammaln give non-deterministic numerical
         # differences (80-110 failures) on Intel Xeon + Windows Server since PyTorch 2.5.
-        {% set run_test_core_k_win = "not ((complex and (linalg_vecdot or dot or vdot)) or lgamma or mvlgamma or multigammaln or gammaln or test_ctc_loss_cudnn_tensor)" ~ k_py310 %}
+        {% set run_test_core_k_win = "not ((complex and (linalg_vecdot or dot or vdot)) or lgamma or mvlgamma or multigammaln or gammaln or test_ctc_loss_cudnn_tensor)" %}
         {% set core_required = "-i test_torch test_autograd" %}
         # Explicit list: run_test.py -x is prefix-matching, so "-x test_autograd" would drop test_autograd_fallback too.
         {% set core_rest = "--core -i test_autograd_fallback test_modules test_nn test_ops test_ops_gradients test_ops_fwd_gradients test_ops_jit" %}

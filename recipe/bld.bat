@@ -86,7 +86,8 @@ if "%gpu_variant:~0,4%" == "cuda" (
     set USE_NCCL=0
     set USE_STATIC_NCCL=0
 
-    @REM CUDA Architecture List (aligned with upstream PyTorch v2.12.0 .ci/manywheel/build_cuda.sh)
+    @REM CUDA Architecture List: matches upstream PyTorch 2.15 TORCH_CUDA_ARCH_LIST_TABLE
+    @REM in .ci/wheel/windows/build_env_setup.py for 12.9 and 13.x.
     @REM  7.5 = Turing     (RTX 20xx, T4)
     @REM  8.0 = Ampere HPC (A100)
     @REM  8.6 = Ampere     (RTX 30xx)
@@ -95,8 +96,8 @@ if "%gpu_variant:~0,4%" == "cuda" (
     @REM 12.0 = Blackwell  (RTX 50xx, RTX PRO)
     @REM sm_70 (Volta/V100) dropped upstream in 2.11 for CUDA 12 and CUDA 13.
     @REM We deliberately keep trailing +PTX for forward-compat with future archs
-    @REM (sm_13+). Upstream 2.11 shipped +PTX; upstream 2.12 dropped it. We preserve
-    @REM it so users on hardware newer than sm_12 still get JIT-runnable kernels.
+    @REM (sm_13+). Upstream release wheels are SASS-only; only nightlies add +PTX.
+    @REM We keep it so users on hardware newer than sm_12 still get JIT-runnable kernels.
     set "cuda_major=%cuda_compiler_version:~0,2%"
     if "!cuda_major!" == "12" (
         set "TORCH_CUDA_ARCH_LIST=7.5;8.0;8.6;9.0;10.0;12.0+PTX"
