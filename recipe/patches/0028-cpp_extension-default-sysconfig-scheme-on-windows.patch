@@ -1,0 +1,43 @@
+From 41662c348422d1e86eab2f70e19e3f2e045ddebe Mon Sep 17 00:00:00 2001
+From: xkong-anaconda <xkong@anaconda.com>
+Date: Wed, 28 Oct 2026 05:09:35 -0500
+Subject: [PATCH] cpp_extension: use the default sysconfig scheme for Python.h
+ on Windows
+
+_write_ninja_file_to_build_library() looks up Python.h with
+sysconfig.get_path('include', scheme='nt'), i.e. {installed_base}/Include.
+Anaconda's Python 3.15 on Windows installs with the 'nt_conda' scheme,
+whose include dir is {installed_base}/include/python, so every JIT
+extension (load / load_inline) fails with C1083 "Cannot open include
+file: 'Python.h'" (test_autograd::test_multi_grad_all_hooks on win-64
+py3.15). The forced scheme exists for a macOS posix_prefix workaround;
+on Windows the default scheme of stock CPython ('nt', or 'nt_venv' in a
+venv) resolves to the same Include dir, so nothing changes there.
+
+Not fixed upstream (main still forces scheme='nt').
+
+Patch drafted with AI assistance (Claude Code).
+---
+ torch/utils/cpp_extension.py | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/torch/utils/cpp_extension.py b/torch/utils/cpp_extension.py
+index 8d23e6e..ef85e6c 100644
+--- a/torch/utils/cpp_extension.py
++++ b/torch/utils/cpp_extension.py
+@@ -3056,8 +3056,10 @@ def _write_ninja_file_to_build_library(path,
+         system_includes = include_paths("cpu")
+     # sysconfig.get_path('include') gives us the location of Python.h
+     # Explicitly specify 'posix_prefix' scheme on non-Windows platforms to workaround error on some MacOS
+-    # installations where default `get_path` points to non-existing `/Library/Python/M.m/include` folder
+-    python_include_path = sysconfig.get_path('include', scheme='nt' if IS_WINDOWS else 'posix_prefix')
++    # installations where default `get_path` points to non-existing `/Library/Python/M.m/include` folder.
++    # On Windows use the interpreter's default scheme: a Python that installs with a non-'nt' scheme
++    # (e.g. Anaconda's 3.15 'nt_conda', include/python) has no Python.h under the 'nt' Include dir.
++    python_include_path = sysconfig.get_path('include') if IS_WINDOWS else sysconfig.get_path('include', scheme='posix_prefix')
+     if python_include_path is not None:
+         system_includes.append(python_include_path)
+ 
+-- 
+2.50.1 (Apple Git-155)
+

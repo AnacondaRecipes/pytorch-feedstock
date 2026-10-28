@@ -60,6 +60,9 @@ source:
       # 2.15's #200290 dropped the macOS-14 device probe but never added its macOS 15 gate,
       # so MPS reported available on macOS 13/14 and hit unguarded macOS 15 APIs.
       - patches/0027-mps-require-macOS-15-before-creating-the-MPS-device.patch   # [gpu_variant == "metal"]
+      # JIT C++ extensions look for Python.h via the forced "nt" sysconfig scheme; py3.15's
+      # nt_conda scheme keeps it in include\python, so load_inline failed with C1083.
+      - patches/0028-cpp_extension-default-sysconfig-scheme-on-windows.patch    # [win]
   # sha256 required — without it conda-build bypasses the pbp src_cache and
   # re-downloads every run, which hits GitHub raw's HTTP 429 rate limit on
   # busy graphs (observed on win-64 py3.11/py3.14 in graph 2dd074ea).
