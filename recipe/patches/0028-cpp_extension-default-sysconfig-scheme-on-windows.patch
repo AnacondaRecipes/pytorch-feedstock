@@ -15,8 +15,6 @@ on Windows the default scheme of stock CPython ('nt', or 'nt_venv' in a
 venv) resolves to the same Include dir, so nothing changes there.
 
 Not fixed upstream (main still forces scheme='nt').
-
-Patch drafted with AI assistance (Claude Code).
 ---
  torch/utils/cpp_extension.py | 6 ++++--
  1 file changed, 4 insertions(+), 2 deletions(-)

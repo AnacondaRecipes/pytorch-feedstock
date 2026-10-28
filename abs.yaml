@@ -1,5 +1,5 @@
-# macOS 12.3 or above is required for running the GPU variant (MPS support). No way to specify this for only the GPU
-# variant, so it's specified for both.
+# osx-arm64 builds and tests run on the Ventura (macOS 13) pool for both variants. Since patch 0027 MPS needs
+# macOS 15 at runtime, so there the metal variant reports MPS unavailable and its tests check that path on CPU.
 extra_labels_for_os:
   osx-arm64: [ventura]
 
