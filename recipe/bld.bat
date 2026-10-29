@@ -256,9 +256,9 @@ if "%PKG_NAME%" == "libtorch" (
     @REM Move libtorch_python into LIBRARY and clean vendored copies
     robocopy /NP /NFL /NDL /NJH /E "%SP_DIR%\torch\bin" "%LIBRARY_BIN%" torch_python.dll
     if errorlevel 8 exit 1
-    robocopy /NP /NFL /NDL /NJH /E "%SP_DIR%\torch\lib" "%LIBRARY_LIB%" torch_python.lib _C.lib
+    robocopy /NP /NFL /NDL /NJH /E "%SP_DIR%\torch\lib" "%LIBRARY_LIB%" torch_python.lib
     if errorlevel 8 exit 1
-    for %%f in (bin\torch_python.dll lib\torch_python.lib lib\_C.lib) do (
+    for %%f in (bin\torch_python.dll lib\torch_python.lib) do (
         if not exist "%LIBRARY_PREFIX%\%%f" exit 1
     )
     rmdir /s /q "%SP_DIR%\torch\lib"
@@ -276,7 +276,7 @@ if "%PKG_NAME%" == "libtorch" (
     @REM patch 0015 points at Library\lib, so torch_python.lib must stay there
     @REM too (test_autograd test_multi_grad_all_hooks failed LNK1181 without it).
     mkdir "%SP_DIR%\torch\lib"
-    robocopy /NP /NFL /NDL /NJH /E "%LIBRARY_LIB%" "%SP_DIR%\torch\lib" torch_python.lib _C.lib
+    robocopy /NP /NFL /NDL /NJH /E "%LIBRARY_LIB%" "%SP_DIR%\torch\lib" torch_python.lib
     if errorlevel 8 exit 1
 )
 
