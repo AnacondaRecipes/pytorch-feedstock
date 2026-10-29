@@ -7,7 +7,7 @@ Index: pytorch-2.12.0/cmake/Dependencies.cmake
 ===================================================================
 --- pytorch-2.12.0.orig/cmake/Dependencies.cmake
 +++ pytorch-2.12.0/cmake/Dependencies.cmake
-@@ -1479,14 +1479,49 @@ if(NOT INTERN_BUILD_MOBILE)
+@@ -1603,14 +1603,49 @@ if(NOT INTERN_BUILD_MOBILE)
      endif()
    endif()
    if(USE_MKLDNN)

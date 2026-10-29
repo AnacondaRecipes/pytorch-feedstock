@@ -1,25 +1,17 @@
-# pytorch 2.13.0 unified CBC — shared byte-identical across all 3 split PRs:
-#   PKG-12886 cpu     (this PR)  — skip: gpu_variant == "cuda"
-#   PKG-12885 cuda129 (sibling)  — skip: gpu_variant != "cuda" or cuda_compiler_version != "12.9"
-#   PKG-12885/12884/12888 cuda130 (sibling) — skip: gpu_variant != "cuda" or cuda_compiler_version != "13.0"
-#
-# All 3 PRs have identical `recipe/` — meta.yaml differs only in the top-level
-# `build.skip` line, same convention 2.12 used (#97/#101/#102 differed only in
-# the py-bucket skip). Python is now widened to inherit the aggregate
-# [3.10..3.14] matrix (was locally pinned to [3.12] during fast iteration).
+# pytorch unified CBC — shared byte-identical across the 3 split PRs (CPU+metal,
+# CUDA 12.9, CUDA 13.x); meta.yaml differs only in the top-level `build.skip`
+# line, which picks each PR's variant subset. Python inherits the aggregate matrix.
 #
 # CBC layout notes:
 #   - gpu_variant is zipped with cuda_compiler_version on win/linux (so the CPU
 #     variant doesn't duplicate across CUDA versions) and zipped with MACOSX_SDK
 #     / CONDA_BUILD_SYSROOT on osx-arm64 (so CPU and Metal builds get separate
 #     SDKs). Build strings key off the literal cpu/metal/cuda values.
-#   - The two `cuda` entries in gpu_variant are intentional (NOT a typo). They
-#     pair row-wise with cuda_compiler_version [none, none, 12.9, 13.0] via the
-#     zip_keys block at the bottom:
-#       entry 3 (selector: win or linux-x86_64) pairs with cuda 12.9
-#       entry 4 (selector: win or linux)        pairs with cuda 13.0
-#     linux-aarch64 only matches entry 4, so it builds cuda 13.0 only (CUDA 12.x
-#     requires gcc <15 but aarch64 needs gcc 15.2.0).
+#   - The repeated `cuda` entries in gpu_variant are intentional (NOT a typo).
+#     They pair row-wise with cuda_compiler_version via the zip_keys block at
+#     the bottom; each row's selector picks the platforms that build that CUDA
+#     version (linux-aarch64 builds 13.x only: CUDA 12.x requires gcc <15 but
+#     aarch64 needs gcc 15.2.0).
 
 gpu_variant:
   - cpu                              # all platforms
@@ -31,10 +23,12 @@ gpu_variant:
   - cuda                             # [(win and x86_64) or linux]
   - cuda                             # [win and arm64]
 
-# Upstream PyTorch v2.13.0 supports CUDA 12.6/12.8/12.9/13.0/13.2 in
-# .ci/manywheel/build.sh; pkgs/main currently ships cuda-nvcc 12.9 and 13.0
-# (no 13.2 yet). aarch64 only supports CUDA 13.x (CUDA 12.x requires gcc <15,
-# but aarch64 needs gcc 15.2.0). "none" pairs with gpu_variant=cpu/metal under
+# Upstream PyTorch 2.15 releases CUDA 13.0/13.2/13.4 wheels (CUDA_ARCHES in
+# .github/scripts/generate_binary_build_matrix.py; 12.x left the release matrix).
+# This recipe builds 12.9 and 13.0 on x86_64, 13.0 on linux-aarch64 and 13.4 on
+# win-arm64. pkgs/main also has cuda-nvcc 13.1-13.4 for x86_64; moving to one of
+# them is a separate change. aarch64 only supports CUDA 13.x (CUDA 12.x requires
+# gcc <15, but aarch64 needs gcc 15.2.0). "none" pairs with gpu_variant=cpu/metal under
 # zip_keys; the recipe ignores cuda_compiler_version for non-CUDA variants but
 # the key must align lengthwise.
 cuda_compiler_version:
@@ -69,15 +63,17 @@ cxx_compiler_version:
 # build GPU and CPU at the same time for osx-arm64. It'll need to be manually updated here if the base cbc is changed.
 # This could be done using extend_keys instead, with a change to the base cbc.yaml.
 # However there's currently a conda-forge bug that prevents this: https://github.com/conda/conda-build/issues/5048
+# metal needs SDK >=15: 2.15 dropped its macOS-14 shim and uses macOS 15 MPS APIs
+# unguarded (pytorch#199261). 15.2 is the newest CLT SDK on the PBP osx-arm64 workers.
 MACOSX_SDK_VERSION:          # [(osx and arm64)]
   - 13.3                     # [(osx and arm64)]
-  - 14.5                     # [(osx and arm64)]
+  - 15.2                     # [(osx and arm64)]
 CONDA_BUILD_SYSROOT:         # [(osx and arm64)]
   - /Library/Developer/CommandLineTools/SDKs/MacOSX13.3.sdk  # [(osx and arm64)]
-  - /Library/Developer/CommandLineTools/SDKs/MacOSX14.5.sdk  # [(osx and arm64)]
+  - /Library/Developer/CommandLineTools/SDKs/MacOSX15.2.sdk  # [(osx and arm64)]
 
 # Two zip groups, gated by platform so the shared `gpu_variant` key doesn't conflict:
-#   - osx-arm64: zip gpu_variant with the two SDK keys (cpu↔13.3, metal↔14.5).
+#   - osx-arm64: zip gpu_variant with the two SDK keys (cpu↔13.3, metal↔15.2).
 #   - win/linux: zip gpu_variant with cuda_compiler_version so the CPU variant
 #                exists exactly once per platform (no Cartesian-product duplicates).
 zip_keys:

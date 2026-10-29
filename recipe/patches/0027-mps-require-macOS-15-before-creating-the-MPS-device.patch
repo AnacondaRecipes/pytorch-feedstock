@@ -1,0 +1,41 @@
+From 8864e8393f58af470b7ea1a146926196ebf6a2ce Mon Sep 17 00:00:00 2001
+From: xkong-anaconda <xkong@anaconda.com>
+Date: Mon, 26 Oct 2026 14:59:08 -0500
+Subject: [PATCH] mps: require macOS 15.0 before creating the MPS device
+
+pytorch#200290 (cherry-picked to release/2.15 as 4f693d55db) removed the
+macOS-14 MPSGraph selector probe from MPSDevice() and describes gating
+device creation on macOS 15.0 instead, but the diff adds no such gate:
+is_available() only checks for a Metal device, and the macOS-15 check in
+EmptyTensor.cpp runs only on the already-unavailable path. On macOS 13/14
+with an Apple7+ GPU, MPS reports available and then calls the macOS 15
+APIs that pytorch#199261 stopped guarding.
+
+Restore the intended gate: return before device selection unless the OS is
+macOS 15.0+, so MPS is reported unavailable and empty_mps() raises the
+"supported on macOS 15.0+" error. Not yet fixed upstream (main 136c1ff4
+has the same constructor).
+
+Patch drafted with AI assistance (Claude Code).
+---
+ aten/src/ATen/mps/MPSDevice.mm | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/aten/src/ATen/mps/MPSDevice.mm b/aten/src/ATen/mps/MPSDevice.mm
+index ac2d01f133..acd4341ccf 100644
+--- a/aten/src/ATen/mps/MPSDevice.mm
++++ b/aten/src/ATen/mps/MPSDevice.mm
+@@ -19,6 +19,13 @@
+ }
+ 
+ MPSDevice::MPSDevice() : _mtl_device(nil) {
++  // The MPS backend uses macOS 15 APIs without availability guards. Below
++  // macOS 15, leave _mtl_device nil so is_available() is false and empty_mps()
++  // raises the "supported on macOS 15.0+" error instead of calling them.
++  if (!isMacOS13Plus(MacOSVersion::MACOS_15_0)) {
++    return;
++  }
++
+   NSArray* devices = [MTLCopyAllDevices() autorelease];
+   for (unsigned long i = 0; i < [devices count]; i++) {
+     id<MTLDevice> device = devices[i];
