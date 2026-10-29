@@ -163,14 +163,23 @@ def prepare():
     check_skbuild()
     with open(NINJA_BEFORE, "w") as f:
         json.dump(ninja_entries(), f)
-    kept, dropped = [], 0
+    # An entry's "//" help lines go with it: CMake rejects help text that is
+    # not followed by an entry (format error at the end of the file).
+    kept, help_lines, dropped = [], [], 0
     with open(ORIG, encoding="utf-8", errors="surrogateescape") as f:
         for line in f:
-            if not line.startswith(("#", "//")) and ":" in line and "=" in line:
+            if line.startswith("//"):
+                help_lines.append(line)
+                continue
+            if not line.startswith("#") and ":" in line and "=" in line:
                 if PYTHON_KEY.match(line.split(":", 1)[0]):
                     dropped += 1
+                    help_lines = []
                     continue
+            kept.extend(help_lines)
+            help_lines = []
             kept.append(line)
+    kept.extend(help_lines)
     tmp = CACHE + ".tmp"
     with open(tmp, "w", encoding="utf-8", errors="surrogateescape") as f:
         f.writelines(kept)
