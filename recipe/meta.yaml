@@ -88,7 +88,9 @@ build:
   #   cuda12.9:  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version != "12.9" or py<311]
   #   cuda13.x:  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version not in ("13.0", "13.4") or py<311]
   # py3.10 dropped: triton 3.9 requires python >=3.11, and upstream ships no py3.10 2.15 wheels.
-  skip: true  # [gpu_variant == "cuda" or py<311]
+  # win-arm64 megabuild branch: one recipe builds both the CPU and the CUDA 13.4
+  # rows; select one with --variants (gpu_variant). py3.11 has no win-arm64 build.
+  skip: true  # [not (win and arm64) or py<312]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
@@ -199,7 +201,8 @@ requirements:
     # other requirements
     - python {{megabuild_python}}  # [megabuild]
     - python       # [not megabuild]
-    - numpy {{ numpy }}
+    - numpy {{ megabuild_numpy }}  # [megabuild]
+    - numpy {{ numpy }}            # [not megabuild]
     - pip
     # upstream requirements-build.txt: setuptools>=77.0.0,<82
     - setuptools >=77.0.0,<82

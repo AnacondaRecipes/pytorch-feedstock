@@ -201,8 +201,30 @@ if "%PKG_NAME%" == "pytorch" (
 @REM --no-clean preserves build dir so CMake can do incremental work.
 @REM --no-build-isolation uses our conda environment packages.
 @REM (2.14's scikit-build-core backend rejects the legacy --global-option config-setting.)
-"%PYTHON%" -m pip %PIP_ACTION% . --no-build-isolation --no-deps %PIP_VERBOSITY% --no-clean
+@REM win-arm64 megabuild: the libtorch output compiles the tree once against
+@REM megabuild_python; each pytorch output reuses build\ after win_megabuild.py
+@REM refreshes the Python entries in CMakeCache.txt (build.sh does this with sed).
+set "MEGABUILD_WIN="
+if /i "%megabuild%" == "true" if "%target_platform%" == "win-arm64" set "MEGABUILD_WIN=1"
+echo megabuild=%megabuild% MEGABUILD_WIN=%MEGABUILD_WIN% PKG_NAME=%PKG_NAME%
+set "PIP_EXTRA="
+if defined MEGABUILD_WIN if "%PKG_NAME%" == "pytorch" (
+    "%PYTHON%" "%RECIPE_DIR%\win_megabuild.py" prepare
+    if errorlevel 1 exit 1
+    set "PIP_EXTRA=-Cbuild.verbose=true "-Cbuild.tool-args=-d;explain""
+)
+
+"%PYTHON%" -m pip %PIP_ACTION% . --no-build-isolation --no-deps %PIP_VERBOSITY% --no-clean %PIP_EXTRA%
 if %ERRORLEVEL% neq 0 exit 1
+
+if defined MEGABUILD_WIN if "%PKG_NAME%" == "libtorch" (
+    "%PYTHON%" "%RECIPE_DIR%\win_megabuild.py" save
+    if errorlevel 1 exit 1
+)
+if defined MEGABUILD_WIN if "%PKG_NAME%" == "pytorch" (
+    "%PYTHON%" "%RECIPE_DIR%\win_megabuild.py" report
+    if errorlevel 1 exit 1
+)
 
 @REM %SP_DIR% still renders Lib\site-packages, but Python 3.15 on Windows installs to
 @REM lib\python\site-packages (the nt_conda scheme), so ask the host Python.
