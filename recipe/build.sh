@@ -288,21 +288,19 @@ elif [[ ${gpu_variant} == "cuda"* ]]; then
     if [[ "${target_platform}" != "${build_platform}" ]]; then
         export CUDA_TOOLKIT_ROOT=${CUDA_HOME}
     fi
-    # CUDA arch lists aligned with upstream PyTorch v2.12.0 .ci/manywheel/build_cuda.sh,
-    # with one deliberate divergence: keep trailing +PTX for forward-compat with future
-    # archs (sm_13+). Upstream 2.11 shipped +PTX; upstream 2.12 dropped it (line 112's
-    # comment still says "+ PTX for forward compatibility" but the code no longer adds it).
-    # We preserve +PTX so users on hardware newer than sm_12 still get JIT-runnable kernels.
-    # 2.12 supports CUDA 12.6/12.8/12.9/13.0/13.2; we ship 12.9 and 13.0
-    # (pkgs/main has cuda-nvcc 13.0 but not 13.2 yet — see CBC).
+    # CUDA arch lists follow upstream PyTorch 2.15 TORCH_CUDA_ARCH_LIST_TABLE in
+    # .ci/wheel/linux/build_env_setup.py: 13.x x86_64 = 7.5;8.0;8.6;9.0;10.0;12.0,
+    # aarch64 = 8.0;9.0;10.0;11.0;12.0. Upstream has no 12.9 row (its release matrix is
+    # 13.0/13.2/13.4); our 12.9 build uses the same x86_64 list. One deliberate divergence:
+    # we keep a trailing +PTX for forward-compat with GPUs newer than sm_12. Upstream adds
+    # 12.0+PTX only on nightly/dev builds and ships release wheels SASS-only.
     if [[ "$target_platform" == "linux-aarch64" && ${cuda_compiler_version} == 13.* ]]; then
-        # aarch64 CUDA 13: upstream filters out <8.0, 7.5, 8.6 (x86_64-only SKUs)
-        # and adds sm_11.0 (Jetson Thor) only on aarch64.
-        # Keeps 8.0 (A100), 9.0 (Grace Hopper), 10.0+12.0 (Blackwell), 11.0 (Thor).
-        # sm_12.1+PTX is a deliberate divergence from upstream 2.12 for NVIDIA
-        # DGX Spark (GB10 Superchip, aarch64 Blackwell consumer/edge variant
-        # launched ~Apr 2026 after upstream 2.12's build_cuda.sh was written).
-        # Match what AR shipped in 2.11 (PR #95) for this customer.
+        # aarch64 CUDA 13: upstream's list drops 7.5 and 8.6 (x86_64-only SKUs) and
+        # adds sm_11.0 (Jetson Thor) only on aarch64: 8.0 (A100), 9.0 (Grace Hopper),
+        # 10.0+12.0 (Blackwell), 11.0 (Thor).
+        # sm_12.1+PTX is a deliberate divergence for NVIDIA DGX Spark (GB10
+        # Superchip, aarch64 Blackwell); upstream 2.15 still has no 12.1.
+        # Match what AR has shipped since 2.11 (PR #95) for this customer.
         export TORCH_CUDA_ARCH_LIST="8.0;9.0;10.0;11.0;12.0;12.1+PTX"
     elif [[ ${cuda_compiler_version} == 12.* ]]; then
         # CUDA 12: sm_50-sm_61 deprecated in 12.8; sm_70 dropped upstream in 2.11.

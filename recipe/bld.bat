@@ -86,7 +86,8 @@ if "%gpu_variant:~0,4%" == "cuda" (
     set USE_NCCL=0
     set USE_STATIC_NCCL=0
 
-    @REM CUDA Architecture List (aligned with upstream PyTorch v2.12.0 .ci/manywheel/build_cuda.sh)
+    @REM CUDA Architecture List: matches upstream PyTorch 2.15 TORCH_CUDA_ARCH_LIST_TABLE
+    @REM in .ci/wheel/windows/build_env_setup.py for 12.9 and 13.x.
     @REM  7.5 = Turing     (RTX 20xx, T4)
     @REM  8.0 = Ampere HPC (A100)
     @REM  8.6 = Ampere     (RTX 30xx)
@@ -95,8 +96,8 @@ if "%gpu_variant:~0,4%" == "cuda" (
     @REM 12.0 = Blackwell  (RTX 50xx, RTX PRO)
     @REM sm_70 (Volta/V100) dropped upstream in 2.11 for CUDA 12 and CUDA 13.
     @REM We deliberately keep trailing +PTX for forward-compat with future archs
-    @REM (sm_13+). Upstream 2.11 shipped +PTX; upstream 2.12 dropped it. We preserve
-    @REM it so users on hardware newer than sm_12 still get JIT-runnable kernels.
+    @REM (sm_13+). Upstream release wheels are SASS-only; only nightlies add +PTX.
+    @REM We keep it so users on hardware newer than sm_12 still get JIT-runnable kernels.
     set "cuda_major=%cuda_compiler_version:~0,2%"
     if "!cuda_major!" == "12" (
         set "TORCH_CUDA_ARCH_LIST=7.5;8.0;8.6;9.0;10.0;12.0+PTX"
@@ -200,61 +201,83 @@ if "%PKG_NAME%" == "pytorch" (
 @REM --no-clean preserves build dir so CMake can do incremental work.
 @REM --no-build-isolation uses our conda environment packages.
 @REM (2.14's scikit-build-core backend rejects the legacy --global-option config-setting.)
-%PYTHON% -m pip %PIP_ACTION% . --no-build-isolation --no-deps %PIP_VERBOSITY% --no-clean
+"%PYTHON%" -m pip %PIP_ACTION% . --no-build-isolation --no-deps %PIP_VERBOSITY% --no-clean
 if %ERRORLEVEL% neq 0 exit 1
 
+@REM %SP_DIR% still renders Lib\site-packages, but Python 3.15 on Windows installs to
+@REM lib\python\site-packages (the nt_conda scheme), so ask the host Python.
+set "PY_PLATLIB="
+for /f "usebackq delims=" %%i in (`call "%PYTHON%" -c "import sysconfig; print(sysconfig.get_path('platlib'))"`) do set "PY_PLATLIB=%%i"
+if not defined PY_PLATLIB exit 1
+set "SP_DIR=%PY_PLATLIB%"
+
 @REM ========================= PACKAGE SPLIT ====================================
+@REM Use `if errorlevel N` (evaluated when the line runs), not %ERRORLEVEL%, which
+@REM inside a parenthesized block is expanded once when the block is parsed.
+@REM robocopy exit codes 0-7 are success (1 = files copied); 8 and above are failures.
 if "%PKG_NAME%" == "libtorch" (
-    if not exist "%SRC_DIR%\dist" mkdir %SRC_DIR%\dist
-    pushd %SRC_DIR%\dist
-    for /f %%f in ('dir /b /S ..\torch-*.whl') do (
-        wheel unpack %%f
-        if %ERRORLEVEL% neq 0 exit 1
+    if not exist "%SRC_DIR%\dist" mkdir "%SRC_DIR%\dist"
+    pushd "%SRC_DIR%\dist"
+    if errorlevel 1 exit 1
+    for /f "delims=" %%f in ('dir /b /S ..\torch-*.whl') do (
+        wheel unpack "%%f"
+        if errorlevel 1 exit 1
     )
 
     pushd torch-*
-    if %ERRORLEVEL% neq 0 exit 1
+    if errorlevel 1 exit 1
 
     @REM Move non-Python binaries into conda Library locations
-    robocopy /NP /NFL /NDL /NJH /E torch\bin\ %LIBRARY_BIN%\ torch*.dll c10.dll shm.dll asmjit.dll fbgemm.dll dnnl.dll
-    robocopy /NP /NFL /NDL /NJH /E torch\lib\ %LIBRARY_LIB%\ torch*.lib c10.lib shm.lib asmjit.lib fbgemm.lib dnnl.lib
+    robocopy /NP /NFL /NDL /NJH /E torch\bin "%LIBRARY_BIN%" torch*.dll c10.dll shm.dll asmjit.dll fbgemm.dll dnnl.dll
+    if errorlevel 8 exit 1
+    robocopy /NP /NFL /NDL /NJH /E torch\lib "%LIBRARY_LIB%" torch*.lib c10.lib shm.lib asmjit.lib fbgemm.lib dnnl.lib
+    if errorlevel 8 exit 1
     if "%gpu_variant:~0,4%" == "cuda" (
-        robocopy /NP /NFL /NDL /NJH /E torch\bin\ %LIBRARY_BIN%\ c10_cuda.dll caffe2_nvrtc.dll
-        robocopy /NP /NFL /NDL /NJH /E torch\lib\ %LIBRARY_LIB%\ c10_cuda.lib caffe2_nvrtc.lib
+        robocopy /NP /NFL /NDL /NJH /E torch\bin "%LIBRARY_BIN%" c10_cuda.dll caffe2_nvrtc.dll
+        if errorlevel 8 exit 1
+        robocopy /NP /NFL /NDL /NJH /E torch\lib "%LIBRARY_LIB%" c10_cuda.lib caffe2_nvrtc.lib
+        if errorlevel 8 exit 1
     )
-    robocopy /NP /NFL /NDL /NJH /E torch\share\ %LIBRARY_PREFIX%\share
+    robocopy /NP /NFL /NDL /NJH /E torch\share "%LIBRARY_PREFIX%\share"
+    if errorlevel 8 exit 1
     for %%f in (ATen caffe2 torch c10) do (
-        robocopy /NP /NFL /NDL /NJH /E torch\include\%%f %LIBRARY_INC%\%%f\
+        robocopy /NP /NFL /NDL /NJH /E torch\include\%%f "%LIBRARY_INC%\%%f"
+        if errorlevel 8 exit 1
     )
 
     @REM Remove Python-specific binary; that belongs in the pytorch package
-    del %LIBRARY_BIN%\torch_python.* %LIBRARY_LIB%\torch_python.*
-    if %ERRORLEVEL% neq 0 exit 1
+    del "%LIBRARY_BIN%\torch_python.*" "%LIBRARY_LIB%\torch_python.*"
+    if exist "%LIBRARY_BIN%\torch_python.dll" exit 1
 
     popd
     popd
 ) else if "%PKG_NAME%" == "pytorch" (
+    if not exist "%SP_DIR%\torch\bin\torch_python.dll" exit 1
     @REM Move libtorch_python into LIBRARY and clean vendored copies
-    robocopy /NP /NFL /NDL /NJH /E %SP_DIR%\torch\bin\ %LIBRARY_BIN%\ torch_python.dll
-    robocopy /NP /NFL /NDL /NJH /E %SP_DIR%\torch\lib\ %LIBRARY_LIB%\ torch_python.lib
-    robocopy /NP /NFL /NDL /NJH /E %SP_DIR%\torch\lib\ %LIBRARY_LIB%\ _C.lib
-    rmdir /s /q %SP_DIR%\torch\lib
-    rmdir /s /q %SP_DIR%\torch\bin
-    rmdir /s /q %SP_DIR%\torch\share
+    robocopy /NP /NFL /NDL /NJH /E "%SP_DIR%\torch\bin" "%LIBRARY_BIN%" torch_python.dll
+    if errorlevel 8 exit 1
+    robocopy /NP /NFL /NDL /NJH /E "%SP_DIR%\torch\lib" "%LIBRARY_LIB%" torch_python.lib
+    if errorlevel 8 exit 1
+    for %%f in (bin\torch_python.dll lib\torch_python.lib) do (
+        if not exist "%LIBRARY_PREFIX%\%%f" exit 1
+    )
+    rmdir /s /q "%SP_DIR%\torch\lib"
+    rmdir /s /q "%SP_DIR%\torch\bin"
+    rmdir /s /q "%SP_DIR%\torch\share"
     for %%f in (ATen caffe2 torch c10) do (
-        rmdir /s /q %SP_DIR%\torch\include\%%f
+        rmdir /s /q "%SP_DIR%\torch\include\%%f"
+    )
+    for %%d in (lib bin share include\ATen include\caffe2 include\torch include\c10) do (
+        if exist "%SP_DIR%\torch\%%d" exit 1
     )
 
     @REM Copy Python-specific libs back for torch's internal import machinery.
     @REM Copy, not move: cpp_extension links against TORCH_LIB_PATH, which
     @REM patch 0015 points at Library\lib, so torch_python.lib must stay there
     @REM too (test_autograd test_multi_grad_all_hooks failed LNK1181 without it).
-    mkdir %SP_DIR%\torch\lib
-    robocopy /NP /NFL /NDL /NJH /E %LIBRARY_LIB%\ %SP_DIR%\torch\lib\ torch_python.lib _C.lib
+    mkdir "%SP_DIR%\torch\lib"
+    robocopy /NP /NFL /NDL /NJH /E "%LIBRARY_LIB%" "%SP_DIR%\torch\lib" torch_python.lib
+    if errorlevel 8 exit 1
 )
 
-@REM Robocopy exit codes: 0=nothing copied, 1=files copied, 2=extras found,
-@REM 4=mismatched. Codes <=7 are success. Only >=8 indicates failure.
-if %ERRORLEVEL% leq 7 set ERRORLEVEL=0
-if %ERRORLEVEL% neq 0 exit 1
 exit /b 0
