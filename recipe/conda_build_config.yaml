@@ -96,5 +96,15 @@ eigen:                       # [win and arm64]
   - 5.0.1                    # [win and arm64]
 
 # megabuild is disabled as our CI runners work on each python version separately.
+# win-arm64 is built off-CI over all Pythons in one conda-build run, so it uses the
+# megabuild: libtorch is compiled once against megabuild_python and each pytorch
+# output reuses that build tree (bld.bat refreshes the Python entries in CMakeCache).
 megabuild:
-- false
+- false                       # [not (win and arm64)]
+- true                        # [win and arm64]
+megabuild_python:
+- 3.12                        # [win and arm64]
+# The parent (libtorch) build gets a fixed NumPy too: the aggregate CBC zips numpy with
+# python, and a per-Python NumPy would split the parent loop again (3.15 uses 2.5).
+megabuild_numpy:
+- 2.3                         # [win and arm64]
