@@ -1,0 +1,30 @@
+From: Anaconda recipe maintenance <pkg-team@anaconda.com>
+Subject: [PATCH] keep -DCMAKE_JOB_POOLS pools when FLASH_ATTENTION_MAX_JOBS is set
+
+The Ninja generator reads CMAKE_JOB_POOLS only while the JOB_POOLS global
+property is unset. FLASH_ATTENTION_MAX_JOBS appends its pool to that
+property, so every pool passed with -DCMAKE_JOB_POOLS disappeared from
+the generated build.ninja and ninja failed on the targets assigned to
+them. Seed the property with CMAKE_JOB_POOLS before appending.
+
+win-arm64-only via meta.yaml patch selector (set from bld.bat).
+
+diff --git a/aten/src/ATen/CMakeLists.txt b/aten/src/ATen/CMakeLists.txt
+index 7f2f7fcb3d03..53ae71ce5dc5 100644
+--- a/aten/src/ATen/CMakeLists.txt
++++ b/aten/src/ATen/CMakeLists.txt
+@@ -374,6 +374,14 @@ if(USE_CUDA AND (USE_FLASH_ATTENTION OR USE_MEM_EFF_ATTENTION))
+   set_target_properties(flash_attention PROPERTIES POSITION_INDEPENDENT_CODE ON)
+ 
+   if(FLASH_ATTENTION_MAX_JOBS)
++    # The Ninja generator reads CMAKE_JOB_POOLS only while the JOB_POOLS global
++    # property is unset, so appending here would drop the pools given with
++    # -DCMAKE_JOB_POOLS (ninja then fails on their unknown names). Seed the
++    # property with them first.
++    get_property(_flash_job_pools_set GLOBAL PROPERTY JOB_POOLS SET)
++    if(NOT _flash_job_pools_set AND CMAKE_JOB_POOLS)
++      set_property(GLOBAL PROPERTY JOB_POOLS ${CMAKE_JOB_POOLS})
++    endif()
+     set_property(GLOBAL APPEND PROPERTY JOB_POOLS
+       flash_attention_compile=${FLASH_ATTENTION_MAX_JOBS})
+     set_property(TARGET flash_attention PROPERTY JOB_POOL_COMPILE

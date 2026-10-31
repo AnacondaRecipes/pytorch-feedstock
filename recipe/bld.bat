@@ -32,7 +32,11 @@ if "%target_platform%" == "win-arm64" (
     @REM 2 torch_python + 2 links the torch_cpu.dll link peaked at 31.7 of 32 GiB
     @REM and the py3.13 build was watchdog-killed twice - graph 1f996af7. 4/1/1
     @REM leaves headroom for the link at the cost of a slower compile.
-    set "CMAKE_ARGS=!CMAKE_ARGS! -DCMAKE_JOB_POOLS=compile_pool=4;torch_python_pool=1;link_pool=1 -DCMAKE_JOB_POOL_COMPILE=compile_pool -DCMAKE_JOB_POOL_LINK=link_pool -DTORCH_PYTHON_JOB_POOL=torch_python_pool"
+    @REM CUDA: the flash-attention kernels take up to 4GB per cicc process, two per
+    @REM job with nvcc --threads 2; in compile_pool four of them filled 32GB and
+    @REM swapped. FLASH_ATTENTION_MAX_JOBS gives them their own pool of 2 (patch
+    @REM 0029 keeps the CMAKE_JOB_POOLS pools alongside it).
+    set "CMAKE_ARGS=!CMAKE_ARGS! -DCMAKE_JOB_POOLS=compile_pool=4;torch_python_pool=1;link_pool=1 -DCMAKE_JOB_POOL_COMPILE=compile_pool -DCMAKE_JOB_POOL_LINK=link_pool -DTORCH_PYTHON_JOB_POOL=torch_python_pool -DFLASH_ATTENTION_MAX_JOBS=2"
 )
 
 @REM ========================= BLAS SETUP =======================================
