@@ -146,15 +146,25 @@ def target_paths():
 
 def check_skbuild():
     """scikit-build-core deletes CMakeCache.txt and CMakeFiles (a full rebuild) when
-    its own location or version differs from .skbuild-info.json; fail before that."""
+    its own location differs from .skbuild-info.json (cmake.py, "New isolated
+    environment"). Fail if its version changed. The same version at a new path is
+    the same package moved by the host Python's layout (py3.15 installs into
+    lib\\python\\site-packages, older Pythons into Lib\\site-packages), so record
+    the new path instead."""
     import scikit_build_core
+    from pathlib import Path
+    from scikit_build_core.cmake import DIR
     with open(SKBUILD_INFO) as f:
         info = json.load(f)
-    here = os.path.dirname(os.path.abspath(scikit_build_core.__file__))
-    if (os.path.normcase(info["skbuild_path"]) != os.path.normcase(here)
-            or info["skbuild_version"] != scikit_build_core.__version__):
+    if info["skbuild_version"] != scikit_build_core.__version__:
         sys.exit("MEGABUILD: scikit-build-core changed (%s %s -> %s %s); it would reset the build tree"
-                 % (info["skbuild_path"], info["skbuild_version"], here, scikit_build_core.__version__))
+                 % (info["skbuild_path"], info["skbuild_version"], DIR, scikit_build_core.__version__))
+    if Path(info["skbuild_path"]) != DIR:
+        log("scikit-build-core %s moved %s -> %s; recorded the new path"
+            % (scikit_build_core.__version__, info["skbuild_path"], DIR))
+        info["skbuild_path"] = os.fspath(DIR)
+        with open(SKBUILD_INFO, "w", encoding="utf-8") as f:
+            json.dump(info, f, indent=2)
 
 
 def prepare():
