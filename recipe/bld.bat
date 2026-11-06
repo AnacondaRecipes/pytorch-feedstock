@@ -32,7 +32,11 @@ if "%target_platform%" == "win-arm64" (
     @REM 2 torch_python + 2 links the torch_cpu.dll link peaked at 31.7 of 32 GiB
     @REM and the py3.13 build was watchdog-killed twice - graph 1f996af7. 4/1/1
     @REM leaves headroom for the link at the cost of a slower compile.
-    set "CMAKE_ARGS=!CMAKE_ARGS! -DCMAKE_JOB_POOLS=compile_pool=4;torch_python_pool=1;link_pool=1 -DCMAKE_JOB_POOL_COMPILE=compile_pool -DCMAKE_JOB_POOL_LINK=link_pool -DTORCH_PYTHON_JOB_POOL=torch_python_pool"
+    @REM CUDA: the flash-attention kernels take up to 4GB per cicc process, two per
+    @REM job with nvcc --threads 2; in compile_pool four of them filled 32GB and
+    @REM swapped. FLASH_ATTENTION_MAX_JOBS gives them their own pool of 2 (patch
+    @REM 0029 keeps the CMAKE_JOB_POOLS pools alongside it).
+    set "CMAKE_ARGS=!CMAKE_ARGS! -DCMAKE_JOB_POOLS=compile_pool=4;torch_python_pool=1;link_pool=1 -DCMAKE_JOB_POOL_COMPILE=compile_pool -DCMAKE_JOB_POOL_LINK=link_pool -DTORCH_PYTHON_JOB_POOL=torch_python_pool -DFLASH_ATTENTION_MAX_JOBS=2"
 )
 
 @REM ========================= BLAS SETUP =======================================
@@ -201,8 +205,30 @@ if "%PKG_NAME%" == "pytorch" (
 @REM --no-clean preserves build dir so CMake can do incremental work.
 @REM --no-build-isolation uses our conda environment packages.
 @REM (2.14's scikit-build-core backend rejects the legacy --global-option config-setting.)
-"%PYTHON%" -m pip %PIP_ACTION% . --no-build-isolation --no-deps %PIP_VERBOSITY% --no-clean
+@REM win-arm64 megabuild: the libtorch output compiles the tree once against
+@REM megabuild_python; each pytorch output reuses build\ after win_megabuild.py
+@REM refreshes the Python entries in CMakeCache.txt (build.sh does this with sed).
+set "MEGABUILD_WIN="
+if /i "%megabuild%" == "true" if "%target_platform%" == "win-arm64" set "MEGABUILD_WIN=1"
+echo megabuild=%megabuild% MEGABUILD_WIN=%MEGABUILD_WIN% PKG_NAME=%PKG_NAME%
+set "PIP_EXTRA="
+if defined MEGABUILD_WIN if "%PKG_NAME%" == "pytorch" (
+    "%PYTHON%" "%RECIPE_DIR%\win_megabuild.py" prepare
+    if errorlevel 1 exit 1
+    set "PIP_EXTRA=-Cbuild.verbose=true "-Cbuild.tool-args=-d;explain""
+)
+
+"%PYTHON%" -m pip %PIP_ACTION% . --no-build-isolation --no-deps %PIP_VERBOSITY% --no-clean %PIP_EXTRA%
 if %ERRORLEVEL% neq 0 exit 1
+
+if defined MEGABUILD_WIN if "%PKG_NAME%" == "libtorch" (
+    "%PYTHON%" "%RECIPE_DIR%\win_megabuild.py" save
+    if errorlevel 1 exit 1
+)
+if defined MEGABUILD_WIN if "%PKG_NAME%" == "pytorch" (
+    "%PYTHON%" "%RECIPE_DIR%\win_megabuild.py" report
+    if errorlevel 1 exit 1
+)
 
 @REM %SP_DIR% still renders Lib\site-packages, but Python 3.15 on Windows installs to
 @REM lib\python\site-packages (the nt_conda scheme), so ask the host Python.

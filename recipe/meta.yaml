@@ -62,6 +62,8 @@ source:
       # JIT C++ extensions look for Python.h via the forced "nt" sysconfig scheme; py3.15's
       # nt_conda scheme keeps it in include\python, so load_inline failed with C1083.
       - patches/0028-cpp_extension-default-sysconfig-scheme-on-windows.patch    # [win]
+      # FLASH_ATTENTION_MAX_JOBS (set in bld.bat) replaced the -DCMAKE_JOB_POOLS pools.
+      - patches/0029-keep-CMAKE_JOB_POOLS-with-flash-attention-pool.patch      # [win and arm64]
   # sha256 required — without it conda-build bypasses the pbp src_cache and
   # re-downloads every run, which hits GitHub raw's HTTP 429 rate limit on
   # busy graphs (observed on win-64 py3.11/py3.14 in graph 2dd074ea).
@@ -88,7 +90,9 @@ build:
   #   cuda12.9:  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version != "12.9" or py<311]
   #   cuda13.x:  skip: true  # [gpu_variant != "cuda" or cuda_compiler_version not in ("13.0", "13.4") or py<311]
   # py3.10 dropped: triton 3.9 requires python >=3.11, and upstream ships no py3.10 2.15 wheels.
-  skip: true  # [gpu_variant == "cuda" or py<311]
+  # win-arm64 CUDA megabuild branch: builds only the win-arm64 CUDA 13.4 rows
+  # (the CPU rows come from the main recipe). py3.11 has no win-arm64 build.
+  skip: true  # [not (win and arm64) or gpu_variant != "cuda" or py<312]
   string: gpu_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [gpu_variant == "cuda"]
   string: gpu_mps_h{{PKG_HASH}}_{{ PKG_BUILDNUM }}                                                   # [gpu_variant == "metal"]
   string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                     # [gpu_variant == "cpu"]
@@ -199,7 +203,8 @@ requirements:
     # other requirements
     - python {{megabuild_python}}  # [megabuild]
     - python       # [not megabuild]
-    - numpy {{ numpy }}
+    - numpy {{ megabuild_numpy }}  # [megabuild]
+    - numpy {{ numpy }}            # [not megabuild]
     - pip
     # upstream requirements-build.txt: setuptools>=77.0.0,<82
     - setuptools >=77.0.0,<82
